@@ -1,0 +1,221 @@
+apiVersion: 1
+
+groups:
+  - name: 开心农场 - 系统告警
+    interval: 10s
+    rules:
+      - alert: HighErrorRate
+        expr: sum(rate({job="happy-farm-backend", level="error"}[5m])) > 5
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "高错误率告警"
+          description: "过去5分钟内错误日志数量超过5条，当前值: {{ $value }}"
+          
+      - alert: CriticalErrorRate
+        expr: sum(rate({job="happy-farm-backend", level="error"}[5m])) > 10
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "严重错误率告警"
+          description: "过去5分钟内错误日志数量超过10条，当前值: {{ $value }}"
+
+  - name: 开心农场 - 安全告警
+    interval: 15s
+    rules:
+      - alert: SecurityEvents
+        expr: sum(rate({job="happy-farm-backend", logType="security"}[5m])) > 2
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "安全事件告警"
+          description: "检测到安全事件，过去5分钟内发生 {{ $value }} 次"
+
+      - alert: AuthenticationFailures
+        expr: sum(rate({job="happy-farm-backend", logType="security"} |= "登录失败" [5m])) > 3
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "登录失败告警"
+          description: "过去5分钟内检测到 {{ $value }} 次登录失败"
+
+  - name: 开心农场 - 性能告警
+    interval: 20s
+    rules:
+      - alert: SlowRequests
+        expr: sum(rate({job="happy-farm-backend", logType="performance"} |= "响应时间" [10m])) > 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "慢请求告警"
+          description: "过去10分钟内检测到 {{ $value }} 次慢请求"
+
+      - alert: HighRequestRate
+        expr: sum(rate({job="happy-farm-backend", logType="access"}[1m])) > 100
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "高请求率告警"
+          description: "当前请求速率超过每分钟100次，当前值: {{ $value }}"
+
+  - name: 开心农场 - 业务告警
+    interval: 30s
+    rules:
+      - alert: DatabaseErrors
+        expr: sum(rate({job="happy-farm-backend", module="database"} |= "错误" [5m])) > 3
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "数据库错误告警"
+          description: "过去5分钟内检测到 {{ $value }} 次数据库错误"
+
+      - alert: CurrencyIssues
+        expr: sum(rate({job="happy-farm-backend", logType="business"} |= "货币" |= "异常" [10m])) > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "货币系统异常告警"
+          description: "检测到货币系统异常事件"
+
+  - name: 开心农场 - 系统资源告警
+    interval: 15s
+    rules:
+      - alert: HighCPUUsage
+        expr: (100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)) > 90
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "高CPU使用率告警"
+          description: "实例 {{ $labels.instance }} CPU使用率超过90%，持续5分钟，当前值: {{ $value }}%"
+
+      - alert: CriticalCPUUsage
+        expr: (100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)) > 95
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "严重CPU使用率告警"
+          description: "实例 {{ $labels.instance }} CPU使用率超过95%，持续2分钟，当前值: {{ $value }}%"
+
+      - alert: HighMemoryUsage
+        expr: ((node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes) * 100 > 90
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "高内存使用率告警"
+          description: "实例 {{ $labels.instance }} 内存使用率超过90%，持续5分钟，当前值: {{ $value }}%"
+
+      - alert: CriticalMemoryUsage
+        expr: ((node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes) * 100 > 95
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "严重内存使用率告警"
+          description: "实例 {{ $labels.instance }} 内存使用率超过95%，持续2分钟，当前值: {{ $value }}%"
+
+      - alert: DiskSpaceLow
+        expr: (1 - (node_filesystem_avail_bytes{fstype!~"tmpfs|fuse.*|squashfs|overlay", mountpoint!~"/var/lib/docker/.*"} / node_filesystem_size_bytes{fstype!~"tmpfs|fuse.*|squashfs|overlay", mountpoint!~"/var/lib/docker/.*"})) * 100 > 85
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "磁盘空间不足告警"
+          description: "实例 {{ $labels.instance }} 挂载点 {{ $labels.mountpoint }} 磁盘使用率超过85%，当前值: {{ $value }}%"
+
+      - alert: DiskSpaceCritical
+        expr: (1 - (node_filesystem_avail_bytes{fstype!~"tmpfs|fuse.*|squashfs|overlay", mountpoint!~"/var/lib/docker/.*"} / node_filesystem_size_bytes{fstype!~"tmpfs|fuse.*|squashfs|overlay", mountpoint!~"/var/lib/docker/.*"})) * 100 > 95
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "严重磁盘空间不足告警"
+          description: "实例 {{ $labels.instance }} 挂载点 {{ $labels.mountpoint }} 磁盘使用率超过95%，当前值: {{ $value }}%"
+
+      - alert: HighNetworkErrors
+        expr: rate(node_network_receive_errs_total{device!="lo"}[5m]) + rate(node_network_transmit_errs_total{device!="lo"}[5m]) > 10
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "高网络错误率告警"
+          description: "实例 {{ $labels.instance }} 设备 {{ $labels.device }} 网络错误率超过10/分钟，当前值: {{ $value }} 错误/秒"
+
+  - name: 开心农场 - 数据库告警
+    interval: 15s
+    rules:
+      - alert: DatabaseHighConnections
+        expr: (pg_stat_database_numbackends{datname="happy_farm"} / pg_settings_max_connections{server="happy_farm"}) * 100 > 80
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "数据库连接数过高告警"
+          description: "数据库 happy_farm 连接使用率超过80%，当前活跃连接: {{ $value | humanize }}%，最大值: {{ $labels.max_connections }}"
+
+      - alert: DatabaseSlowQuerySpike
+        expr: rate(postgres_slow_queries_total{datname="happy_farm"}[1m]) * 60 > 10
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "数据库慢查询激增告警"
+          description: "数据库 happy_farm 慢查询超过10条/分钟，当前速率: {{ $value | humanize }}条/分钟"
+
+      - alert: DatabaseDeadlock
+        expr: rate(pg_stat_database_deadlocks{datname="happy_farm"}[1m]) * 60 > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "数据库死锁告警"
+          description: "数据库 happy_farm 检测到死锁，当前死锁速率: {{ $value | humanize }}次/分钟"
+
+  - name: 开心农场 - Redis 告警
+    interval: 15s
+    rules:
+      - alert: RedisHighMemory
+        expr: (redis_memory_used_bytes{instance="happy_farm_redis"} / redis_memory_max_bytes{instance="happy_farm_redis"}) * 100 > 85
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Redis 内存使用率过高告警"
+          description: "Redis 实例 happy_farm_redis 内存使用率超过85%，当前已使用: {{ $value | humanize }}%"
+
+      - alert: RedisLowHitRate
+        expr: (rate(redis_keyspace_hits_total{instance="happy_farm_redis"}[5m]) / (rate(redis_keyspace_hits_total{instance="happy_farm_redis"}[5m]) + rate(redis_keyspace_misses_total{instance="happy_farm_redis"}[5m]))) * 100 < 90
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Redis 缓存命中率过低告警"
+          description: "Redis 实例 happy_farm_redis 缓存命中率低于90%，当前命中率: {{ $value | humanize }}%"
+
+      - alert: RedisConnectionSpike
+        expr: redis_connected_clients{instance="happy_farm_redis"} / redis_connected_clients{instance="happy_farm_redis"} offset 5m > 2
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Redis 连接数突增告警"
+          description: "Redis 实例 happy_farm_redis 连接数相比5分钟前突增超过200%，当前连接数: {{ $value }}"
+
+      - alert: RedisDown
+        expr: up{job="redis_exporter", instance="happy_farm_redis"} == 0
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "Redis 实例不可达告警"
+          description: "Redis 实例 happy_farm_redis 不可达，请立即检查 Redis 服务状态"

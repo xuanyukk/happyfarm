@@ -1,0 +1,71 @@
+{
+  "name": "frontend",
+  "private": true,
+  "version": "4.71.6",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "build:analyze": "vite build --mode analyze",
+    "build:production": "cross-env NODE_ENV=production vite build",
+    "preview": "vite preview",
+    "test": "vitest",
+    "test:watch": "vitest --watch",
+    "test:coverage": "vitest --coverage",
+    "prepare": "husky",
+    "format": "prettier --write \"src/**/*.{js,vue,css,html}\" --ignore-path .gitignore",
+    "lint": "eslint src --ext .js,.vue",
+    "lint:fix": "eslint src --ext .js,.vue --fix",
+    "audit": "npm audit",
+    "audit:fix": "npm audit fix",
+    "optimize:deps": "vite optimize --force",
+    "clean": "rimraf dist node_modules/.vite",
+    "size": "npm run build && gzip-size dist/assets/*.js",
+    "icons:generate": "node scripts/generate-icons/generateIcons.cjs",
+    "icons:crop": "node scripts/generate-icons/generateIcons.cjs --type crop",
+    "icons:seed": "node scripts/generate-icons/generateIcons.cjs --type seed",
+    "icons:item": "node scripts/generate-icons/generateIcons.cjs --type item",
+    "icons:land": "node scripts/generate-icons/generateIcons.cjs --type land",
+    "icons:ui": "node scripts/generate-icons/generateIcons.cjs --type ui",
+    "icons:dry-run": "node scripts/generate-icons/generateIcons.cjs --dry-run"
+  },
+  "lint-staged": {
+    "src/**/*.{js,vue}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{js,vue}": [
+      "eslint --fix",
+      "prettier --write"
+    ]
+  },
+  "dependencies": {
+    "axios": "^1.13.6",
+    "pinia": "^3.0.4",
+    "socket.io-client": "^4.8.3",
+    "vue": "^3.5.30",
+    "vue-router": "^4.6.4"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^6.0.5",
+    "@vitest/coverage-v8": "^4.1.0",
+    "@vue/test-utils": "^2.4.6",
+    "cross-env": "^7.0.3",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-prettier": "^5.2.1",
+    "eslint-plugin-vue": "^9.28.0",
+    "gzip-size-cli": "^5.1.0",
+    "husky": "^9.1.7",
+    "jsdom": "^29.0.0",
+    "lint-staged": "^16.4.0",
+    "prettier": "^3.2.5",
+    "rimraf": "^6.0.1",
+    "rollup-plugin-visualizer": "^5.12.0",
+    "terser": "^5.47.1",
+    "typescript": "^5.6.0",
+    "vite": "^8.0.0",
+    "vite-plugin-compression": "^0.5.1",
+    "vitest": "^4.1.0"
+  }
+}

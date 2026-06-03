@@ -1,0 +1,157 @@
+# 文件名：promtail-config.yml
+# 作者：DevOps团队
+# 日期：2026-05-16
+# 版本：v1.1.0
+# 功能描述：Promtail日志收集代理配置文件
+# 更新记录：
+#   2026-05-26 - v1.1.0 - 新增系统日志(syslog/事件日志)采集配置
+
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  # 收集后端应用日志
+  - job_name: backend-logs
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: happy-farm-backend
+          service: backend
+          __path__: /data/logs/backend/*log
+  
+  # 收集系统日志
+  - job_name: system-syslog
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: system-syslog
+          service: system
+          log_type: syslog
+          __path__: /var/log/syslog
+
+  # 收集系统消息日志
+  - job_name: system-messages
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: system-messages
+          service: system
+          log_type: messages
+          __path__: /var/log/messages
+
+  # 收集内核日志
+  - job_name: system-kernel
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: system-kernel
+          service: system
+          log_type: kernel
+          __path__: /var/log/kern.log
+
+  # 收集认证日志
+  - job_name: system-auth
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: system-auth
+          service: system
+          log_type: auth
+          __path__: /var/log/auth.log
+
+  # 收集系统日志（通用通配符）
+  - job_name: system
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: system-logs
+          service: system
+          log_type: system
+          __path__: /var/log/*log
+
+  # 收集Windows系统事件日志（仅在Windows环境下启用）
+  # - job_name: windows-event-logs
+  #   windows_events:
+  #     use_incoming_timestamp: true
+  #     bookmark_path: "./bookmark-system.xml"
+  #     eventlog_name: "System"
+  #     xpath_query: "*"
+  #     exclude_user_data: false
+  #     exclude_event_data: false
+  #     labels:
+  #       job: windows-event-logs
+  #       service: system
+  #       log_type: windows-event
+  
+  # 收集安全日志
+  - job_name: security-logs
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: security-logs
+          service: security
+          __path__: /data/logs/backend/security*log
+  
+  # 收集错误日志
+  - job_name: error-logs
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: error-logs
+          service: error
+          __path__: /data/logs/backend/error*log
+  
+  # 收集性能日志
+  - job_name: performance-logs
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: performance-logs
+          service: performance
+          __path__: /data/logs/backend/performance*log
+  
+  # 收集审计日志
+  - job_name: audit-logs
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: audit-logs
+          service: audit
+          __path__: /data/logs/backend/audit*log
+  
+  # 收集业务日志
+  - job_name: business-logs
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: business-logs
+          service: business
+          __path__: /data/logs/backend/business*log
+  
+  # 收集访问日志
+  - job_name: access-logs
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: access-logs
+          service: access
+          __path__: /data/logs/backend/access*log

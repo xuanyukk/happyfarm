@@ -1,0 +1,37 @@
+# 文件名：prometheus.yml
+# 作者：DevOps团队
+# 日期：2026-06-03
+# 版本：v1.0.0
+# 功能描述：Happy Farm Prometheus监控配置文件
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: 'happy-farm-monitor'
+
+scrape_configs:
+  # Prometheus自身监控
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Node Exporter - 主机资源监控
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+        labels:
+          instance: 'docker-host'
+
+  # 后端服务监控（如果后端暴露了metrics端点）
+  - job_name: 'backend'
+    static_configs:
+      - targets: ['backend:3000']
+    metrics_path: '/api/metrics'
+    scrape_interval: 10s
+
+  # Loki监控
+  - job_name: 'loki'
+    static_configs:
+      - targets: ['loki:3100']
+    metrics_path: '/metrics'

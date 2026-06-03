@@ -1,0 +1,4 @@
+{{/* 告警标题模板 */}}
+{{ define "alert_subject" }}
+[{{ .Status | toUpper }}] {{ .CommonLabels.alertname }} - 开心农场监控告警
+{{ end }}

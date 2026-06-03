@@ -1,0 +1,11 @@
+# 开心农场数据库管理工具 - Python 依赖
+
+# PostgreSQL 数据库驱动
+psycopg2-binary>=2.9.0
+
+# 环境变量加载（可选，推荐）
+python-dotenv>=1.0.0
+
+# 注意：
+# 1. 本项目还需要系统安装 PostgreSQL 客户端工具（pg_dump, psql）
+# 2. 安装命令：pip install -r requirements.txt

@@ -1,0 +1,31 @@
+============================================================
+图片重命名操作报告
+============================================================
+生成时间: 2026-05-31 17:11:28
+图片目录: g:\youxi\ceshi\happy-farm\图片
+脚本版本: v2.3.0 (按子目录匹配 + 交互式菜单)
+
+--- 操作统计 ---
+总文件数: 36
+成功: 30
+失败: 6
+成功率: 83.33%
+
+--- 子目录分布 ---
+  道具图标: 30/30 张
+  空状态占位图: 6/6 张
+
+--- 失败详情 ---
+  [31/36] [空状态占位图] 失败: ui_empty_crops.png -> ui_empty_seeds.png, 错误: 目标文件已存在: g:\youxi\ceshi\happy-farm\图片\空状态占位图\ui_empty_seeds.png
+  [32/36] [空状态占位图] 失败: ui_empty_seeds.png -> ui_empty_crops.png, 错误: 目标文件已存在: g:\youxi\ceshi\happy-farm\图片\空状态占位图\ui_empty_crops.png
+  [33/36] [空状态占位图] 失败: ui_empty_events.png -> ui_empty_items.png, 错误: 目标文件已存在: g:\youxi\ceshi\happy-farm\图片\空状态占位图\ui_empty_items.png
+  [34/36] [空状态占位图] 失败: ui_empty_items.png -> ui_empty_events.png, 错误: 目标文件已存在: g:\youxi\ceshi\happy-farm\图片\空状态占位图\ui_empty_events.png
+  [35/36] [空状态占位图] 失败: ui_empty_logs.png -> ui_empty_logs.png, 错误: 目标文件已存在: g:\youxi\ceshi\happy-farm\图片\空状态占位图\ui_empty_logs.png
+  [36/36] [空状态占位图] 失败: ui_empty_default.png -> ui_empty_default.png, 错误: 目标文件已存在: g:\youxi\ceshi\happy-farm\图片\空状态占位图\ui_empty_default.png
+
+--- PNG 格式转换提醒 ---
+检测到 20 个文件非 PNG 格式，项目规范要求 PNG-24 格式。
+请使用 convert_images.py 批量转换：
+  python convert_images.py -i g:\youxi\ceshi\happy-farm\图片 -o g:\youxi\ceshi\happy-farm\图片 -f png
+
+============================================================

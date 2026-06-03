@@ -1,0 +1,945 @@
+/**
+ * 文件名：mobile.css
+ * 作者：开发者
+ * 日期：2026-05-12
+ * 版本：v2.0.0
+ * 功能描述：移动端适配样式 - 响应式布局、触摸优化、性能优化、后台管理移动端支持
+ * 更新记录：
+ *   2026-03-29 - v1.0.0 - 初始创建，移动端基础适配
+ *   2026-05-12 - v2.0.0 - 大幅增强后台管理移动端支持，添加侧边栏抽屉、触摸手势优化
+ */
+
+:root {
+  --safe-area-inset-top: env(safe-area-inset-top, 0px);
+  --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-inset-left: env(safe-area-inset-left, 0px);
+  --safe-area-inset-right: env(safe-area-inset-right, 0px);
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+html, body {
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+button,
+input,
+select,
+textarea {
+  font-size: 16px !important;
+}
+
+@media (max-width: 768px) {
+  .home-page {
+    padding-top: var(--safe-area-inset-top);
+    padding-bottom: var(--safe-area-inset-bottom);
+    padding-left: var(--safe-area-inset-left);
+    padding-right: var(--safe-area-inset-right);
+  }
+
+  .header {
+    flex-direction: column;
+    padding: 10px 15px;
+    gap: 10px;
+  }
+
+  .header-left,
+  .header-right {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .user-info {
+    flex: 1;
+  }
+
+  .avatar {
+    width: 40px;
+    height: 40px;
+  }
+
+  .avatar-icon {
+    font-size: 20px;
+  }
+
+  .username {
+    font-size: 14px;
+  }
+
+  .levels-vertical {
+    gap: 4px;
+  }
+
+  .level-row {
+    gap: 8px;
+  }
+
+  .level-icon {
+    font-size: 14px;
+  }
+
+  .level-label {
+    font-size: 11px;
+  }
+
+  .level-value {
+    font-size: 12px;
+    font-weight: bold;
+  }
+
+  .exp-bar {
+    height: 6px;
+  }
+
+  .progress-info {
+    gap: 4px;
+  }
+
+  .progress-text {
+    font-size: 9px;
+  }
+
+  .currency-display {
+    padding: 6px 12px;
+    gap: 6px;
+  }
+
+  .currency-icon {
+    font-size: 18px;
+  }
+
+  .currency-amount {
+    font-size: 16px;
+  }
+
+  .currency-label {
+    font-size: 11px;
+  }
+
+  .nav {
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .nav-btn {
+    padding: 8px 10px;
+    font-size: 12px;
+    min-width: 60px;
+  }
+
+  .btn-icon {
+    font-size: 16px;
+  }
+
+  .main {
+    padding: 10px;
+  }
+
+  .main-content {
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .farm-section {
+    width: 100%;
+  }
+
+  .quick-actions {
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .quick-btn {
+    padding: 10px 16px;
+    font-size: 13px;
+    flex: 1;
+    min-width: 120px;
+  }
+
+  .sidebar-section {
+    width: 100%;
+    max-height: 250px;
+  }
+
+  .land-grid {
+    gap: 6px;
+    padding: 10px;
+  }
+
+  .land-cell {
+    width: 60px;
+    height: 60px;
+    min-width: 60px;
+    min-height: 60px;
+  }
+
+  .land-number {
+    font-size: 10px;
+  }
+
+  .crop-icon {
+    font-size: 28px;
+  }
+
+  .quality-badge {
+    font-size: 8px;
+    padding: 1px 4px;
+  }
+
+  .growth-bar {
+    height: 4px;
+  }
+
+  .land-cell.locked .lock-icon {
+    font-size: 20px;
+  }
+
+  .modal-content {
+    margin: 10px;
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
+  }
+
+  .modal-title {
+    font-size: 18px;
+  }
+
+  .modal-actions {
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    padding: 12px 20px;
+    font-size: 14px;
+    flex: 1;
+    min-width: 100px;
+  }
+
+  .seed-list,
+  .item-list {
+    gap: 8px;
+  }
+
+  .seed-item,
+  .item-item {
+    padding: 12px;
+  }
+
+  .seed-icon,
+  .item-icon {
+    font-size: 24px;
+  }
+
+  .seed-name,
+  .item-name {
+    font-size: 14px;
+  }
+
+  .badge-primary,
+  .badge-warning {
+    font-size: 11px;
+    padding: 3px 8px;
+  }
+
+  .unlock-content,
+  .plant-content,
+  .harvest-content,
+  .quality-content,
+  .item-content {
+    padding: 10px;
+  }
+
+  .quality-list {
+    gap: 10px;
+  }
+
+  .quality-item {
+    padding: 12px;
+  }
+
+  .profile-content {
+    padding: 15px;
+  }
+
+  .profile-avatar {
+    width: 80px;
+    height: 80px;
+  }
+
+  .avatar-icon-large {
+    font-size: 40px;
+  }
+
+  .profile-username {
+    font-size: 20px;
+  }
+
+  .profile-player-id,
+  .profile-join-date {
+    font-size: 12px;
+  }
+
+  .section-title {
+    font-size: 16px;
+  }
+
+  .level-cards,
+  .progress-cards {
+    gap: 10px;
+  }
+
+  .level-card,
+  .progress-card {
+    padding: 12px;
+  }
+
+  .card-icon {
+    font-size: 24px;
+  }
+
+  .card-label {
+    font-size: 12px;
+  }
+
+  .card-value {
+    font-size: 18px;
+  }
+
+  .avatar-grid {
+    gap: 8px;
+  }
+
+  .avatar-option {
+    width: 50px;
+    height: 50px;
+  }
+
+  .avatar-emoji {
+    font-size: 24px;
+  }
+
+  .sound-panel {
+    width: 280px;
+    right: -50px;
+  }
+
+  .message {
+    left: 10px;
+    right: 10px;
+    padding: 12px 16px;
+  }
+
+  .message-icon {
+    font-size: 18px;
+  }
+
+  .message-text {
+    font-size: 13px;
+  }
+
+  .loading-container,
+  .error-container {
+    padding: 30px 20px;
+  }
+
+  .loading-spinner {
+    width: 40px;
+    height: 40px;
+  }
+
+  .loading-text,
+  .error-text {
+    font-size: 14px;
+  }
+
+  .error-icon {
+    font-size: 36px;
+  }
+}
+
+@media (max-width: 480px) {
+  .land-grid {
+    gap: 4px;
+    padding: 8px;
+  }
+
+  .land-cell {
+    width: 50px;
+    height: 50px;
+    min-width: 50px;
+    min-height: 50px;
+  }
+
+  .crop-icon {
+    font-size: 22px;
+  }
+
+  .nav-btn {
+    padding: 6px 8px;
+    font-size: 11px;
+    min-width: 50px;
+  }
+
+  .btn-icon {
+    font-size: 14px;
+  }
+
+  .quick-btn {
+    padding: 8px 12px;
+    font-size: 12px;
+    min-width: 100px;
+  }
+}
+
+@media (hover: none) and (pointer: coarse) {
+  button:active,
+  .nav-btn:active,
+  .quick-btn:active,
+  .land-cell:active {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
+
+  button,
+  .nav-btn,
+  .quick-btn,
+  .land-cell,
+  .seed-item,
+  .item-item,
+  .quality-item,
+  .avatar-option {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* 下拉刷新样式 */
+.pull-refresh-indicator {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  transform: translateY(-100%);
+  z-index: 1000;
+}
+
+.pull-refresh-icon {
+  font-size: 24px;
+  margin-bottom: 8px;
+}
+
+.pull-refresh-arrow {
+  display: inline-block;
+  transition: transform 0.2s ease;
+}
+
+.pull-refresh-spinner {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.pull-refresh-text {
+  font-size: 14px;
+  color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ========== 后台管理移动端适配 ========== */
+
+@media (max-width: 768px) {
+  .admin-layout {
+    position: relative;
+  }
+
+  .admin-sidebar {
+    position: fixed;
+    top: 0;
+    left: -280px;
+    width: 280px;
+    height: 100vh;
+    z-index: 1001;
+    transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.3);
+  }
+
+  .admin-sidebar.open {
+    left: 0;
+  }
+
+  .admin-sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+  }
+
+  .admin-sidebar-overlay.show {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .admin-header {
+    padding: 12px 16px;
+  }
+
+  .admin-header-left {
+    gap: 12px;
+  }
+
+  .mobile-menu-btn {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    border: none;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 10px;
+    color: white;
+    cursor: pointer;
+    font-size: 20px;
+    transition: all 0.2s ease;
+  }
+
+  .mobile-menu-btn:active {
+    background: rgba(255, 255, 255, 0.25);
+    transform: scale(0.95);
+  }
+
+  .admin-title {
+    font-size: 16px;
+  }
+
+  .admin-main {
+    padding: 16px;
+    margin-left: 0;
+  }
+
+  .admin-page {
+    padding: 0;
+  }
+
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .page-header h2 {
+    font-size: 18px;
+  }
+
+  .action-bar {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .action-bar .btn {
+    flex: 1;
+    min-width: auto;
+  }
+
+  /* 表格移动端适配 */
+  .data-table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .data-table {
+    min-width: 600px;
+    font-size: 13px;
+  }
+
+  .data-table th,
+  .data-table td {
+    padding: 10px 12px;
+  }
+
+  .table-actions {
+    gap: 6px;
+  }
+
+  .table-actions .btn {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+
+  /* 卡片网格移动端适配 */
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px;
+  }
+
+  .stat-card {
+    padding: 14px;
+  }
+
+  .stat-card-icon {
+    font-size: 24px;
+  }
+
+  .stat-card-value {
+    font-size: 20px;
+  }
+
+  .stat-card-label {
+    font-size: 12px;
+  }
+
+  /* 表单移动端适配 */
+  .form-group {
+    margin-bottom: 16px;
+  }
+
+  .form-label {
+    font-size: 13px;
+    margin-bottom: 6px;
+  }
+
+  .form-input,
+  .form-select,
+  .form-textarea {
+    padding: 10px 14px;
+    font-size: 14px;
+  }
+
+  .form-row {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .form-col {
+    width: 100%;
+  }
+
+  /* 模态框移动端适配 */
+  .admin-modal {
+    padding: 12px;
+  }
+
+  .admin-modal-content {
+    max-width: 100%;
+    max-height: 90vh;
+    margin: 0;
+    border-radius: 16px 16px 0 0;
+  }
+
+  .admin-modal-header {
+    padding: 16px;
+  }
+
+  .admin-modal-title {
+    font-size: 16px;
+  }
+
+  .admin-modal-body {
+    padding: 16px;
+  }
+
+  .admin-modal-footer {
+    padding: 16px;
+    flex-direction: column-reverse;
+    gap: 10px;
+  }
+
+  .admin-modal-footer .btn {
+    width: 100%;
+  }
+
+  /* 标签页移动端适配 */
+  .tabs-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .tabs-container::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tabs {
+    display: inline-flex;
+    min-width: max-content;
+  }
+
+  .tab {
+    padding: 10px 14px;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+
+  /* 数据库管理页面移动端适配 */
+  .health-status {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .health-card {
+    padding: 14px;
+  }
+
+  .health-value {
+    font-size: 22px;
+  }
+
+  .db-section {
+    padding: 14px;
+  }
+
+  .db-section h3 {
+    font-size: 15px;
+    margin-bottom: 12px;
+  }
+
+  .db-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .db-item {
+    padding: 12px;
+  }
+
+  .db-item-name {
+    font-size: 13px;
+  }
+
+  .db-item-value {
+    font-size: 16px;
+  }
+
+  .db-table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .db-table {
+    min-width: 500px;
+    font-size: 12px;
+  }
+
+  .db-table th,
+  .db-table td {
+    padding: 8px 10px;
+  }
+
+  /* 游戏活动页面移动端适配 */
+  .event-card {
+    padding: 14px;
+  }
+
+  .event-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .event-title {
+    font-size: 15px;
+  }
+
+  .event-date {
+    font-size: 12px;
+  }
+
+  .task-item {
+    padding: 10px;
+  }
+
+  .task-name {
+    font-size: 13px;
+  }
+
+  /* 用户管理页面移动端适配 */
+  .user-card {
+    padding: 14px;
+  }
+
+  .user-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .user-avatar {
+    width: 50px;
+    height: 50px;
+  }
+
+  .user-avatar-icon {
+    font-size: 24px;
+  }
+
+  .user-name {
+    font-size: 15px;
+  }
+
+  /* 搜索和过滤器移动端适配 */
+  .search-filters {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .search-filters .search-box,
+  .search-filters select {
+    width: 100%;
+  }
+
+  /* 面包屑导航移动端适配 */
+  .breadcrumb {
+    font-size: 12px;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .breadcrumb-item {
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 576px) {
+  .admin-sidebar {
+    width: 260px;
+    left: -260px;
+  }
+
+  .admin-main {
+    padding: 12px;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .page-header h2 {
+    font-size: 16px;
+  }
+
+  .admin-modal-content {
+    max-height: 92vh;
+    border-radius: 12px 12px 0 0;
+  }
+
+  .action-bar .btn {
+    padding: 10px 16px;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 425px) {
+  .admin-header {
+    padding: 10px 12px;
+  }
+
+  .admin-main {
+    padding: 10px;
+  }
+
+  .stat-card {
+    padding: 12px;
+  }
+
+  .db-section {
+    padding: 12px;
+  }
+
+  .event-card,
+  .user-card {
+    padding: 12px;
+  }
+}
+
+/* 触摸友好增强 */
+@media (hover: none) and (pointer: coarse) {
+  .tab,
+  .nav-item,
+  .dropdown-item,
+  .data-table tr {
+    min-height: 44px;
+  }
+
+  .admin-sidebar .nav-item {
+    padding: 12px 16px;
+  }
+
+  .tab:active,
+  .nav-item:active,
+  .dropdown-item:active {
+    background: rgba(255, 255, 255, 0.1);
+  }
+}
+
+/* 安全区域适配 */
+@media (max-width: 768px) {
+  .admin-layout {
+    padding-top: var(--safe-area-inset-top);
+    padding-bottom: var(--safe-area-inset-bottom);
+  }
+
+  .admin-sidebar {
+    padding-top: var(--safe-area-inset-top);
+    padding-bottom: var(--safe-area-inset-bottom);
+  }
+
+  .admin-header {
+    padding-top: calc(12px + var(--safe-area-inset-top));
+  }
+}
+
+/* 横屏优化 */
+@media (orientation: landscape) and (max-width: 768px) {
+  .admin-sidebar {
+    width: 240px;
+    left: -240px;
+  }
+
+  .admin-main {
+    padding: 12px 16px;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(4, 1fr) !important;
+  }
+}

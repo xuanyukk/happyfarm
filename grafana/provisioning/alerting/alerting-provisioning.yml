@@ -1,0 +1,105 @@
+apiVersion: 1
+
+contactPoints:
+  - name: 开心农场告警通知
+    receivers:
+      - uid: first-contact-point
+        type: email
+        settings:
+          addresses: admin@happy-farm.com
+          subject: 开心农场告警通知
+          message: 您有一条来自开心农场的告警通知
+
+  - name: 严重告警通知
+    receivers:
+      - uid: critical-alert
+        type: webhook
+        settings:
+          url: http://localhost:3000/api/webhook/alert
+          httpMethod: POST
+
+  - name: 默认通知
+    receivers:
+      - uid: default-receiver
+        type: slack
+        settings:
+          url: https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK
+          username: Grafana Alerting
+          icon_url: https://grafana.com/static/assets/img/fav32.png
+
+policies:
+  - orgId: 1
+    receiver: 默认通知
+    group_by: [alertname, job]
+    group_wait: 30s
+    group_interval: 5m
+    repeat_interval: 1h
+    routes:
+      - receiver: 开心农场告警通知
+        object_matchers:
+          - - severity
+            - =
+            - warning
+        continue: true
+
+      - receiver: 严重告警通知
+        object_matchers:
+          - - severity
+            - =
+            - critical
+        continue: false
+
+templates:
+  - orgId: 1
+    name: alert_subject
+    template: |
+      {{/* 告警标题模板 */}}
+      {{ define "alert_subject" }}
+      [{{ .Status | toUpper }}] {{ .CommonLabels.alertname }} - 开心农场监控告警
+      {{ end }}
+
+  - orgId: 1
+    name: alert_message
+    template: |
+      {{/* 告警消息体模板 - 用于邮件/Webhook 通知 */}}
+      {{ define "alert_message" }}
+      ═══════════════════════════════════════
+        开心农场 - 监控告警通知
+      ═══════════════════════════════════════
+
+      告警状态: {{ .Status | toUpper }}
+      告警名称: {{ .CommonLabels.alertname }}
+      严重程度: {{ .CommonLabels.severity }}
+      触发时间: {{ .StartsAt.Format "2006-01-02 15:04:05" }}
+
+      {{ if .CommonAnnotations.summary }}
+      摘要: {{ .CommonAnnotations.summary }}
+      {{ end }}
+
+      {{ if .CommonAnnotations.description }}
+      描述: {{ .CommonAnnotations.description }}
+      {{ end }}
+
+      ═══════════════════════════════════════
+        详细信息
+      ═══════════════════════════════════════
+
+      {{ range .Alerts }}
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        告警详情
+      {{ range .Labels.SortedPairs }}
+        {{ .Name }}: {{ .Value }}
+      {{ end }}
+      {{ if .Annotations }}
+      {{ range .Annotations.SortedPairs }}
+        {{ .Name }}: {{ .Value }}
+      {{ end }}
+      {{ end }}
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+      {{ end }}
+
+      请及时处理相关告警，保障服务稳定运行。
+
+      开心农场运维团队
+      {{ end }}

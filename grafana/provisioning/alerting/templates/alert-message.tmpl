@@ -1,0 +1,42 @@
+{{/* 告警消息体模板 - 用于邮件/Webhook 通知 */}}
+{{ define "alert_message" }}
+═══════════════════════════════════════
+  开心农场 - 监控告警通知
+═══════════════════════════════════════
+
+告警状态: {{ .Status | toUpper }}
+告警名称: {{ .CommonLabels.alertname }}
+严重程度: {{ .CommonLabels.severity }}
+触发时间: {{ .StartsAt.Format "2006-01-02 15:04:05" }}
+
+{{ if .CommonAnnotations.summary }}
+摘要: {{ .CommonAnnotations.summary }}
+{{ end }}
+
+{{ if .CommonAnnotations.description }}
+描述: {{ .CommonAnnotations.description }}
+{{ end }}
+
+═══════════════════════════════════════
+  详细信息
+═══════════════════════════════════════
+
+{{ range .Alerts }}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  告警 #{{ $index := add 1 . }}
+  {{ range .Labels.SortedPairs }}
+    {{ .Name }}: {{ .Value }}
+  {{ end }}
+  {{ if .Annotations }}
+  {{ range .Annotations.SortedPairs }}
+    {{ .Name }}: {{ .Value }}
+  {{ end }}
+  {{ end }}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+{{ end }}
+
+请及时处理相关告警，保障服务稳定运行。
+
+开心农场运维团队
+{{ end }}

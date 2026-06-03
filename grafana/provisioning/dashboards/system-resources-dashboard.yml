@@ -1,0 +1,12 @@
+apiVersion: 1
+
+providers:
+  - name: 'System Resources Dashboard'
+    orgId: 1
+    folder: 'Happy Farm'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 10
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/provisioning/dashboards/json/happy-farm-system-resources.json

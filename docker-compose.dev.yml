@@ -1,0 +1,108 @@
+# 文件名：docker-compose.dev.yml
+# 作者：DevOps团队
+# 日期：2026-05-09
+# 版本：v1.0.0
+# 功能描述：开心农场开发环境Docker Compose配置
+# 更新记录：
+#   2026-05-09 - v1.0.0 - 初始版本创建
+
+version: '3.8'
+
+services:
+  # PostgreSQL数据库
+  postgres:
+    image: postgres:16-alpine
+    container_name: happy-farm-postgres-dev
+    environment:
+      POSTGRES_DB: happy_farm_dev
+      POSTGRES_USER: happy_farm
+      POSTGRES_PASSWORD: happy_farm_dev_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+      - ./sql_init:/docker-entrypoint-initdb.d
+    networks:
+      - happy-farm-dev-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U happy_farm -d happy_farm_dev"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis缓存
+  redis:
+    image: redis:7-alpine
+    container_name: happy-farm-redis-dev
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_dev_data:/data
+    networks:
+      - happy-farm-dev-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # 后端服务（开发模式）
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: happy-farm-backend-dev
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: happy_farm_dev
+      DB_USER: happy_farm
+      DB_PASSWORD: happy_farm_dev_password
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      # 开发环境配置
+      DEBUG: happy-farm:*
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./backend/src:/app/src
+      - ./backend/logs:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - happy-farm-dev-network
+    restart: unless-stopped
+    command: npm run dev
+
+  # 前端应用（开发模式）
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: happy-farm-frontend-dev
+    environment:
+      NODE_ENV: development
+    ports:
+      - "5173:5173"
+      - "24678:24678"
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+    depends_on:
+      - backend
+    networks:
+      - happy-farm-dev-network
+    restart: unless-stopped
+
+volumes:
+  postgres_dev_data:
+  redis_dev_data:
+
+networks:
+  happy-farm-dev-network:
+    driver: bridge

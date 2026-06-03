@@ -1,0 +1,28 @@
+module.exports = {
+  root: true,
+  env: {
+    browser: true,
+    es2021: true,
+    node: true
+  },
+  extends: [
+    'eslint:recommended',
+    'plugin:vue/vue3-recommended',
+    'prettier'
+  ],
+  parserOptions: {
+    ecmaVersion: 'latest',
+    sourceType: 'module'
+  },
+  plugins: [
+    'vue',
+    'prettier'
+  ],
+  rules: {
+    'prettier/prettier': 'error',
+    'no-unused-vars': 'warn',
+    'no-console': process.env.NODE_ENV === 'production' ? 'warn' : 'off',
+    'vue/multi-word-component-names': 'off',
+    'vue/no-v-html': 'warn'
+  }
+};

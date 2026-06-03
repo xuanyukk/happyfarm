@@ -1,0 +1,18 @@
+# 文件名：redis-monitoring-dashboard.yml
+# 作者：开发者
+# 日期：2026-05-26
+# 版本：v1.0.0
+# 功能描述：Grafana Redis 监控面板的 provisioning 配置
+
+apiVersion: 1
+
+providers:
+  - name: 'Redis Monitoring Dashboard'
+    orgId: 1
+    folder: 'Happy Farm'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 10
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/provisioning/dashboards/json/happy-farm-redis-monitoring.json
