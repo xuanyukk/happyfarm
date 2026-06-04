@@ -1114,22 +1114,28 @@ if (process.env.NODE_ENV !== 'test') {
 
     // 初始化队列服务（创建Worker，开始消费队列任务）
     try {
-      queueService.init().then(() => {
-        logger.info('队列服务初始化完成');
-      }).catch((err) => {
-        logger.error('队列服务初始化失败', { error: err.message });
-      });
+      queueService
+        .init()
+        .then(() => {
+          logger.info('队列服务初始化完成');
+        })
+        .catch((err) => {
+          logger.error('队列服务初始化失败', { error: err.message });
+        });
     } catch (error) {
       logger.error('队列服务初始化失败', { error: error.message });
     }
 
     // 初始化游戏活动定时任务调度器
     try {
-      gameEventSchedulerService.init().then(() => {
-        logger.info('游戏活动调度器初始化完成');
-      }).catch((err) => {
-        logger.error('游戏活动调度器初始化失败', { error: err.message });
-      });
+      gameEventSchedulerService
+        .init()
+        .then(() => {
+          logger.info('游戏活动调度器初始化完成');
+        })
+        .catch((err) => {
+          logger.error('游戏活动调度器初始化失败', { error: err.message });
+        });
     } catch (error) {
       logger.error('游戏活动调度器初始化失败', { error: error.message });
     }

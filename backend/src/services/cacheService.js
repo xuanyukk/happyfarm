@@ -154,7 +154,10 @@ async function get(namespace, key) {
 async function set(namespace, key, value, ttl = CACHE_CONFIG.TTL.MEDIUM) {
   try {
     // 处理旧调用模式（key,value[,ttl]）
-    if (arguments.length === 2 || (arguments.length === 3 && typeof value === 'number')) {
+    if (
+      arguments.length === 2 ||
+      (arguments.length === 3 && typeof value === 'number')
+    ) {
       const keyVal = key;
       let ttlVal = value;
       value = keyVal;
@@ -279,7 +282,11 @@ function cacheable(namespace, keyGenerator, ttl = CACHE_CONFIG.TTL.MEDIUM) {
         return cached;
       }
       const result = await fn.apply(this, args);
-      await set(cacheKey, result, typeof keyGenerator === 'number' ? keyGenerator : ttl);
+      await set(
+        cacheKey,
+        result,
+        typeof keyGenerator === 'number' ? keyGenerator : ttl
+      );
       return result;
     };
   }
