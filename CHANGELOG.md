@@ -17,6 +17,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 修复前端代码中未使用的变量：移除 `ActivityLogPanel.vue`、`CurrencyLogPage.vue`、`InventoryPage.vue` 中的 `_index` 变量
   - 简化 `player.js` 中 `unlockWorldLevel` 函数的 try-catch 结构
   - 修复前端 logger 测试：在测试环境中启用 console 输出，确保测试用例正常通过
+  - 运行 `lint:fix` 自动修复后端 12 个 prettier 格式错误
+
+- **🎨 分页加载与虚拟滚动样式统一**
+  - LandGridOptimized.vue: 统一三种模式（traditional/infinite/virtual）的 grid 布局样式
+    - `grid-template-columns: repeat(10, 1fr)`（与 LandGrid 传统模式一致）
+    - `gap: 12px`、`padding: 30px`、`max-width: 1050px`、`margin: 0 auto`
+  - VirtualScroll.vue: 新增 `.virtual-scroll-inner` 内层容器，解决 `position: absolute` 下 `max-width/margin:auto` 居中失效问题
+  - VirtualLandGrid.vue: 对齐 VirtualScroll 新 inner 结构，`:deep()` 选择器从 `.virtual-scroll-content` 更新为 `.virtual-scroll-inner`
+  - 修复虚拟滚动模式中内容无 grid 布局导致地块垂直堆砌的问题
 
 - **🐞 队列系统修复**
   - 修复 `queueService.init()` 未在 server.js 中调用的严重问题：创建 Worker 开始消费队列任务
