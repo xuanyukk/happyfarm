@@ -174,7 +174,7 @@
 
           <!-- 可见日志 -->
           <div
-            v-for="(activity, _index) in visibleActivities"
+            v-for="activity in visibleActivities"
             :key="activity.id"
             class="log-item"
             :class="[

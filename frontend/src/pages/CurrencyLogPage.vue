@@ -193,7 +193,7 @@
               :style="{ height: virtualScrollData.offset + 'px' }"
             ></div>
             <div
-              v-for="(log, _index) in visibleLogs"
+              v-for="log in visibleLogs"
               :key="log.id"
               class="log-item card"
               :class="log.change_type"

@@ -89,16 +89,12 @@ export const usePlayerStore = defineStore('player', () => {
   };
 
   const unlockWorldLevel = async (targetWorldLevel) => {
-    try {
-      const result = await gameService.unlockWorldLevel(targetWorldLevel);
-      if (result.success) {
-        await fetchPlayerData(true);
-        await fetchLevelProgress(true);
-      }
-      return result;
-    } catch (err) {
-      throw err;
+    const result = await gameService.unlockWorldLevel(targetWorldLevel);
+    if (result.success) {
+      await fetchPlayerData(true);
+      await fetchLevelProgress(true);
     }
+    return result;
   };
 
   const updateAvatar = async (avatar) => {

@@ -109,7 +109,7 @@ v1.0.0 - 初始创建，背包功能实现 * 2026-05-02 - v2.0.0 -
                 :style="{ height: virtualScrollDataSeeds.offset + 'px' }"
               ></div>
               <div
-                v-for="(item, _index) in visibleItemsSeeds"
+                v-for="item in visibleItemsSeeds"
                 :key="item.item_obj_id"
                 class="item-card card"
                 @click="showItemDetail(item, 'seed')"
@@ -268,7 +268,7 @@ v1.0.0 - 初始创建，背包功能实现 * 2026-05-02 - v2.0.0 -
                 :style="{ height: virtualScrollDataCrops.offset + 'px' }"
               ></div>
               <div
-                v-for="(item, _index) in visibleItemsCrops"
+                v-for="item in visibleItemsCrops"
                 :key="item.item_obj_id"
                 class="item-card card"
                 :class="{
