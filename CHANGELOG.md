@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **🔧 CI/CD 流水线修复**
+  - 移除 Node 18.x 版本测试，仅保留 Node 20.x（兼容 Vite 8.0 要求）
   - 修复 Prettier 换行符配置问题：将 `endOfLine` 从 `"crlf"` 改为 `"lf"`，解决 GitHub Actions 在 Linux 环境下的格式检查错误
   - 修复前端代码中未使用的变量：移除 `ActivityLogPanel.vue`、`CurrencyLogPage.vue`、`InventoryPage.vue` 中的 `_index` 变量
   - 简化 `player.js` 中 `unlockWorldLevel` 函数的 try-catch 结构
