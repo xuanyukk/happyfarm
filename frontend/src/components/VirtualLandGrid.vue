@@ -1,6 +1,7 @@
 /** * 文件名：VirtualLandGrid.vue * 作者：开发者 * 日期：2026-03-28 *
-版本：v1.0.0 * 功能描述：虚拟滚动土地网格 - 针对大量地块的高性能渲染 *
-更新记录： * 2026-03-28 - v1.0.0 - 初始创建，虚拟滚动土地网格功能 */
+版本：v1.1.0 * 功能描述：虚拟滚动土地网格 - 针对大量地块的高性能渲染 *
+更新记录： * 2026-03-28 - v1.0.0 - 初始创建，虚拟滚动土地网格功能 * 2026-06-04 -
+v1.1.0 - 对齐 VirtualScroll 新 inner 结构，统一与传统 LandGrid 一致样式 */
 
 <template>
   <div class="virtual-land-grid-container">
@@ -82,11 +83,13 @@ defineExpose({
   box-sizing: border-box;
 }
 
-/* Grid布局支持 */
-:deep(.virtual-scroll-content) {
+/* 虚拟滚动的内层网格布局 - 与传统 LandGrid 样式完全一致 */
+:deep(.virtual-scroll-inner) {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 16px;
-  padding: 16px;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 12px;
+  padding: 30px;
+  max-width: 1050px;
+  margin: 0 auto;
 }
 </style>

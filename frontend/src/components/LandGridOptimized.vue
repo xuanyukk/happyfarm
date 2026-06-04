@@ -1,6 +1,7 @@
 /** * 文件名：LandGridOptimized.vue * 作者：开发者 * 日期：2026-03-28 *
-版本：v1.0.0 * 功能描述：优化版土地网格 - 支持多种渲染模式的高性能组件 *
-更新记录： * 2026-03-28 - v1.0.0 - 初始创建，优化版土地网格功能 */
+版本：v1.1.0 * 功能描述：优化版土地网格 - 支持多种渲染模式的高性能组件 *
+更新记录： * 2026-03-28 - v1.0.0 - 初始创建，优化版土地网格功能 * 2026-06-04 -
+v1.1.0 - 统一三种渲染模式（传统/分页/虚拟）的网格布局样式 */
 
 <template>
   <div class="land-grid-optimized">
@@ -203,11 +204,24 @@ defineExpose({
   height: 100%;
 }
 
+/* 传统模式和分页模式的网格布局 - 与传统 LandGrid 样式完全一致 */
 .lands-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 16px;
-  padding: 16px;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 12px;
+  padding: 30px;
+  max-width: 1050px;
+  margin: 0 auto;
+}
+
+/* 虚拟滚动模式的内层网格布局 - 与传统 LandGrid 样式完全一致 */
+:deep(.virtual-scroll-inner) {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 12px;
+  padding: 30px;
+  max-width: 1050px;
+  margin: 0 auto;
 }
 
 .load-more-button-container {

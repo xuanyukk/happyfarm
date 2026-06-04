@@ -1,6 +1,7 @@
-/** * 文件名：VirtualScroll.vue * 作者：开发者 * 日期：2026-03-28 * 版本：v1.0.0
+/** * 文件名：VirtualScroll.vue * 作者：开发者 * 日期：2026-03-28 * 版本：v1.1.0
 * 功能描述：虚拟滚动组件 - 高性能渲染大量列表项 * 更新记录： * 2026-03-28 -
-v1.0.0 - 初始创建，虚拟滚动功能 */
+v1.0.0 - 初始创建，虚拟滚动功能 * 2026-06-04 - v1.1.0 -
+添加内容内层容器，统一网格布局样式支持 */
 
 <template>
   <div
@@ -13,12 +14,14 @@ v1.0.0 - 初始创建，虚拟滚动功能 */
         class="virtual-scroll-content"
         :style="{ transform: `translateY(${offset}px)` }"
       >
-        <slot
-          v-for="(item, index) in visibleItems"
-          :key="getItemKey(item, index)"
-          :item="item"
-          :index="index"
-        ></slot>
+        <div class="virtual-scroll-inner">
+          <slot
+            v-for="(item, index) in visibleItems"
+            :key="getItemKey(item, index)"
+            :item="item"
+            :index="index"
+          ></slot>
+        </div>
       </div>
     </div>
   </div>
@@ -250,5 +253,10 @@ defineExpose({
   left: 0;
   right: 0;
   will-change: transform;
+}
+
+.virtual-scroll-inner {
+  /* 内层容器，由父组件通过 :deep() 设置 grid 布局样式 */
+  width: 100%;
 }
 </style>
