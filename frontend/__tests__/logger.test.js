@@ -15,6 +15,9 @@ import logger from '@/services/logger';
 describe('日志服务', () => {
   it('应该能够记录信息日志', () => {
     const consoleSpy = vi.spyOn(console, 'info').mockImplementation();
+    // 临时启用 console 输出
+    logger.enableConsole = true;
+    logger.logLevel = 'debug';
     logger.info('测试信息');
     expect(consoleSpy).toHaveBeenCalled();
     consoleSpy.mockRestore();
@@ -22,6 +25,8 @@ describe('日志服务', () => {
 
   it('应该能够记录警告日志', () => {
     const consoleSpy = vi.spyOn(console, 'warn').mockImplementation();
+    logger.enableConsole = true;
+    logger.logLevel = 'debug';
     logger.warn('测试警告');
     expect(consoleSpy).toHaveBeenCalled();
     consoleSpy.mockRestore();
@@ -29,6 +34,8 @@ describe('日志服务', () => {
 
   it('应该能够记录错误日志', () => {
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation();
+    logger.enableConsole = true;
+    logger.logLevel = 'debug';
     logger.error('测试错误');
     expect(consoleSpy).toHaveBeenCalled();
     consoleSpy.mockRestore();

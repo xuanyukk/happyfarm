@@ -9,6 +9,8 @@
 // 设置测试环境变量
 process.env.NODE_ENV = 'test';
 process.env.VITE_API_URL = 'http://localhost:3001/api';
+process.env.VITE_ENABLE_LOG_CONSOLE = 'true';
+process.env.VITE_LOG_LEVEL = 'debug';
 
 // 在所有测试前执行
 beforeAll(() => {
