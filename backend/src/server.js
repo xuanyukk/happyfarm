@@ -112,6 +112,8 @@ const logger = require('./config/logger');
 const requestLogger = require('./middleware/requestLogger');
 const { authMiddleware } = require('./middleware/authMiddleware');
 const schedulerService = require('./services/schedulerService');
+const { queueService } = require('./services/queueService');
+const gameEventSchedulerService = require('./services/gameEventSchedulerService');
 const {
   successResponse,
   errorResponse,
@@ -270,7 +272,6 @@ app.use('/api/admin/configs', configRoutes);
 app.use('/api/admin/batch', batchRoutes);
 app.use('/api/admin/alerts', alertRoutes);
 app.use('/api/performance', performanceRoutes);
-app.use('/api/admin/performance', performanceRoutes);
 app.use('/', healthRoutes);
 app.use('/api/admin/backup', backupRoutes);
 app.use('/api/admin/log-analysis', logAnalysisRoutes);
@@ -280,7 +281,6 @@ app.use('/api/client-logs', clientLogRoutes);
 app.use('/api/traces', traceRoutes);
 app.use('/api/admin/log-cleanup', logCleanupRoutes);
 app.use('/api/monitoring', monitoringRoutes);
-app.use('/api/admin/monitoring', monitoringRoutes);
 app.use('/api/business-metrics', businessMetricsRoutes);
 app.use('/api/game-events', userGameEventRoutes);
 app.use('/api/daily-tasks', dailyTaskRoutes);
@@ -291,7 +291,6 @@ app.use('/api/admin/game-event-medium', gameEventMediumRoutes);
 app.use('/api/admin/crops', adminCropRoutes);
 app.use('/api/admin/items', adminItemRoutes);
 app.use('/api/admin/game-config', adminGameConfigRoutes);
-app.use('/api/admin/currency-config', currencyConfigRoutes);
 app.use('/api/currency-config', currencyConfigRoutes);
 app.use('/api/grafana', grafanaRoutes);
 app.use('/api/batch', batchImportExportRoutes);
@@ -1098,6 +1097,28 @@ if (process.env.NODE_ENV !== 'test') {
       logger.info('作物成熟监测服务已启动');
     } catch (error) {
       logger.error('启动作物成熟监测服务失败', { error: error.message });
+    }
+
+    // 初始化队列服务（创建Worker，开始消费队列任务）
+    try {
+      queueService.init().then(() => {
+        logger.info('队列服务初始化完成');
+      }).catch((err) => {
+        logger.error('队列服务初始化失败', { error: err.message });
+      });
+    } catch (error) {
+      logger.error('队列服务初始化失败', { error: error.message });
+    }
+
+    // 初始化游戏活动定时任务调度器
+    try {
+      gameEventSchedulerService.init().then(() => {
+        logger.info('游戏活动调度器初始化完成');
+      }).catch((err) => {
+        logger.error('游戏活动调度器初始化失败', { error: err.message });
+      });
+    } catch (error) {
+      logger.error('游戏活动调度器初始化失败', { error: error.message });
     }
 
     // 启动缓存预热（异步执行，不阻塞服务器启动

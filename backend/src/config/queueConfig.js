@@ -2,10 +2,11 @@
  * 文件名：queueConfig.js
  * 作者：AI助手
  * 日期：2026-04-30
- * 版本：v1.0.0
+ * 版本：v1.1.0
  * 功能描述：BullMQ队列配置和管理
  * 更新记录：
  *   2026-04-30 - v1.0.0 - 初始创建，提供BullMQ队列基础配置
+ *   2026-06-04 - v1.1.0 - 复用redis.js连接实例，避免连接配置冗余
  */
 
 const { Queue, Worker, QueueEvents } = require('bullmq');
@@ -16,12 +17,8 @@ const logger = require('../config/logger');
  * 队列配置
  */
 const QUEUE_CONFIG = {
-  connection: {
-    host: process.env.REDIS_HOST || 'localhost',
-    port: parseInt(process.env.REDIS_PORT) || 6379,
-    password: process.env.REDIS_PASSWORD || undefined,
-    db: parseInt(process.env.REDIS_DB) || 0,
-  },
+  // 使用redis.js的连接实例，BullMQ兼容ioredis实例作为connection
+  connection: redisClient,
   defaultJobOptions: {
     attempts: 3,
     backoff: {

@@ -18,6 +18,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 简化 `player.js` 中 `unlockWorldLevel` 函数的 try-catch 结构
   - 修复前端 logger 测试：在测试环境中启用 console 输出，确保测试用例正常通过
 
+- **🐞 队列系统修复**
+  - 修复 `queueService.init()` 未在 server.js 中调用的严重问题：创建 Worker 开始消费队列任务
+  - 修复 `gameEventSchedulerService` 未初始化的中等问题：活动定时调度器现在随服务启动
+  - 添加 Redis 可用性检查中间件，Redis 未启用时队列接口返回友好提示（503）
+  - 优化 `queueConfig.js` 复用 `redis.js` 连接实例，消除连接配置冗余
+
+- **🔀 API 接口修复**
+  - 修复路由重复挂载问题：移除 `performanceRoutes`、`monitoringRoutes`、`currencyConfigRoutes` 的重复挂载路径
+  - 修复前端双 axios 实例问题：统一为 `request.js`（带 Token 自动刷新），`api.js` 改为别名引用
+
 ### Changed
 
 - **📖 CI/CD 配置优化**

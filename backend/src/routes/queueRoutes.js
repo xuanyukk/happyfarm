@@ -9,6 +9,8 @@
  */
 
 const express = require('express');
+const redisClient = require('../config/redis');
+const logger = require('../config/logger');
 const { authMiddleware } = require('../middleware/authMiddleware');
 const {
   getQueueStats,
@@ -21,6 +23,27 @@ const {
 } = require('../controllers/queueController');
 
 const router = express.Router();
+
+/**
+ * 队列可用性检查中间件
+ * 当 Redis 未启用时，所有队列接口返回友好提示
+ */
+const checkQueueAvailable = (req, res, next) => {
+  if (!redisClient) {
+    logger.warn('队列API调用被拒绝：Redis未启用', {
+      url: req.originalUrl,
+      ip: req.ip,
+    });
+    return res.status(503).json({
+      success: false,
+      message: '队列服务不可用：Redis 未启用，请先配置 Redis',
+    });
+  }
+  next();
+};
+
+// 对所有队列路由应用可用性检查
+router.use(checkQueueAvailable);
 
 /**
  * @swagger
