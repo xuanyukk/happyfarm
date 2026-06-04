@@ -713,15 +713,18 @@ const useMysteryBox = async function (client, playerId, item) {
     }
   }
 
-  // 获取奖励的道具名称
+  // 获取奖励的道具名称（批量查询避免N+1问题）
+  const rewardItemIds = rewards.map(r => r.itemId);
   const rewardNames = [];
-  for (const reward of rewards) {
-    const itemResult = await client.query(
-      'SELECT item_name FROM item_config WHERE item_id = $1',
-      [reward.itemId]
+  if (rewardItemIds.length > 0) {
+    const nameResult = await client.query(
+      'SELECT item_id, item_name FROM item_config WHERE item_id = ANY($1::int[])',
+      [rewardItemIds]
     );
-    if (itemResult.rows.length > 0) {
-      rewardNames.push(`${itemResult.rows[0].item_name} x${reward.quantity}`);
+    const nameMap = new Map(nameResult.rows.map(r => [r.item_id, r.item_name]));
+    for (const reward of rewards) {
+      const name = nameMap.get(reward.itemId) || `道具#${reward.itemId}`;
+      rewardNames.push(`${name} x${reward.quantity}`);
     }
   }
 

@@ -156,7 +156,19 @@ const plantCrop = async function (playerId, landNum, cropId) {
       JOIN land_quality lq ON pls.current_quality = lq.quality_id
       WHERE pls.player_id = $1 AND pls.land_num = $2 FOR UPDATE
     `;
-    const landResult = await client.query(landQuery, [playerId, landNum]);
+    const cropQuery = 'SELECT * FROM crop WHERE crop_id = $1';
+    const playerInfoQuery = `
+      SELECT world_level, player_level, farm_level 
+      FROM player_base 
+      WHERE player_id = $1
+    `;
+
+    // 并行查询地块、作物和玩家信息
+    const [landResult, cropResult, playerInfoResult] = await Promise.all([
+      client.query(landQuery, [playerId, landNum]),
+      client.query(cropQuery, [parseInt(cropId)]),
+      client.query(playerInfoQuery, [playerId]),
+    ]);
 
     if (landResult.rows.length === 0) {
       throw new Error('地块不存在');
@@ -172,22 +184,12 @@ const plantCrop = async function (playerId, landNum, cropId) {
       throw new Error('地块已种植作物');
     }
 
-    const cropQuery = 'SELECT * FROM crop WHERE crop_id = $1';
-    const cropResult = await client.query(cropQuery, [parseInt(cropId)]);
-
     if (cropResult.rows.length === 0) {
       throw new Error('作物不存在');
     }
 
     const crop = cropResult.rows[0];
 
-    // 验证作物解锁条件
-    const playerInfoQuery = `
-      SELECT world_level, player_level, farm_level 
-      FROM player_base 
-      WHERE player_id = $1
-    `;
-    const playerInfoResult = await client.query(playerInfoQuery, [playerId]);
     const playerInfo = playerInfoResult.rows[0];
 
     if (!playerInfo) {

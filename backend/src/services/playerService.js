@@ -743,13 +743,6 @@ const recoverStamina = async function (playerId) {
          WHERE player_id = $3`,
         [newStamina, maxStamina, playerId]
       );
-    } else if (newStamina > player.current_stamina) {
-      await pool.query(
-        `UPDATE player_base
-         SET current_stamina = $1, last_stamina_recover_time = CURRENT_TIMESTAMP
-         WHERE player_id = $2`,
-        [newStamina, playerId]
-      );
     }
 
     const remainingToMax = maxStamina - newStamina;
@@ -834,22 +827,32 @@ const getOfflineRewards = async function (playerId) {
       [playerId]
     );
 
+    // 并行执行金币和经验更新
+    const updatePromises = [];
     if (goldEarned > 0) {
-      await pool.query(
-        `UPDATE player_currency 
-         SET currency_num = currency_num + $1, total_earn = total_earn + $1, daily_earn = daily_earn + $1, last_earn_time = CURRENT_TIMESTAMP
-         WHERE player_id = $2`,
-        [goldEarned, playerId]
+      updatePromises.push(
+        pool.query(
+          `UPDATE player_currency 
+           SET currency_num = currency_num + $1, total_earn = total_earn + $1, daily_earn = daily_earn + $1, last_earn_time = CURRENT_TIMESTAMP
+           WHERE player_id = $2`,
+          [goldEarned, playerId]
+        )
       );
     }
 
     if (expEarned > 0) {
-      await pool.query(
-        `UPDATE player_base 
-         SET player_exp = player_exp + $1, update_time = CURRENT_TIMESTAMP
-         WHERE player_id = $2`,
-        [expEarned, playerId]
+      updatePromises.push(
+        pool.query(
+          `UPDATE player_base 
+           SET player_exp = player_exp + $1, update_time = CURRENT_TIMESTAMP
+           WHERE player_id = $2`,
+          [expEarned, playerId]
+        )
       );
+    }
+
+    if (updatePromises.length > 0) {
+      await Promise.all(updatePromises);
     }
 
     const offlineHours = Math.floor(offlineMinutes / 60);

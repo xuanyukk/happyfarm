@@ -106,69 +106,95 @@ const handleLogoutClick = () => {
 <style scoped>
 .nav {
   display: flex;
-  gap: 12px;
+  gap: 10px;
 }
 
 .nav-btn {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 12px 20px;
-  background: rgba(255, 255, 255, 0.15);
+  gap: 6px;
+  padding: 10px 16px;
+  background: rgba(255, 255, 255, 0.12);
   border: 1px solid var(--glass-border);
   border-radius: var(--border-radius-md);
   color: white;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
+  position: relative;
+  overflow: hidden;
+}
+
+.nav-btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, rgba(255,255,255,0.2), transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.nav-btn:hover::after {
+  opacity: 1;
 }
 
 .nav-btn:hover {
-  background: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.22);
   transform: translateY(-2px);
-  box-shadow: var(--shadow-lg);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+  border-color: rgba(255, 255, 255, 0.45);
+}
+
+.nav-btn:active {
+  transform: translateY(0) scale(0.96);
+  transition: transform 0.1s ease;
+}
+
+.btn-icon {
+  font-size: 16px;
+  transition: transform 0.3s ease;
+}
+
+.nav-btn:hover .btn-icon {
+  transform: scale(1.15) rotate(-5deg);
 }
 
 .logout-btn {
   background: linear-gradient(
     135deg,
-    rgba(244, 67, 54, 0.3),
-    rgba(233, 30, 99, 0.3)
+    rgba(244, 67, 54, 0.25),
+    rgba(233, 30, 99, 0.2)
   );
-  border-color: rgba(244, 67, 54, 0.5);
+  border-color: rgba(244, 67, 54, 0.45);
 }
 
 .logout-btn:hover {
   background: linear-gradient(
     135deg,
-    rgba(244, 67, 54, 0.4),
-    rgba(233, 30, 99, 0.4)
+    rgba(244, 67, 54, 0.38),
+    rgba(233, 30, 99, 0.32)
   );
-  border-color: rgba(244, 67, 54, 0.7);
+  border-color: rgba(244, 67, 54, 0.65);
 }
 
 .admin-btn {
   background: linear-gradient(
     135deg,
-    rgba(103, 58, 183, 0.3),
-    rgba(156, 39, 176, 0.3)
+    rgba(103, 58, 183, 0.22),
+    rgba(156, 39, 176, 0.2)
   );
-  border-color: rgba(103, 58, 183, 0.5);
+  border-color: rgba(103, 58, 183, 0.45);
 }
 
 .admin-btn:hover {
   background: linear-gradient(
     135deg,
-    rgba(103, 58, 183, 0.4),
-    rgba(156, 39, 176, 0.4)
+    rgba(103, 58, 183, 0.35),
+    rgba(156, 39, 176, 0.32)
   );
-  border-color: rgba(103, 58, 183, 0.7);
-}
-
-.btn-icon {
-  font-size: 18px;
+  border-color: rgba(103, 58, 183, 0.65);
 }
 </style>

@@ -219,6 +219,50 @@ body::before {
   100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
 }
 
+@keyframes slideUpFade {
+  from { opacity: 0; transform: translateY(var(--slide-distance, 16px)); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.03); }
+}
+
+.animate-slide-up {
+  animation: slideUpFade 0.4s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+.animate-slide-up-delay-1 { animation-delay: 0.05s; }
+.animate-slide-up-delay-2 { animation-delay: 0.1s; }
+.animate-slide-up-delay-3 { animation-delay: 0.15s; }
+
+.animate-breathe {
+  animation: breathe 2s ease-in-out infinite;
+}
+
+.interactive-scale {
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.interactive-scale:hover {
+  transform: scale(1.04);
+}
+
+.interactive-scale:active {
+  transform: scale(0.97);
+}
+
+/* 图标微动效果 */
+.icon-wiggle {
+  display: inline-block;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.icon-wiggle:hover {
+  transform: rotate(-8deg) scale(1.15);
+}
+
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity var(--transition-normal);

@@ -2322,6 +2322,32 @@ const unregisterWebSocketHandlers = () => {
   padding: 12px 24px;
   font-size: 14px;
   font-weight: 600;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.quick-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.12), transparent);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.quick-btn:hover::before {
+  opacity: 1;
+}
+
+.quick-btn:not(:disabled):hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+}
+
+.quick-btn:not(:disabled):active {
+  transform: translateY(-1px) scale(0.97);
+  transition: transform 0.1s ease;
 }
 
 .render-mode-selector {
