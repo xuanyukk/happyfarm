@@ -63,7 +63,29 @@ const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./config/swagger');
 const { Server } = require('socket.io');
 const { responseTimeMiddleware } = require('./middleware/responseTime');
-const client = require('prom-client');
+const logger = require('./config/logger');
+
+let client;
+let collectDefaultMetrics;
+let httpRequestDurationMicroseconds;
+let httpRequestsTotal;
+try {
+  client = require('prom-client');
+  collectDefaultMetrics = client.collectDefaultMetrics;
+  httpRequestDurationMicroseconds = new client.Histogram({
+    name: 'http_request_duration_seconds',
+    help: 'Duration of HTTP requests in seconds',
+    labelNames: ['method', 'route', 'code'],
+    buckets: [0.1, 0.3, 0.5, 0.7, 1, 3, 5, 7, 10],
+  });
+  httpRequestsTotal = new client.Counter({
+    name: 'http_requests_total',
+    help: 'Total number of HTTP requests',
+    labelNames: ['method', 'route', 'code'],
+  });
+} catch (e) {
+  logger.warn('prom-client 模块未安装，指标功能将不可用');
+}
 const authRoutes = require('./routes/authRoutes');
 const playerRoutes = require('./routes/playerRoutes');
 const farmRoutes = require('./routes/farmRoutes');
@@ -108,7 +130,6 @@ const adminFarmLevelRoutes = require('./routes/adminFarmLevelRoutes');
 const adminDatabaseRoutes = require('./routes/adminDatabaseRoutes');
 const adminMailRoutes = require('./routes/adminMailRoutes');
 const queueRoutes = require('./routes/queueRoutes');
-const logger = require('./config/logger');
 const requestLogger = require('./middleware/requestLogger');
 const { authMiddleware } = require('./middleware/authMiddleware');
 const schedulerService = require('./services/schedulerService');
@@ -149,37 +170,26 @@ dotenv.config({
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// 初始化Prometheus指标
-const collectDefaultMetrics = client.collectDefaultMetrics;
-collectDefaultMetrics({ prefix: 'happy_farm_' });
+// 初始化Prometheus指标（仅在prom-client可用时）
+if (collectDefaultMetrics) {
+  collectDefaultMetrics({ prefix: 'happy_farm_' });
+}
 
-// 自定义指标
-const httpRequestDurationMicroseconds = new client.Histogram({
-  name: 'http_request_duration_seconds',
-  help: 'Duration of HTTP requests in seconds',
-  labelNames: ['method', 'route', 'code'],
-  buckets: [0.1, 0.3, 0.5, 0.7, 1, 3, 5, 7, 10],
-});
-
-const httpRequestsTotal = new client.Counter({
-  name: 'http_requests_total',
-  help: 'Total number of HTTP requests',
-  labelNames: ['method', 'route', 'code'],
-});
-
-// HTTP请求统计中间件
-app.use((req, res, next) => {
-  const end = httpRequestDurationMicroseconds.startTimer();
-  res.on('finish', () => {
-    end({ method: req.method, route: req.path, code: res.statusCode });
-    httpRequestsTotal.inc({
-      method: req.method,
-      route: req.path,
-      code: res.statusCode,
+// HTTP请求统计中间件（仅在指标可用时）
+if (httpRequestDurationMicroseconds && httpRequestsTotal) {
+  app.use((req, res, next) => {
+    const end = httpRequestDurationMicroseconds.startTimer();
+    res.on('finish', () => {
+      end({ method: req.method, route: req.path, code: res.statusCode });
+      httpRequestsTotal.inc({
+        method: req.method,
+        route: req.path,
+        code: res.statusCode,
+      });
     });
+    next();
   });
-  next();
-});
+}
 
 // ==========================================
 // DI容器初始化（向后兼容，可选使用）
@@ -249,8 +259,11 @@ app.use('/api/auth/login', (req, res, next) => {
   });
 });
 
-// Prometheus指标端点
+// Prometheus指标端点（仅在prom-client可用时）
 app.get('/api/metrics', async (req, res) => {
+  if (!client) {
+    return res.status(501).json({ error: 'prom-client 模块未安装' });
+  }
   res.set('Content-Type', client.register.contentType);
   res.send(await client.register.metrics());
 });
