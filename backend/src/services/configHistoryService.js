@@ -25,8 +25,16 @@ class ConfigHistoryService {
    * @param {string} reason - 变更原因
    * @returns {object} 创建的日志记录
    */
-  async logChange(key, changeType, oldValue, newValue, operatorId,
-    operatorName, ipAddress, reason) {
+  async logChange(
+    key,
+    changeType,
+    oldValue,
+    newValue,
+    operatorId,
+    operatorName,
+    ipAddress,
+    reason
+  ) {
     const client = await pool.connect();
     try {
       // 计算变更的字段列表
@@ -75,7 +83,7 @@ class ConfigHistoryService {
           resolvedOperatorName,
           ipAddress || null,
           reason || '',
-          version
+          version,
         ]
       );
 
@@ -105,7 +113,7 @@ class ConfigHistoryService {
     if (!oldValue) {
       // CREATE: 所有字段都是新的
       if (typeof newValue === 'object' && newValue !== null) {
-        Object.keys(newValue).forEach(k => fields.add(k));
+        Object.keys(newValue).forEach((k) => fields.add(k));
       } else {
         fields.add('value');
       }
@@ -115,7 +123,7 @@ class ConfigHistoryService {
     if (!newValue) {
       // DELETE: 所有旧字段都被删除
       if (typeof oldValue === 'object' && oldValue !== null) {
-        Object.keys(oldValue).forEach(k => fields.add(k));
+        Object.keys(oldValue).forEach((k) => fields.add(k));
       } else {
         fields.add('value');
       }
@@ -123,15 +131,14 @@ class ConfigHistoryService {
     }
 
     // 处理对象比较
-    const oldObj = typeof oldValue === 'object' ? oldValue : { value: oldValue };
-    const newObj = typeof newValue === 'object' ? newValue : { value: newValue };
+    const oldObj =
+      typeof oldValue === 'object' ? oldValue : { value: oldValue };
+    const newObj =
+      typeof newValue === 'object' ? newValue : { value: newValue };
 
-    const allKeys = new Set([
-      ...Object.keys(oldObj),
-      ...Object.keys(newObj)
-    ]);
+    const allKeys = new Set([...Object.keys(oldObj), ...Object.keys(newObj)]);
 
-    allKeys.forEach(k => {
+    allKeys.forEach((k) => {
       const oldVal = JSON.stringify(oldObj[k]);
       const newVal = JSON.stringify(newObj[k]);
       if (oldVal !== newVal) {
@@ -177,7 +184,7 @@ class ConfigHistoryService {
       total,
       page,
       limit,
-      totalPages
+      totalPages,
     };
   }
 
@@ -235,12 +242,9 @@ class ConfigHistoryService {
     const val2 = record2.new_value || {};
 
     const changes = [];
-    const allKeys = new Set([
-      ...Object.keys(val1),
-      ...Object.keys(val2)
-    ]);
+    const allKeys = new Set([...Object.keys(val1), ...Object.keys(val2)]);
 
-    allKeys.forEach(field => {
+    allKeys.forEach((field) => {
       const fieldVal1 = val1[field];
       const fieldVal2 = val2[field];
       const str1 = JSON.stringify(fieldVal1);
@@ -251,13 +255,13 @@ class ConfigHistoryService {
           field,
           oldValue: fieldVal1,
           newValue: fieldVal2,
-          changed: true
+          changed: true,
         });
       } else {
         changes.push({
           field,
           value: fieldVal1,
-          changed: false
+          changed: false,
         });
       }
     });
@@ -268,20 +272,20 @@ class ConfigHistoryService {
         version: version1,
         createdAt: record1.created_at,
         operatorName: record1.operator_name,
-        changeReason: record1.change_reason
+        changeReason: record1.change_reason,
       },
       version2: {
         version: version2,
         createdAt: record2.created_at,
         operatorName: record2.operator_name,
-        changeReason: record2.change_reason
+        changeReason: record2.change_reason,
       },
       changes,
       summary: {
         totalFields: allKeys.size,
-        changedFields: changes.filter(c => c.changed).length,
-        unchangedFields: changes.filter(c => !c.changed).length
-      }
+        changedFields: changes.filter((c) => c.changed).length,
+        unchangedFields: changes.filter((c) => !c.changed).length,
+      },
     };
   }
 
@@ -295,8 +299,14 @@ class ConfigHistoryService {
    * @param {string} reason - 回滚原因
    * @returns {object} 回滚结果
    */
-  async rollbackToVersion(key, targetVersion, operatorId, operatorName,
-    ipAddress, reason) {
+  async rollbackToVersion(
+    key,
+    targetVersion,
+    operatorId,
+    operatorName,
+    ipAddress,
+    reason
+  ) {
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
@@ -330,13 +340,16 @@ class ConfigHistoryService {
       const oldValue = {
         value: currentConfig.value,
         name: currentConfig.name,
-        description: currentConfig.description
+        description: currentConfig.description,
       };
 
       // 构建更新数据
       let updateValue = currentConfig.value;
       if (targetValue) {
-        if (typeof targetValue === 'object' && targetValue.value !== undefined) {
+        if (
+          typeof targetValue === 'object' &&
+          targetValue.value !== undefined
+        ) {
           updateValue = targetValue.value;
         } else if (typeof targetValue === 'string') {
           updateValue = targetValue;
@@ -394,7 +407,7 @@ class ConfigHistoryService {
           resolvedOperatorName,
           ipAddress || null,
           reason || `回滚到版本 ${targetVersion}`,
-          newVersion
+          newVersion,
         ]
       );
 
@@ -406,7 +419,7 @@ class ConfigHistoryService {
         fromVersion: currentConfig.version,
         toVersion: targetVersion,
         newLogVersion: newVersion,
-        changedFields
+        changedFields,
       };
     } catch (error) {
       await client.query('ROLLBACK');
@@ -443,13 +456,14 @@ class ConfigHistoryService {
       [key]
     );
 
-    const currentValue = currentResult.rows.length > 0
-      ? {
-        value: currentResult.rows[0].value,
-        name: currentResult.rows[0].name,
-        description: currentResult.rows[0].description
-      }
-      : null;
+    const currentValue =
+      currentResult.rows.length > 0
+        ? {
+            value: currentResult.rows[0].value,
+            name: currentResult.rows[0].name,
+            description: currentResult.rows[0].description,
+          }
+        : null;
 
     // 获取最新版本号
     const latestVersionResult = await pool.query(
@@ -466,10 +480,10 @@ class ConfigHistoryService {
 
     const allKeys = new Set([
       ...Object.keys(oldValue),
-      ...Object.keys(targetValue)
+      ...Object.keys(targetValue),
     ]);
 
-    allKeys.forEach(field => {
+    allKeys.forEach((field) => {
       const fieldOldVal = oldValue[field];
       const fieldNewVal = targetValue[field];
       const strOld = JSON.stringify(fieldOldVal);
@@ -480,7 +494,7 @@ class ConfigHistoryService {
           field,
           currentValue: fieldOldVal,
           rollbackValue: fieldNewVal,
-          changed: true
+          changed: true,
         });
       }
     });
@@ -494,8 +508,8 @@ class ConfigHistoryService {
       targetChangeReason: targetRecord.change_reason,
       changes,
       summary: {
-        totalChangedFields: changes.length
-      }
+        totalChangedFields: changes.length,
+      },
     };
   }
 
@@ -544,9 +558,10 @@ class ConfigHistoryService {
       params.push(filters.endDate);
     }
 
-    const whereClause = whereConditions.length > 0
-      ? 'WHERE ' + whereConditions.join(' AND ')
-      : '';
+    const whereClause =
+      whereConditions.length > 0
+        ? 'WHERE ' + whereConditions.join(' AND ')
+        : '';
 
     // 统计总数
     const countResult = await pool.query(
@@ -573,7 +588,7 @@ class ConfigHistoryService {
       total,
       page,
       limit,
-      totalPages
+      totalPages,
     };
   }
 
@@ -636,7 +651,7 @@ class ConfigHistoryService {
       totalChanges: parseInt(totalResult.rows[0].total),
       byType: typeResult.rows,
       byOperator: operatorResult.rows,
-      recentChanges: recentResult.rows
+      recentChanges: recentResult.rows,
     };
   }
 }

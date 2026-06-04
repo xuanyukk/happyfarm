@@ -1,4 +1,3 @@
-
 /**
  * 文件名: adminItemService.js
  * 作者: Trae AI
@@ -75,9 +74,14 @@ async function createItem(data) {
     `;
 
     const result = await client.query(query, [
-      data.itemType, data.itemName, data.itemDesc,
-      data.effectValue, data.effectDuration || null,
-      data.unlockWorldLevel, data.unlockPlayerLevel, data.maxStack
+      data.itemType,
+      data.itemName,
+      data.itemDesc,
+      data.effectValue,
+      data.effectDuration || null,
+      data.unlockWorldLevel,
+      data.unlockPlayerLevel,
+      data.maxStack,
     ]);
 
     await client.query('COMMIT');
@@ -99,7 +103,8 @@ async function updateItem(itemId, data) {
   try {
     await client.query('BEGIN');
 
-    const checkQuery = 'SELECT * FROM item_config WHERE item_id = $1 FOR UPDATE';
+    const checkQuery =
+      'SELECT * FROM item_config WHERE item_id = $1 FOR UPDATE';
     const checkResult = await client.query(checkQuery, [itemId]);
     if (checkResult.rows.length === 0) {
       throw new Error('道具不存在');
@@ -121,9 +126,15 @@ async function updateItem(itemId, data) {
     `;
 
     const result = await client.query(query, [
-      itemId, data.itemType, data.itemName, data.itemDesc,
-      data.effectValue, data.effectDuration !== undefined ? data.effectDuration : null,
-      data.unlockWorldLevel, data.unlockPlayerLevel, data.maxStack
+      itemId,
+      data.itemType,
+      data.itemName,
+      data.itemDesc,
+      data.effectValue,
+      data.effectDuration !== undefined ? data.effectDuration : null,
+      data.unlockWorldLevel,
+      data.unlockPlayerLevel,
+      data.maxStack,
     ]);
 
     await client.query('COMMIT');
@@ -161,4 +172,3 @@ module.exports = {
   updateItem,
   deleteItem,
 };
-

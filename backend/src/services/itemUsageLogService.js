@@ -55,11 +55,18 @@ const itemUsageLogService = {
       `;
 
       const values = [
-        playerId, itemId, itemName, quantity,
-        usageScene, landNum, result,
+        playerId,
+        itemId,
+        itemName,
+        quantity,
+        usageScene,
+        landNum,
+        result,
         effectDetail ? JSON.stringify(effectDetail) : null,
-        inventoryBefore, inventoryAfter,
-        ipAddress, userAgent,
+        inventoryBefore,
+        inventoryAfter,
+        ipAddress,
+        userAgent,
       ];
 
       const dbResult = await pool.query(query, values);
@@ -67,14 +74,20 @@ const itemUsageLogService = {
       const createTime = dbResult.rows[0].create_time;
 
       logger.info('道具使用日志记录成功', {
-        logId, playerId, itemId,
-        itemName, usageScene, result,
+        logId,
+        playerId,
+        itemId,
+        itemName,
+        usageScene,
+        result,
       });
 
       return { id: logId, create_time: createTime };
     } catch (err) {
       logger.error('道具使用日志记录失败', {
-        playerId, itemId, itemName,
+        playerId,
+        itemId,
+        itemName,
         error: err.message,
       });
       throw err;
@@ -142,7 +155,9 @@ const itemUsageLogService = {
       };
     } catch (err) {
       logger.error('查询道具使用日志失败', {
-        playerId, filters, error: err.message,
+        playerId,
+        filters,
+        error: err.message,
       });
       throw err;
     }
@@ -176,7 +191,9 @@ const itemUsageLogService = {
       return result.rows;
     } catch (err) {
       logger.error('查询道具使用统计失败', {
-        startTime, endTime, error: err.message,
+        startTime,
+        endTime,
+        error: err.message,
       });
       throw err;
     }
@@ -207,7 +224,9 @@ const itemUsageLogService = {
       return result.rows;
     } catch (err) {
       logger.error('道具使用异常检测失败', {
-        thresholdMinutes, maxUsage, error: err.message,
+        thresholdMinutes,
+        maxUsage,
+        error: err.message,
       });
       throw err;
     }

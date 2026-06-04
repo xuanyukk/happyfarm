@@ -240,7 +240,9 @@ const useItem = async function (playerId, itemId, landNum = null) {
     await client.query('COMMIT');
     logger.info('使用道具成功', { playerId, itemId, itemType: item.item_type });
 
-    const inventoryBefore = inventoryResult.rows[0] ? inventoryResult.rows[0].item_num : 0;
+    const inventoryBefore = inventoryResult.rows[0]
+      ? inventoryResult.rows[0].item_num
+      : 0;
     const inventoryAfter = Math.max(0, inventoryBefore - 1);
     try {
       await itemUsageLogService.logUsage({
@@ -261,7 +263,9 @@ const useItem = async function (playerId, itemId, landNum = null) {
       });
     } catch (logErr) {
       logger.warn('道具使用日志写入失败（不影响游戏流程）', {
-        playerId, itemId, error: logErr.message,
+        playerId,
+        itemId,
+        error: logErr.message,
       });
     }
 
@@ -433,9 +437,11 @@ const useTimeHourglass = async function (client, playerId, item, landNum) {
     }
     if (land.status !== 'planting') {
       throw new Error(
-        land.status === 'harvestable' ? '该地块作物已经成熟' :
-        land.status === 'withered' ? '该地块作物已枯萎' :
-        '该地块作物无需加速'
+        land.status === 'harvestable'
+          ? '该地块作物已经成熟'
+          : land.status === 'withered'
+            ? '该地块作物已枯萎'
+            : '该地块作物无需加速'
       );
     }
 
@@ -606,11 +612,11 @@ const useExpPotion = async function (client, playerId, item, landNum) {
  * 使用金币袋 - 随机获得配置范围内的金币
  */
 const useGoldBag = async function (client, playerId, item) {
-    // 从配置系统读取金币范围
-    const minGold = configService.getConfig('GOLD_BAG_MIN_GOLD', 1000);
-    const maxGold = configService.getConfig('GOLD_BAG_MAX_GOLD', 10000);
-    const goldAmount =
-        Math.floor(Math.random() * (maxGold - minGold + 1)) + minGold;
+  // 从配置系统读取金币范围
+  const minGold = configService.getConfig('GOLD_BAG_MIN_GOLD', 1000);
+  const maxGold = configService.getConfig('GOLD_BAG_MAX_GOLD', 10000);
+  const goldAmount =
+    Math.floor(Math.random() * (maxGold - minGold + 1)) + minGold;
 
   // 获取当前余额
   const currencyResult = await client.query(
@@ -636,7 +642,14 @@ const useGoldBag = async function (client, playerId, item) {
     INSERT INTO player_currency_log (player_id, type, amount, source, related_id, balance_before, balance_after)
     VALUES ($1, 1, $2, $3, $4, $5, $6)
   `,
-    [playerId, goldAmount, 'item_use', item.item_id, balanceBefore, balanceAfter]
+    [
+      playerId,
+      goldAmount,
+      'item_use',
+      item.item_id,
+      balanceBefore,
+      balanceAfter,
+    ]
   );
 
   return {
@@ -675,7 +688,8 @@ const useMysteryBox = async function (client, playerId, item) {
 
   // 随机选择奖励
   const rewards = [];
-  const rewardCount = Math.floor(Math.random() * (maxRewards - minRewards + 1)) + minRewards;
+  const rewardCount =
+    Math.floor(Math.random() * (maxRewards - minRewards + 1)) + minRewards;
 
   for (let i = 0; i < rewardCount; i++) {
     const rewardIndex = Math.floor(Math.random() * possibleRewards.length);
@@ -714,14 +728,16 @@ const useMysteryBox = async function (client, playerId, item) {
   }
 
   // 获取奖励的道具名称（批量查询避免N+1问题）
-  const rewardItemIds = rewards.map(r => r.itemId);
+  const rewardItemIds = rewards.map((r) => r.itemId);
   const rewardNames = [];
   if (rewardItemIds.length > 0) {
     const nameResult = await client.query(
       'SELECT item_id, item_name FROM item_config WHERE item_id = ANY($1::int[])',
       [rewardItemIds]
     );
-    const nameMap = new Map(nameResult.rows.map(r => [r.item_id, r.item_name]));
+    const nameMap = new Map(
+      nameResult.rows.map((r) => [r.item_id, r.item_name])
+    );
     for (const reward of rewards) {
       const name = nameMap.get(reward.itemId) || `道具#${reward.itemId}`;
       rewardNames.push(`${name} x${reward.quantity}`);
@@ -742,9 +758,10 @@ const useMysteryBox = async function (client, playerId, item) {
  * - 即使升级检查失败也不影响经验道具的正常使用
  */
 const useFarmBook = async function (client, playerId, item) {
-  const expAmount = item.effect_value > 1
-    ? parseInt(item.effect_value)
-    : configService.getConfig('FARM_BOOK_EXP', 5000);
+  const expAmount =
+    item.effect_value > 1
+      ? parseInt(item.effect_value)
+      : configService.getConfig('FARM_BOOK_EXP', 5000);
 
   // 获取玩家信息
   const playerResult = await client.query(
@@ -772,7 +789,10 @@ const useFarmBook = async function (client, playerId, item) {
   try {
     upgradeResult = await checkAndUpgradeLevel(playerId);
   } catch (upgradeError) {
-    logger.warn('农场手册触发升级检查失败', { playerId, error: upgradeError.message });
+    logger.warn('农场手册触发升级检查失败', {
+      playerId,
+      error: upgradeError.message,
+    });
   }
 
   return {
@@ -789,9 +809,10 @@ const useFarmBook = async function (client, playerId, item) {
  * - 与 useFarmBook 相同修复逻辑，确保世界等级升级即时触发
  */
 const useWorldBook = async function (client, playerId, item) {
-  const expAmount = item.effect_value > 1
-    ? parseInt(item.effect_value)
-    : configService.getConfig('WORLD_BOOK_EXP', 2000);
+  const expAmount =
+    item.effect_value > 1
+      ? parseInt(item.effect_value)
+      : configService.getConfig('WORLD_BOOK_EXP', 2000);
 
   // 获取玩家信息
   const playerResult = await client.query(
@@ -819,7 +840,10 @@ const useWorldBook = async function (client, playerId, item) {
   try {
     upgradeResult = await checkAndUpgradeLevel(playerId);
   } catch (upgradeError) {
-    logger.warn('世界之书触发升级检查失败', { playerId, error: upgradeError.message });
+    logger.warn('世界之书触发升级检查失败', {
+      playerId,
+      error: upgradeError.message,
+    });
   }
 
   return {
@@ -834,39 +858,42 @@ const useWorldBook = async function (client, playerId, item) {
  * 使用体力药水
  */
 const useStaminaPotion = async function (client, playerId, item) {
-    // 获取玩家信息
-    const playerResult = await client.query(
-        'SELECT * FROM player_base WHERE player_id = $1',
-        [playerId]
-    );
-    if (playerResult.rows.length === 0) {
-        throw new Error('玩家不存在');
-    }
-    const player = playerResult.rows[0];
+  // 获取玩家信息
+  const playerResult = await client.query(
+    'SELECT * FROM player_base WHERE player_id = $1',
+    [playerId]
+  );
+  if (playerResult.rows.length === 0) {
+    throw new Error('玩家不存在');
+  }
+  const player = playerResult.rows[0];
 
-    // 使用玩家数据库中存储的体力上限，支持等级解锁后的更高上限
-    const maxStamina = player.max_stamina || 200;
+  // 使用玩家数据库中存储的体力上限，支持等级解锁后的更高上限
+  const maxStamina = player.max_stamina || 200;
 
-    let restoreAmount;
-    switch (item.item_type) {
-        case ITEM_TYPES.STAMINA_POTION_1:
-            restoreAmount = item.effect_value > 1
-              ? parseInt(item.effect_value)
-              : configService.getConfig('STAMINA_POTION_1_RESTORE', 50);
-            break;
-        case ITEM_TYPES.STAMINA_POTION_2:
-            restoreAmount = item.effect_value > 1
-              ? parseInt(item.effect_value)
-              : configService.getConfig('STAMINA_POTION_2_RESTORE', 200);
-            break;
-        case ITEM_TYPES.STAMINA_POTION_3:
-            // 超级体力药水 - 恢复到满
-            const currentStamina = player.current_stamina || 100;
-            restoreAmount = Math.max(0, maxStamina - currentStamina);
-            break;
-        default:
-            restoreAmount = configService.getConfig('STAMINA_POTION_1_RESTORE', 50);
+  let restoreAmount;
+  switch (item.item_type) {
+    case ITEM_TYPES.STAMINA_POTION_1:
+      restoreAmount =
+        item.effect_value > 1
+          ? parseInt(item.effect_value)
+          : configService.getConfig('STAMINA_POTION_1_RESTORE', 50);
+      break;
+    case ITEM_TYPES.STAMINA_POTION_2:
+      restoreAmount =
+        item.effect_value > 1
+          ? parseInt(item.effect_value)
+          : configService.getConfig('STAMINA_POTION_2_RESTORE', 200);
+      break;
+    case ITEM_TYPES.STAMINA_POTION_3: {
+      // 超级体力药水 - 恢复到满
+      const currentStamina = player.current_stamina || 100;
+      restoreAmount = Math.max(0, maxStamina - currentStamina);
+      break;
     }
+    default:
+      restoreAmount = configService.getConfig('STAMINA_POTION_1_RESTORE', 50);
+  }
 
   const newStamina = Math.min(
     (player.current_stamina || 100) + restoreAmount,
@@ -1194,7 +1221,7 @@ const useDecoration = async function (client, playerId, item, landNum) {
 
   if (existingDeco.rows.length > 0) {
     const deco = existingDeco.rows[0];
-    if ((deco.owned_count - deco.placed_count) >= maxStack) {
+    if (deco.owned_count - deco.placed_count >= maxStack) {
       throw new Error(`已达到${item.item_name}的最大拥有数量(${maxStack}个)`);
     }
     await client.query(
@@ -1366,7 +1393,7 @@ const buyItem = async function (playerId, goodsId, quantity = 1) {
       await client.query('ROLLBACK');
       throw new Error('金币不足');
     }
-    
+
     const balanceBefore = currencyResult.rows[0].currency_num;
     const balanceAfter = balanceBefore - totalPrice;
 

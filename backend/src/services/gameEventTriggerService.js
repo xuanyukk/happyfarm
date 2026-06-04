@@ -1,4 +1,3 @@
-
 /**
  * 文件名：gameEventTriggerService.js
  * 作者：Trae AI
@@ -20,8 +19,14 @@ const MAX_RETRY_COUNT = 3;
  * @returns {Promise&lt;Object>} 创建的触发器
  */
 const createTrigger = async (triggerData) => {
-  const { event_id, trigger_type, trigger_condition, trigger_action, trigger_params } = triggerData;
-  
+  const {
+    event_id,
+    trigger_type,
+    trigger_condition,
+    trigger_action,
+    trigger_params,
+  } = triggerData;
+
   const result = await db.query(
     `INSERT INTO game_event_triggers 
      (event_id, trigger_type, trigger_condition, trigger_action, trigger_params) 
@@ -29,7 +34,7 @@ const createTrigger = async (triggerData) => {
      RETURNING *`,
     [event_id, trigger_type, trigger_condition, trigger_action, trigger_params]
   );
-  
+
   logger.info('创建触发器成功', { triggerId: result.rows[0].id });
   return result.rows[0];
 };
@@ -52,7 +57,9 @@ const getEventTriggers = async (eventId) => {
  * @returns {Promise&lt;Array>} 触发器列表
  */
 const getAllTriggers = async () => {
-  const result = await db.query('SELECT * FROM game_event_triggers WHERE is_active = true');
+  const result = await db.query(
+    'SELECT * FROM game_event_triggers WHERE is_active = true'
+  );
   return result.rows;
 };
 
@@ -67,9 +74,9 @@ const getMatchingBehaviorTriggers = async (actionType) => {
      WHERE trigger_type = 'behavior_based' 
      AND is_active = true`
   );
-  
+
   // 过滤出匹配的触发器
-  return result.rows.filter(trigger => {
+  return result.rows.filter((trigger) => {
     const condition = trigger.trigger_condition;
     return condition.action === actionType;
   });
@@ -83,7 +90,7 @@ const getMatchingBehaviorTriggers = async (actionType) => {
  */
 const handleBehaviorTrigger = async (playerId, actionType, actionData) => {
   const triggers = await getMatchingBehaviorTriggers(actionType);
-  
+
   for (const trigger of triggers) {
     await executeTrigger(trigger, playerId, actionData);
   }
@@ -99,30 +106,47 @@ const executeTrigger = async (trigger, playerId, contextData) => {
   try {
     // 检查触发条件
     const conditionMet = await checkCondition(trigger, contextData);
-    
+
     if (conditionMet) {
       // 执行触发动作
-      const executionResult = await executeAction(trigger, playerId, contextData);
-      
+      const executionResult = await executeAction(
+        trigger,
+        playerId,
+        contextData
+      );
+
       // 记录成功
-      await logTriggerExecution(trigger.id, trigger.event_id, playerId, 'success', executionResult);
-      
+      await logTriggerExecution(
+        trigger.id,
+        trigger.event_id,
+        playerId,
+        'success',
+        executionResult
+      );
+
       logger.info('触发器执行成功', {
         triggerId: trigger.id,
         playerId,
-        eventId: trigger.event_id
+        eventId: trigger.event_id,
       });
     }
   } catch (error) {
     logger.error('触发器执行失败', {
       triggerId: trigger.id,
       playerId,
-      error: error.message
+      error: error.message,
     });
-    
+
     // 记录失败
-    await logTriggerExecution(trigger.id, trigger.event_id, playerId, 'failed', null, error.message);
-    
+    await logTriggerExecution(
+      trigger.id,
+      trigger.event_id,
+      playerId,
+      'failed',
+      null,
+      error.message
+    );
+
     // 检查是否需要重试
     await handleRetry(trigger, playerId, contextData);
   }
@@ -136,7 +160,7 @@ const executeTrigger = async (trigger, playerId, contextData) => {
  */
 const checkCondition = async (trigger, contextData) => {
   const condition = trigger.trigger_condition;
-  
+
   switch (trigger.trigger_type) {
     case 'threshold_based':
       return checkThresholdCondition(condition, contextData);
@@ -158,9 +182,9 @@ const checkCondition = async (trigger, contextData) => {
 const checkThresholdCondition = (condition, contextData) => {
   const { metric, operator, value } = condition;
   const actualValue = contextData[metric];
-  
+
   if (actualValue === undefined) return false;
-  
+
   switch (operator) {
     case '>=':
       return actualValue >= value;
@@ -197,7 +221,7 @@ const checkBehaviorCondition = (condition, contextData) => {
  */
 const checkTimeCondition = (condition) => {
   const now = new Date();
-  
+
   // 这里可以根据cron表达式或其他时间条件进行判断
   // 简单实现：检查当前时间是否在指定范围内
   if (condition.startTime && condition.endTime) {
@@ -205,7 +229,7 @@ const checkTimeCondition = (condition) => {
     const endTime = new Date(condition.endTime);
     return now >= startTime && now <= endTime;
   }
-  
+
   return false;
 };
 
@@ -220,12 +244,12 @@ const executeAction = async (trigger, playerId, contextData) => {
   // 这里根据trigger_action执行相应的动作
   // 实际项目中需要根据业务需求实现
   const params = trigger.trigger_params || {};
-  
+
   return {
     action: trigger.trigger_action,
     params,
     playerId,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   };
 };
 
@@ -238,7 +262,14 @@ const executeAction = async (trigger, playerId, contextData) => {
  * @param {Object} result - 执行结果
  * @param {string} errorMessage - 错误信息
  */
-const logTriggerExecution = async (triggerId, eventId, playerId, status, result = null, errorMessage = null) => {
+const logTriggerExecution = async (
+  triggerId,
+  eventId,
+  playerId,
+  status,
+  result = null,
+  errorMessage = null
+) => {
   await db.query(
     `INSERT INTO game_event_trigger_logs 
      (trigger_id, event_id, player_id, execution_status, execution_result, error_message) 
@@ -261,9 +292,9 @@ const handleRetry = async (trigger, playerId, contextData) => {
      ORDER BY created_at DESC LIMIT 1`,
     [trigger.id, playerId]
   );
-  
+
   const retryCount = logResult.rows[0]?.retry_count || 0;
-  
+
   if (retryCount < MAX_RETRY_COUNT) {
     // 更新重试次数
     await db.query(
@@ -272,12 +303,12 @@ const handleRetry = async (trigger, playerId, contextData) => {
        VALUES ($1, $2, $3, 'retrying', $4)`,
       [trigger.id, trigger.event_id, playerId, retryCount + 1]
     );
-    
+
     // 这里可以加入重试队列，由定时任务处理
     logger.info('触发器重试', {
       triggerId: trigger.id,
       playerId,
-      retryCount: retryCount + 1
+      retryCount: retryCount + 1,
     });
   }
 };
@@ -292,15 +323,15 @@ const updateTrigger = async (triggerId, updateData) => {
   const fields = [];
   const values = [];
   let index = 1;
-  
+
   Object.entries(updateData).forEach(([key, value]) => {
     fields.push(`${key} = $${index}`);
     values.push(value);
     index++;
   });
-  
+
   values.push(triggerId);
-  
+
   const result = await db.query(
     `UPDATE game_event_triggers 
      SET ${fields.join(', ')}, updated_at = CURRENT_TIMESTAMP
@@ -308,7 +339,7 @@ const updateTrigger = async (triggerId, updateData) => {
      RETURNING *`,
     values
   );
-  
+
   logger.info('更新触发器成功', { triggerId });
   return result.rows[0];
 };
@@ -329,6 +360,5 @@ module.exports = {
   handleBehaviorTrigger,
   executeTrigger,
   updateTrigger,
-  deleteTrigger
+  deleteTrigger,
 };
-

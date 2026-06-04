@@ -819,7 +819,7 @@ v2.12.0 -
             >
           </div>
         </div>
-        
+
         <div v-if="offlineRewardsData.details" class="offline-details-section">
           <div class="details-toggle" @click="showDetails = !showDetails">
             <span class="toggle-text">
@@ -827,57 +827,87 @@ v2.12.0 -
             </span>
             <span class="toggle-icon">{{ showDetails ? '▲' : '▼' }}</span>
           </div>
-          
+
           <transition name="slide-down">
             <div v-if="showDetails" class="offline-details">
               <div class="detail-item">
                 <span class="detail-label">玩家等级：</span>
-                <span class="detail-value">{{ offlineRewardsData.details.playerLevel }}</span>
+                <span class="detail-value">{{
+                  offlineRewardsData.details.playerLevel
+                }}</span>
               </div>
-              
+
               <div class="detail-section">
                 <h4>💰 金币收益计算</h4>
                 <div class="detail-item">
                   <span class="detail-label">基础收益：</span>
-                  <span class="detail-value">{{ offlineRewardsData.details.goldCalculation.baseRate }}/分钟</span>
+                  <span class="detail-value"
+                    >{{
+                      offlineRewardsData.details.goldCalculation.baseRate
+                    }}/分钟</span
+                  >
                 </div>
                 <div class="detail-item">
                   <span class="detail-label">等级加成：</span>
-                  <span class="detail-value">+{{ offlineRewardsData.details.goldCalculation.levelBonus }}/分钟</span>
+                  <span class="detail-value"
+                    >+{{
+                      offlineRewardsData.details.goldCalculation.levelBonus
+                    }}/分钟</span
+                  >
                 </div>
                 <div class="detail-item">
                   <span class="detail-label">总计速率：</span>
-                  <span class="detail-value">{{ offlineRewardsData.details.goldCalculation.totalRate }}/分钟</span>
+                  <span class="detail-value"
+                    >{{
+                      offlineRewardsData.details.goldCalculation.totalRate
+                    }}/分钟</span
+                  >
                 </div>
                 <div class="detail-item">
                   <span class="detail-label">计算公式：</span>
-                  <span class="detail-formula">{{ offlineRewardsData.details.goldCalculation.formula }}</span>
+                  <span class="detail-formula">{{
+                    offlineRewardsData.details.goldCalculation.formula
+                  }}</span>
                 </div>
               </div>
-              
+
               <div class="detail-section">
                 <h4>⭐ 经验收益计算</h4>
                 <div class="detail-item">
                   <span class="detail-label">基础收益：</span>
-                  <span class="detail-value">{{ offlineRewardsData.details.expCalculation.baseRate }}/分钟</span>
+                  <span class="detail-value"
+                    >{{
+                      offlineRewardsData.details.expCalculation.baseRate
+                    }}/分钟</span
+                  >
                 </div>
                 <div class="detail-item">
                   <span class="detail-label">等级加成：</span>
-                  <span class="detail-value">+{{ offlineRewardsData.details.expCalculation.levelBonus }}/分钟</span>
+                  <span class="detail-value"
+                    >+{{
+                      offlineRewardsData.details.expCalculation.levelBonus
+                    }}/分钟</span
+                  >
                 </div>
                 <div class="detail-item">
                   <span class="detail-label">总计速率：</span>
-                  <span class="detail-value">{{ offlineRewardsData.details.expCalculation.totalRate }}/分钟</span>
+                  <span class="detail-value"
+                    >{{
+                      offlineRewardsData.details.expCalculation.totalRate
+                    }}/分钟</span
+                  >
                 </div>
                 <div class="detail-item">
                   <span class="detail-label">计算公式：</span>
-                  <span class="detail-formula">{{ offlineRewardsData.details.expCalculation.formula }}</span>
+                  <span class="detail-formula">{{
+                    offlineRewardsData.details.expCalculation.formula
+                  }}</span>
                 </div>
               </div>
             </div>
           </transition>
         </div>
-        
+
         <div class="modal-actions">
           <button class="btn btn-primary" @click="showOfflineRewards = false">
             领取奖励
@@ -2331,7 +2361,7 @@ const unregisterWebSocketHandlers = () => {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, rgba(255,255,255,0.12), transparent);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.12), transparent);
   opacity: 0;
   transition: opacity 0.25s ease;
 }
@@ -3649,5 +3679,4 @@ const unregisterWebSocketHandlers = () => {
   padding: 4px 8px;
   border-radius: 4px;
 }
-
 </style>

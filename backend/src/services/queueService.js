@@ -153,11 +153,12 @@ const jobProcessors = {
           // 数据库备份
           result = await backupService.createBackup();
           break;
-        case 'cleanup':
+        case 'cleanup': {
           // 清理旧备份
           const daysToKeep = options?.daysToKeep || 7;
           result = await backupService.cleanupOldBackups(daysToKeep);
           break;
+        }
         default:
           // 默认执行完整备份
           result = await backupService.createBackup();

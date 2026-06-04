@@ -15,17 +15,50 @@ const TABLES = {
   player_level: {
     table: 'player_level_config',
     pk: 'level_id',
-    columns: ['player_level', 'exp_required', 'exp_to_next', 'reward_gold', 'reward_gems', 'reward_items', 'stamina_increase', 'max_stamina', 'is_milestone'],
+    columns: [
+      'player_level',
+      'exp_required',
+      'exp_to_next',
+      'reward_gold',
+      'reward_gems',
+      'reward_items',
+      'stamina_increase',
+      'max_stamina',
+      'is_milestone',
+    ],
   },
   daily_task: {
     table: 'daily_task_config',
     pk: 'task_id',
-    columns: ['task_name', 'task_description', 'task_category', 'target_count', 'reward_exp', 'reward_gold', 'reward_gems', 'reward_items', 'unlock_level', 'sort_order', 'is_active'],
+    columns: [
+      'task_name',
+      'task_description',
+      'task_category',
+      'target_count',
+      'reward_exp',
+      'reward_gold',
+      'reward_gems',
+      'reward_items',
+      'unlock_level',
+      'sort_order',
+      'is_active',
+    ],
   },
   item_drop: {
     table: 'item_drop_config',
     pk: 'drop_id',
-    columns: ['source_type', 'source_id', 'item_id', 'drop_rate', 'min_count', 'max_count', 'quality_min', 'world_level_min', 'player_level_min', 'is_active'],
+    columns: [
+      'source_type',
+      'source_id',
+      'item_id',
+      'drop_rate',
+      'min_count',
+      'max_count',
+      'quality_min',
+      'world_level_min',
+      'player_level_min',
+      'is_active',
+    ],
   },
 };
 
@@ -93,7 +126,11 @@ async function create(configType, data) {
       const key = col.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
       if (data[key] !== undefined) {
         fields.push(col);
-        values.push(col === 'reward_items' && typeof data[key] === 'object' ? JSON.stringify(data[key]) : data[key]);
+        values.push(
+          col === 'reward_items' && typeof data[key] === 'object'
+            ? JSON.stringify(data[key])
+            : data[key]
+        );
         placeholders.push(`$${idx++}`);
       }
     }
@@ -133,7 +170,11 @@ async function update(configType, id, data) {
       const key = col.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
       if (data[key] !== undefined) {
         sets.push(`${col} = $${idx++}`);
-        values.push(col === 'reward_items' && typeof data[key] === 'object' ? JSON.stringify(data[key]) : data[key]);
+        values.push(
+          col === 'reward_items' && typeof data[key] === 'object'
+            ? JSON.stringify(data[key])
+            : data[key]
+        );
       }
     }
 

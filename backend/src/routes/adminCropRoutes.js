@@ -1,4 +1,3 @@
-
 /**
  * 文件名: adminCropRoutes.js
  * 作者: Trae AI
@@ -18,9 +17,16 @@ router.use(checkAdminPermission);
 
 router.get('/', adminCropController.getCropList);
 router.get('/:cropId', adminCropController.getCropDetail);
-router.post('/', adminCropController.createCropValidation, adminCropController.createCrop);
-router.put('/:cropId', adminCropController.updateCropValidation, adminCropController.updateCrop);
+router.post(
+  '/',
+  adminCropController.createCropValidation,
+  adminCropController.createCrop
+);
+router.put(
+  '/:cropId',
+  adminCropController.updateCropValidation,
+  adminCropController.updateCrop
+);
 router.delete('/:cropId', adminCropController.deleteCrop);
 
 module.exports = router;
-

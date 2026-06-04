@@ -63,11 +63,7 @@ router.put(
 );
 
 // 审批流程
-router.post(
-  '/approvals',
-  validate.createApproval,
-  createApprovalRequest
-);
+router.post('/approvals', validate.createApproval, createApprovalRequest);
 router.get('/approvals', getApprovalList);
 router.post(
   '/approvals/:requestId/approve',
@@ -112,10 +108,10 @@ router.get('/health-check', (req, res) => {
       memory: {
         heapUsed: Math.round(memUsage.heapUsed / 1024 / 1024),
         heapTotal: Math.round(memUsage.heapTotal / 1024 / 1024),
-        rss: Math.round(memUsage.rss / 1024 / 1024)
+        rss: Math.round(memUsage.rss / 1024 / 1024),
       },
-      timestamp: new Date().toISOString()
-    }
+      timestamp: new Date().toISOString(),
+    },
   });
 });
 
@@ -131,19 +127,19 @@ router.get('/system-state', (req, res) => {
     success: true,
     data: {
       cpu: {
-        loadAverage: cpuUsage.map(v => Math.round(v * 100) / 100),
-        cores: os.cpus().length
+        loadAverage: cpuUsage.map((v) => Math.round(v * 100) / 100),
+        cores: os.cpus().length,
       },
       memory: {
         total: Math.round(totalMem / 1024 / 1024),
         free: Math.round(freeMem / 1024 / 1024),
-        used: Math.round((totalMem - freeMem) / 1024 / 1024)
+        used: Math.round((totalMem - freeMem) / 1024 / 1024),
       },
       uptime: Math.floor(uptime),
       platform: os.platform(),
       hostname: os.hostname(),
-      nodeVersion: process.version
-    }
+      nodeVersion: process.version,
+    },
   });
 });
 
@@ -151,11 +147,23 @@ router.get('/system-state', (req, res) => {
 const adminAnalyticsController = require('../controllers/adminAnalyticsController');
 router.get('/analytics/economy', adminAnalyticsController.getEconomyStats);
 router.get('/analytics/players', adminAnalyticsController.getPlayerAnalytics);
-router.get('/analytics/transactions', adminAnalyticsController.getTransactionList);
+router.get(
+  '/analytics/transactions',
+  adminAnalyticsController.getTransactionList
+);
 router.get('/analytics/shop-stats', adminAnalyticsController.getShopStats);
-router.get('/analytics/economy-alerts', adminAnalyticsController.getEconomyAlerts);
+router.get(
+  '/analytics/economy-alerts',
+  adminAnalyticsController.getEconomyAlerts
+);
 router.get('/analytics/top-players', adminAnalyticsController.getTopPlayers);
-router.get('/analytics/player-alerts', adminAnalyticsController.getPlayerAlerts);
-router.get('/analytics/player-profile', adminAnalyticsController.getPlayerProfile);
+router.get(
+  '/analytics/player-alerts',
+  adminAnalyticsController.getPlayerAlerts
+);
+router.get(
+  '/analytics/player-profile',
+  adminAnalyticsController.getPlayerProfile
+);
 
 module.exports = router;

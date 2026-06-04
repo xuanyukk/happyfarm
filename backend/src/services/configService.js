@@ -586,10 +586,11 @@ class ConfigService {
             value = defaultValue;
           }
           break;
-        case 'boolean':
+        case 'boolean': {
           const boolStr = String(config.value).toLowerCase().trim();
           value = boolStr === 'true' || boolStr === '1' || boolStr === 'yes';
           break;
+        }
         case 'json':
         case 'object':
           try {

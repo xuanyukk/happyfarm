@@ -30,7 +30,15 @@ router.post(
   playerController.updateAvatar
 );
 router.get('/stamina', authMiddleware, playerController.getStamina);
-router.post('/stamina/recover', authMiddleware, playerController.recoverStamina);
-router.get('/offline-rewards', authMiddleware, playerController.getOfflineRewards);
+router.post(
+  '/stamina/recover',
+  authMiddleware,
+  playerController.recoverStamina
+);
+router.get(
+  '/offline-rewards',
+  authMiddleware,
+  playerController.getOfflineRewards
+);
 
 module.exports = router;

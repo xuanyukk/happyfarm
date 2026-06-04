@@ -201,12 +201,16 @@ const buyGoods = async function (playerId, goodsId, quantity) {
         [playerId, goodsId, todayDate]
       );
 
-      const currentDailyPurchased = dailyResult.rows.length > 0
-        ? parseInt(dailyResult.rows[0].quantity_purchased)
-        : 0;
+      const currentDailyPurchased =
+        dailyResult.rows.length > 0
+          ? parseInt(dailyResult.rows[0].quantity_purchased)
+          : 0;
 
       if (currentDailyPurchased + quantity > goods.stock_limit) {
-        const remaining = Math.max(0, goods.stock_limit - currentDailyPurchased);
+        const remaining = Math.max(
+          0,
+          goods.stock_limit - currentDailyPurchased
+        );
         throw new Error(
           `每日限购${goods.stock_limit}个，今日还可购买${remaining}个`
         );
@@ -237,7 +241,6 @@ const buyGoods = async function (playerId, goodsId, quantity) {
     const sourceType = goods.goods_type === 1 ? 'seed_buy' : 'item_buy';
 
     if (priceType === 2) {
-
       const currentGem = parseInt(currencyRow.gem_num) || 0;
 
       if (currentGem < totalCost) {
@@ -260,11 +263,16 @@ const buyGoods = async function (playerId, goodsId, quantity) {
         `INSERT INTO player_currency_log
          (player_id, type, amount, source, related_id, balance_before, balance_after)
          VALUES ($1, 2, $2, $3, $4, $5, $6)`,
-        [playerId, totalCost, sourceType, goods.goods_obj_id, gemBefore, gemAfter]
+        [
+          playerId,
+          totalCost,
+          sourceType,
+          goods.goods_obj_id,
+          gemBefore,
+          gemAfter,
+        ]
       );
-
     } else {
-
       const currentCurrency = parseInt(currencyRow.currency_num) || 0;
 
       if (currentCurrency < totalCost) {
@@ -288,9 +296,15 @@ const buyGoods = async function (playerId, goodsId, quantity) {
         `INSERT INTO player_currency_log
          (player_id, type, amount, source, related_id, balance_before, balance_after)
          VALUES ($1, 2, $2, $3, $4, $5, $6)`,
-        [playerId, totalCost, sourceType, goods.goods_obj_id, currencyBefore, currencyAfter]
+        [
+          playerId,
+          totalCost,
+          sourceType,
+          goods.goods_obj_id,
+          currencyBefore,
+          currencyAfter,
+        ]
       );
-
     }
 
     const inventoryCheck = await client.query(

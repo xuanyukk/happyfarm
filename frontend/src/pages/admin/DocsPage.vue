@@ -71,7 +71,9 @@
 <script setup>
 import { ref } from 'vue';
 import api from '../../services/api';
+import { useToastStore } from '../../stores/toast';
 
+const toastStore = useToastStore();
 const loading = ref(false);
 const result = ref(null);
 
@@ -123,7 +125,7 @@ async function downloadStructureDoc() {
     console.log('表结构文档下载成功');
   } catch (error) {
     console.error('下载文档失败:', error);
-    useToast('error', '文档下载失败');
+    toastStore.error('文档下载失败');
   }
 }
 
@@ -147,7 +149,7 @@ async function downloadDataDoc() {
     console.log('表数据文档下载成功');
   } catch (error) {
     console.error('下载文档失败:', error);
-    useToast('error', '文档下载失败');
+    toastStore.error('文档下载失败');
   }
 }
 </script>

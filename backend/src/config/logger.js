@@ -517,12 +517,13 @@ function maskSensitiveInfo(value, type = 'default') {
       return value.length >= 11
         ? `${value.slice(0, 3)}****${value.slice(-4)}`
         : '****';
-    case 'email':
+    case 'email': {
       // 邮箱脱敏：a****@example.com
       const atIndex = value.indexOf('@');
       return atIndex > 1
         ? `${value.charAt(0)}****${value.slice(atIndex)}`
         : '****@example.com';
+    }
     case 'idCard':
       // 身份证脱敏：110***********1234
       return value.length >= 18

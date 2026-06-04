@@ -174,7 +174,7 @@
 
           <!-- 可见日志 -->
           <div
-            v-for="(activity, index) in visibleActivities"
+            v-for="(activity, _index) in visibleActivities"
             :key="activity.id"
             class="log-item"
             :class="[
@@ -421,14 +421,16 @@ const filteredActivities = computed(() => {
       switch (selectedTimeFilter.value) {
         case 'today':
           return activityDate >= todayStart;
-        case 'yesterday':
+        case 'yesterday': {
           const yesterdayStart = new Date(todayStart);
           yesterdayStart.setDate(yesterdayStart.getDate() - 1);
           return activityDate >= yesterdayStart && activityDate < todayStart;
-        case 'week':
+        }
+        case 'week': {
           const weekAgo = new Date(todayStart);
           weekAgo.setDate(weekAgo.getDate() - 7);
           return activityDate >= weekAgo;
+        }
         default:
           return true;
       }
@@ -547,7 +549,8 @@ const scrollToBottom = async () => {
   if (!scrollContainer) return;
 
   const startScrollTop = scrollContainer.scrollTop;
-  const targetScrollTop = scrollContainer.scrollHeight - scrollContainer.clientHeight;
+  const targetScrollTop =
+    scrollContainer.scrollHeight - scrollContainer.clientHeight;
   const distance = targetScrollTop - startScrollTop;
 
   // 如果距离很小，直接滚动到底部，避免不必要的动画
@@ -586,11 +589,13 @@ const checkScrollState = () => {
   } else {
     scrollContainer = logListRef.value;
   }
-  
+
   if (!scrollContainer) return;
 
   const scrollBottom =
-    scrollContainer.scrollHeight - scrollContainer.scrollTop - scrollContainer.clientHeight;
+    scrollContainer.scrollHeight -
+    scrollContainer.scrollTop -
+    scrollContainer.clientHeight;
 
   // 如果用户手动滚动偏离底部超过200px，暂停自动滚动
   if (scrollBottom > 200 && autoScroll.value) {

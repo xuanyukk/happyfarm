@@ -19,7 +19,7 @@
             <span class="level-icon">⭐</span>
             <span class="level-label">玩家</span>
             <span class="level-value">{{
-              (playerStore.playerData?.player_level || 1)
+              playerStore.playerData?.player_level || 1
             }}</span>
           </div>
         </div>
@@ -28,7 +28,7 @@
             <span class="level-icon">🏠</span>
             <span class="level-label">农场</span>
             <span class="level-value">{{
-              (playerStore.playerData?.farm_level || 1)
+              playerStore.playerData?.farm_level || 1
             }}</span>
           </div>
         </div>
@@ -37,7 +37,7 @@
             <span class="level-icon">🌍</span>
             <span class="level-label">世界</span>
             <span class="level-value">{{
-              (playerStore.playerData?.world_level || 1)
+              playerStore.playerData?.world_level || 1
             }}</span>
           </div>
         </div>

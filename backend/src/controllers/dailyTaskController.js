@@ -34,9 +34,9 @@ exports.claimReward = async function (req, res) {
   } catch (error) {
     logger.error('领取每日任务奖励失败', { error: error.message });
     const statusMap = {
-      '任务未完成': 400,
-      '奖励已领取': 400,
-      '今日任务不存在': 404,
+      任务未完成: 400,
+      奖励已领取: 400,
+      今日任务不存在: 404,
     };
     const status = statusMap[error.message] || 500;
     res.status(status).json({ success: false, message: error.message });

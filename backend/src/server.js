@@ -156,13 +156,13 @@ const httpRequestDurationMicroseconds = new client.Histogram({
   name: 'http_request_duration_seconds',
   help: 'Duration of HTTP requests in seconds',
   labelNames: ['method', 'route', 'code'],
-  buckets: [0.1, 0.3, 0.5, 0.7, 1, 3, 5, 7, 10]
+  buckets: [0.1, 0.3, 0.5, 0.7, 1, 3, 5, 7, 10],
 });
 
 const httpRequestsTotal = new client.Counter({
   name: 'http_requests_total',
   help: 'Total number of HTTP requests',
-  labelNames: ['method', 'route', 'code']
+  labelNames: ['method', 'route', 'code'],
 });
 
 // HTTP请求统计中间件
@@ -170,7 +170,11 @@ app.use((req, res, next) => {
   const end = httpRequestDurationMicroseconds.startTimer();
   res.on('finish', () => {
     end({ method: req.method, route: req.path, code: res.statusCode });
-    httpRequestsTotal.inc({ method: req.method, route: req.path, code: res.statusCode });
+    httpRequestsTotal.inc({
+      method: req.method,
+      route: req.path,
+      code: res.statusCode,
+    });
   });
   next();
 });

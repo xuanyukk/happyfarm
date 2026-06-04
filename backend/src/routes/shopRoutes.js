@@ -23,6 +23,10 @@ router.post(
   shopController.sellItemValidation,
   shopController.sellItem
 );
-router.get('/inventory-slots', authMiddleware, shopController.getInventorySlots);
+router.get(
+  '/inventory-slots',
+  authMiddleware,
+  shopController.getInventorySlots
+);
 
 module.exports = router;

@@ -17,15 +17,15 @@ let mailTemplates = [
     title: '活动奖励通知',
     content: '亲爱的玩家，恭喜您完成活动任务，奖励已发放到您的邮箱，请查收！',
     createdAt: '2026-05-24 10:00:00',
-    updatedAt: '2026-05-24 10:00:00'
+    updatedAt: '2026-05-24 10:00:00',
   },
   {
     id: 2,
     title: '系统维护通知',
     content: '亲爱的玩家，我们将于近期进行系统维护，详情请查看官网公告。',
     createdAt: '2026-05-23 18:00:00',
-    updatedAt: '2026-05-23 18:00:00'
-  }
+    updatedAt: '2026-05-23 18:00:00',
+  },
 ];
 
 let mailHistory = [
@@ -35,7 +35,7 @@ let mailHistory = [
     recipients: '所有用户',
     recipientCount: 150,
     sendTime: '2026-05-24 10:30:00',
-    status: 'sent'
+    status: 'sent',
   },
   {
     id: 2,
@@ -43,8 +43,8 @@ let mailHistory = [
     recipients: '在线用户',
     recipientCount: 85,
     sendTime: '2026-05-23 18:00:00',
-    status: 'sent'
-  }
+    status: 'sent',
+  },
 ];
 
 let nextTemplateId = 3;
@@ -82,10 +82,13 @@ function createMailTemplate(data) {
     title: data.title,
     content: data.content,
     createdAt: new Date().toISOString().replace('T', ' ').slice(0, 19),
-    updatedAt: new Date().toISOString().replace('T', ' ').slice(0, 19)
+    updatedAt: new Date().toISOString().replace('T', ' ').slice(0, 19),
   };
   mailTemplates.push(template);
-  logger.info('邮件模板已创建', { templateId: template.id, title: template.title });
+  logger.info('邮件模板已创建', {
+    templateId: template.id,
+    title: template.title,
+  });
   return template;
 }
 
@@ -156,7 +159,8 @@ async function sendMail(data) {
       );
       break;
     case 'custom':
-      recipientLabel = '指定用户(' + (data.userIds || '').split(',').length + '人)';
+      recipientLabel =
+        '指定用户(' + (data.userIds || '').split(',').length + '人)';
       recipientCount = 0;
       break;
     default:
@@ -173,10 +177,11 @@ async function sendMail(data) {
     recipients: recipientLabel,
     recipientCount,
     attachments: data.attachments || {},
-    sendTime: data.sendTime === 'schedule'
-      ? data.scheduleTime
-      : new Date().toISOString().replace('T', ' ').slice(0, 19),
-    status
+    sendTime:
+      data.sendTime === 'schedule'
+        ? data.scheduleTime
+        : new Date().toISOString().replace('T', ' ').slice(0, 19),
+    status,
   };
 
   mailHistory.unshift(mailRecord);
@@ -185,7 +190,7 @@ async function sendMail(data) {
     mailId: mailRecord.id,
     title: data.title,
     recipients: recipientLabel,
-    status
+    status,
   });
 
   return mailRecord;
@@ -234,9 +239,7 @@ function getMailDetail(mailId) {
  */
 async function getTotalPlayerCount() {
   try {
-    const result = await pool.query(
-      'SELECT COUNT(*) AS count FROM player'
-    );
+    const result = await pool.query('SELECT COUNT(*) AS count FROM player');
     return parseInt(result.rows[0].count) || 0;
   } catch (error) {
     logger.warn('获取玩家总数失败', { error: error.message });
@@ -258,7 +261,11 @@ async function getPlayerCountByLevel(minLevel, maxLevel) {
     );
     return parseInt(result.rows[0].count) || 0;
   } catch (error) {
-    logger.warn('获取等级范围玩家数失败', { minLevel, maxLevel, error: error.message });
+    logger.warn('获取等级范围玩家数失败', {
+      minLevel,
+      maxLevel,
+      error: error.message,
+    });
     return 0;
   }
 }
@@ -271,5 +278,5 @@ module.exports = {
   deleteMailTemplate,
   sendMail,
   getMailHistory,
-  getMailDetail
+  getMailDetail,
 };

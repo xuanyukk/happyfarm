@@ -24,9 +24,9 @@ const broadcastEventStatusChange = (eventId, newStatus) => {
   const data = {
     eventId,
     newStatus,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   };
-  
+
   websocketService.broadcast('event:statusChanged', data);
   logger.info('广播活动状态变更', { eventId, newStatus });
 };
@@ -38,9 +38,13 @@ const broadcastEventStatusChange = (eventId, newStatus) => {
  */
 const pushUserProgressUpdate = (playerId, progressData) => {
   const isConnected = websocketService.isUserConnected(playerId);
-  
+
   if (isConnected) {
-    websocketService.sendToUser(playerId, 'event:progressUpdated', progressData);
+    websocketService.sendToUser(
+      playerId,
+      'event:progressUpdated',
+      progressData
+    );
     logger.debug('推送用户进度更新', { playerId });
   } else {
     // 用户离线，加入消息队列
@@ -55,7 +59,7 @@ const pushUserProgressUpdate = (playerId, progressData) => {
  */
 const pushRewardClaimed = (playerId, rewardData) => {
   const isConnected = websocketService.isUserConnected(playerId);
-  
+
   if (isConnected) {
     websocketService.sendToUser(playerId, 'event:rewardClaimed', rewardData);
     logger.debug('推送奖励领取通知', { playerId });
@@ -79,14 +83,14 @@ const pushNewEvent = (eventData) => {
  */
 const handleUserReconnect = (playerId) => {
   const messages = messageQueues.get(playerId) || [];
-  
+
   if (messages.length > 0) {
     logger.info('补发离线消息给用户', { playerId, count: messages.length });
-    
+
     messages.forEach(({ event, data }) => {
       websocketService.sendToUser(playerId, event, data);
     });
-    
+
     // 清空队列
     messageQueues.delete(playerId);
   }
@@ -102,16 +106,16 @@ const enqueueMessage = (playerId, event, data) => {
   if (!messageQueues.has(playerId)) {
     messageQueues.set(playerId, []);
   }
-  
+
   const queue = messageQueues.get(playerId);
-  
+
   // 限制队列大小
   if (queue.length >= MAX_QUEUE_SIZE) {
     queue.shift();
   }
-  
+
   queue.push({ event, data, timestamp: new Date().toISOString() });
-  
+
   logger.debug('消息加入队列', { playerId, event });
 };
 
@@ -132,14 +136,14 @@ const getQueueStats = () => {
   const stats = {
     totalUsers: messageQueues.size,
     totalMessages: 0,
-    queues: {}
+    queues: {},
   };
-  
+
   messageQueues.forEach((queue, userId) => {
     stats.totalMessages += queue.length;
     stats.queues[userId] = queue.length;
   });
-  
+
   return stats;
 };
 
@@ -150,6 +154,5 @@ module.exports = {
   pushNewEvent,
   handleUserReconnect,
   getQueueSize,
-  getQueueStats
+  getQueueStats,
 };
-

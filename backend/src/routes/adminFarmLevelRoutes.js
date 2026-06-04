@@ -17,8 +17,16 @@ router.use(checkAdminPermission);
 
 router.get('/', adminFarmLevelController.getFarmLevelList);
 router.get('/:levelId', adminFarmLevelController.getFarmLevelDetail);
-router.post('/', adminFarmLevelController.createFarmLevelValidation, adminFarmLevelController.createFarmLevel);
-router.put('/:levelId', adminFarmLevelController.updateFarmLevelValidation, adminFarmLevelController.updateFarmLevel);
+router.post(
+  '/',
+  adminFarmLevelController.createFarmLevelValidation,
+  adminFarmLevelController.createFarmLevel
+);
+router.put(
+  '/:levelId',
+  adminFarmLevelController.updateFarmLevelValidation,
+  adminFarmLevelController.updateFarmLevel
+);
 router.delete('/:levelId', adminFarmLevelController.deleteFarmLevel);
 
 module.exports = router;

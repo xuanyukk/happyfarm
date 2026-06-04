@@ -766,7 +766,7 @@ const handleBatchDelete = async () => {
     return;
   }
 
-  toast.warning('删除功能在实际开发中应谨慎实现');
+  toastStore.warning('删除功能在实际开发中应谨慎实现');
 };
 
 const closeCreateModal = () => {

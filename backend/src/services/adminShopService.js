@@ -32,7 +32,11 @@ async function getShopGoodsList(params = {}) {
       queryParams.push(`%${params.search}%`);
     }
 
-    if (params.isOnSale !== undefined && params.isOnSale !== null && params.isOnSale !== '') {
+    if (
+      params.isOnSale !== undefined &&
+      params.isOnSale !== null &&
+      params.isOnSale !== ''
+    ) {
       query += ` AND is_on_sale = $${paramIndex++}`;
       queryParams.push(params.isOnSale === 'true' || params.isOnSale === true);
     }
@@ -82,11 +86,17 @@ async function createShopGoods(data) {
       RETURNING *
     `;
     const values = [
-      data.goodsType, data.goodsObjId, data.goodsName, data.priceType || 1,
-      data.priceNum, data.unlockWorldLevel || 1, data.unlockPlayerLevel || 1,
-      data.stockLimit || 9999, data.salesVolume || 0,
+      data.goodsType,
+      data.goodsObjId,
+      data.goodsName,
+      data.priceType || 1,
+      data.priceNum,
+      data.unlockWorldLevel || 1,
+      data.unlockPlayerLevel || 1,
+      data.stockLimit || 9999,
+      data.salesVolume || 0,
       data.isOnSale !== undefined ? data.isOnSale : true,
-      data.description || ''
+      data.description || '',
     ];
     const result = await pool.query(query, values);
     return result.rows[0];
@@ -125,7 +135,7 @@ async function updateShopGoods(goodsId, data) {
       stockLimit: 'stock_limit',
       salesVolume: 'sales_volume',
       isOnSale: 'is_on_sale',
-      description: 'description'
+      description: 'description',
     };
 
     Object.entries(fieldMap).forEach(([key, column]) => {
@@ -205,5 +215,5 @@ module.exports = {
   createShopGoods,
   updateShopGoods,
   deleteShopGoods,
-  toggleShopGoodsStatus
+  toggleShopGoodsStatus,
 };

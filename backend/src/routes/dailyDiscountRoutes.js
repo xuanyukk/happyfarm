@@ -14,6 +14,10 @@ const dailyDiscountController = require('../controllers/dailyDiscountController'
 const { authMiddleware } = require('../middleware/authMiddleware');
 
 router.get('/discounts', authMiddleware, dailyDiscountController.getDiscounts);
-router.post('/discounts/refresh', authMiddleware, dailyDiscountController.refreshDiscounts);
+router.post(
+  '/discounts/refresh',
+  authMiddleware,
+  dailyDiscountController.refreshDiscounts
+);
 
 module.exports = router;

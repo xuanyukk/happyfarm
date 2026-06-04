@@ -1,4 +1,3 @@
-
 /**
  * 文件名: gameEventMediumRoutes.js
  * 作者: Trae AI
@@ -9,14 +8,20 @@
 
 const express = require('express');
 const router = express.Router();
-const { templateController, schedulerController } = require('../controllers/gameEventMediumController');
+const {
+  templateController,
+  schedulerController,
+} = require('../controllers/gameEventMediumController');
 
 // 模板系统路由
 router.get('/templates', templateController.getAllTemplates);
 router.get('/templates/:id', templateController.getTemplate);
 router.post('/templates', templateController.createTemplate);
 router.put('/templates/:id', templateController.updateTemplate);
-router.post('/templates/:id/create-event', templateController.createEventFromTemplate);
+router.post(
+  '/templates/:id/create-event',
+  templateController.createEventFromTemplate
+);
 router.delete('/templates/:id', templateController.deactivateTemplate);
 router.get('/templates/:id/compare', templateController.compareVersions);
 
@@ -28,4 +33,3 @@ router.post('/scheduler/tasks', schedulerController.createTask);
 router.delete('/scheduler/tasks/:id', schedulerController.cancelTask);
 
 module.exports = router;
-

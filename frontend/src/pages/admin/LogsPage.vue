@@ -139,7 +139,7 @@
         ></div>
         <table class="logs-table">
           <tbody>
-            <tr v-for="(log, index) in visibleLogs" :key="log.id">
+            <tr v-for="log in visibleLogs" :key="log.id">
               <td>{{ formatTime(log.created_at) }}</td>
               <td>{{ log.admin_username || '-' }}</td>
               <td>{{ log.operation_module }}</td>

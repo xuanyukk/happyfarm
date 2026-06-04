@@ -64,7 +64,10 @@
         </div>
 
         <!-- 传统模式 - 完整网格 -->
-        <div v-if="renderMode === 'traditional'" class="goods-grid traditional-mode">
+        <div
+          v-if="renderMode === 'traditional'"
+          class="goods-grid traditional-mode"
+        >
           <div
             v-for="goods in filteredGoods"
             :key="goods.goods_id"
@@ -131,7 +134,7 @@
               :style="{ height: virtualScrollData.offset + 'px' }"
             ></div>
             <div
-              v-for="(goods, index) in visibleGoods"
+              v-for="goods in visibleGoods"
               :key="goods.goods_id"
               class="goods-item card"
               :class="{
@@ -630,27 +633,27 @@ const getCropTypeLabel = (goods) => {
 
 const getEffectDisplay = (goods) => {
   if (goods.goods_type !== 2) return '';
-  
+
   // 体力药水特殊处理
   if (goods.goods_obj_id >= 14 && goods.goods_obj_id <= 16) {
     const staminaMap = {
       14: '+50 体力',
       15: '+200 体力',
-      16: '体力全满'
+      16: '体力全满',
     };
     return staminaMap[goods.goods_obj_id] || '';
   }
-  
+
   // 皮肤道具特殊处理
   if (goods.goods_obj_id >= 17 && goods.goods_obj_id <= 19) {
     const durationMap = {
       17: '7天',
       18: '15天',
-      19: '30天'
+      19: '30天',
     };
     return durationMap[goods.goods_obj_id] || '';
   }
-  
+
   if (goods.item_type === 1) {
     return '+' + Math.round((goods.effect_value - 1) * 100) + '%';
   }
@@ -659,7 +662,7 @@ const getEffectDisplay = (goods) => {
 
 const getDetailEffectDisplay = (goods) => {
   if (goods.goods_type !== 2) return '';
-  
+
   const detailMap = {
     1: '作物产量 +20%',
     2: '作物产量 +50%',
@@ -679,29 +682,29 @@ const getDetailEffectDisplay = (goods) => {
     16: '体力恢复至最大值',
     17: '激活春季农场皮肤，持续7天',
     18: '激活夏季农场皮肤，持续15天',
-    19: '激活秋季农场皮肤，持续30天'
+    19: '激活秋季农场皮肤，持续30天',
   };
-  
+
   return detailMap[goods.goods_obj_id] || '';
 };
 
 const getItemTypeLabel = (goods) => {
   if (goods.goods_type !== 2) return '';
-  
+
   const typeMap = {
     1: '增产道具',
     2: '加速道具',
     3: '特殊道具',
     4: '经验道具',
     5: '体力道具',
-    6: '皮肤装饰'
+    6: '皮肤装饰',
   };
-  
+
   if (goods.goods_obj_id >= 14 && goods.goods_obj_id <= 16) return '体力道具';
   if (goods.goods_obj_id >= 17 && goods.goods_obj_id <= 19) return '皮肤装饰';
   if (goods.goods_obj_id === 9 || goods.goods_obj_id === 10) return '特殊道具';
   if (goods.goods_obj_id >= 12 && goods.goods_obj_id <= 13) return '经验道具';
-  
+
   return typeMap[goods.item_type] || '道具';
 };
 

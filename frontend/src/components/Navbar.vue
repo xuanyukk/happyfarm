@@ -132,7 +132,11 @@ const handleLogoutClick = () => {
   content: '';
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at center, rgba(255,255,255,0.2), transparent 70%);
+  background: radial-gradient(
+    circle at center,
+    rgba(255, 255, 255, 0.2),
+    transparent 70%
+  );
   opacity: 0;
   transition: opacity 0.3s ease;
 }

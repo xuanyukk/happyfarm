@@ -12,6 +12,11 @@ const { adminMiddleware } = require('../middleware/adminMiddleware');
 
 router.get('/mylogs', authMiddleware, controller.getMyLogs);
 router.get('/stats', authMiddleware, adminMiddleware, controller.getStats);
-router.get('/anomalies', authMiddleware, adminMiddleware, controller.getAnomalies);
+router.get(
+  '/anomalies',
+  authMiddleware,
+  adminMiddleware,
+  controller.getAnomalies
+);
 
 module.exports = router;

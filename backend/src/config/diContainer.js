@@ -103,7 +103,7 @@ class DIContainer {
         case 'value':
           return service.value;
 
-        case 'singleton':
+        case 'singleton': {
           if (this.instances.has(name)) {
             return this.instances.get(name);
           }
@@ -111,6 +111,7 @@ class DIContainer {
           this.instances.set(name, singletonInstance);
           logger.debug(`Singleton service ${name} created and cached`);
           return singletonInstance;
+        }
 
         case 'factory':
           logger.debug(`Factory service ${name} created new instance`);

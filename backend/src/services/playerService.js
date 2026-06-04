@@ -24,7 +24,7 @@ const LEVEL_CONFIG_CACHE_TTL = 5 * 60 * 1000;
 
 const loadLevelConfigCache = async function () {
   const now = Date.now();
-  if (levelConfigCache && (now - levelConfigCacheTime) < LEVEL_CONFIG_CACHE_TTL) {
+  if (levelConfigCache && now - levelConfigCacheTime < LEVEL_CONFIG_CACHE_TTL) {
     return levelConfigCache;
   }
 
@@ -33,14 +33,16 @@ const loadLevelConfigCache = async function () {
       'SELECT player_level, exp_required, exp_to_next, max_stamina, reward_gold, reward_gems, reward_items, is_milestone FROM player_level_config ORDER BY player_level'
     );
     levelConfigCache = new Map();
-    result.rows.forEach(row => {
+    result.rows.forEach((row) => {
       levelConfigCache.set(row.player_level, row);
     });
     levelConfigCacheTime = now;
     logger.info('玩家等级配置缓存已刷新', { levels: result.rows.length });
     return levelConfigCache;
   } catch (error) {
-    logger.warn('加载玩家等级配置缓存失败，回退到硬编码公式', { error: error.message });
+    logger.warn('加载玩家等级配置缓存失败，回退到硬编码公式', {
+      error: error.message,
+    });
     return null;
   }
 };
@@ -254,7 +256,8 @@ const checkAndUpgradeLevel = async function (playerId) {
   try {
     await client.query('BEGIN');
 
-    const query = 'SELECT player_id, player_level, player_exp, farm_level, farm_exp, world_level, world_exp, max_stamina FROM player_base WHERE player_id = $1 FOR UPDATE';
+    const query =
+      'SELECT player_id, player_level, player_exp, farm_level, farm_exp, world_level, world_exp, max_stamina FROM player_base WHERE player_id = $1 FOR UPDATE';
     const result = await client.query(query, [playerId]);
 
     if (result.rows.length === 0) {
@@ -273,7 +276,8 @@ const checkAndUpgradeLevel = async function (playerId) {
 
     const cache = await loadLevelConfigCache();
 
-    while (true) {
+    let levelingUp = true;
+    while (levelingUp) {
       const nextLevel = newPlayerLevel + 1;
       let requiredExp;
       if (cache && cache.has(nextLevel)) {
@@ -295,34 +299,39 @@ const checkAndUpgradeLevel = async function (playerId) {
           }
           if (config.reward_items && Array.isArray(config.reward_items)) {
             for (const item of config.reward_items) {
-              itemRewards.push({ item_id: item.item_id, count: item.count || 1 });
+              itemRewards.push({
+                item_id: item.item_id,
+                count: item.count || 1,
+              });
             }
           }
         } else {
           totalGoldReward += 100 * newPlayerLevel;
         }
       } else {
-        break;
+        levelingUp = false;
       }
     }
 
     const currentFarmExp = player.farm_exp || 0;
-    while (true) {
+    let farmLeveling = true;
+    while (farmLeveling) {
       const nextLevelExp = calculateLevelExp(newFarmLevel + 1);
       if (currentFarmExp >= nextLevelExp && newFarmLevel < 500) {
         newFarmLevel++;
       } else {
-        break;
+        farmLeveling = false;
       }
     }
 
     const currentWorldExp = player.world_exp || 0;
-    while (true) {
+    let worldLeveling = true;
+    while (worldLeveling) {
       const nextLevelExp = calculateLevelExp(newWorldLevel + 1);
       if (currentWorldExp >= nextLevelExp && newWorldLevel < 100) {
         newWorldLevel++;
       } else {
-        break;
+        worldLeveling = false;
       }
     }
 
@@ -342,9 +351,7 @@ const checkAndUpgradeLevel = async function (playerId) {
         const balanceQuery =
           'SELECT currency_num FROM player_currency WHERE player_id = $1 FOR UPDATE';
         const balanceResult = await client.query(balanceQuery, [playerId]);
-        const balanceBefore = parseInt(
-          balanceResult.rows[0].currency_num
-        );
+        const balanceBefore = parseInt(balanceResult.rows[0].currency_num);
 
         await client.query(
           `UPDATE player_currency 
@@ -359,7 +366,12 @@ const checkAndUpgradeLevel = async function (playerId) {
           `INSERT INTO player_currency_log 
            (player_id, type, amount, source, related_id, balance_before, balance_after)
            VALUES ($1, 1, $2, 'level_up_reward', 0, $3, $4)`,
-          [playerId, totalGoldReward, balanceBefore, balanceBefore + totalGoldReward]
+          [
+            playerId,
+            totalGoldReward,
+            balanceBefore,
+            balanceBefore + totalGoldReward,
+          ]
         );
       }
 
@@ -412,7 +424,8 @@ const addExp = async function (playerId, playerExp, farmExp, worldExp) {
   try {
     await client.query('BEGIN');
 
-    const query = 'SELECT player_id, player_level, player_exp, farm_level, farm_exp, world_level, world_exp FROM player_base WHERE player_id = $1 FOR UPDATE';
+    const query =
+      'SELECT player_id, player_level, player_exp, farm_level, farm_exp, world_level, world_exp FROM player_base WHERE player_id = $1 FOR UPDATE';
     const result = await client.query(query, [playerId]);
 
     if (result.rows.length === 0) {
@@ -460,14 +473,20 @@ const getLevelProgress = async function (playerId) {
   try {
     const player = await getPlayerInfo(playerId);
     const cache = await loadLevelConfigCache();
-    
+
     if (!player) {
       return {
         playerLevel: 1,
         playerExp: 0,
-        nextPlayerLevelExp: cache && cache.has(2) ? cache.get(2).exp_required : calculateLevelExp(2),
+        nextPlayerLevelExp:
+          cache && cache.has(2)
+            ? cache.get(2).exp_required
+            : calculateLevelExp(2),
         playerExpProgress: 0,
-        playerExpNeeded: cache && cache.has(2) ? cache.get(2).exp_required : calculateLevelExp(2),
+        playerExpNeeded:
+          cache && cache.has(2)
+            ? cache.get(2).exp_required
+            : calculateLevelExp(2),
         playerProgressPercent: 0,
         farmLevel: 1,
         farmExp: 0,
@@ -640,8 +659,14 @@ const unlockWorldLevel = async function (playerId, targetWorldLevel) {
         `INSERT INTO player_currency_log 
          (player_id, type, amount, source, related_id, balance_before, balance_after)
          VALUES ($1, 2, $2, $3, $4, $5, $6)`,
-        [playerId, targetWorld.unlock_cost, 'world_unlock', targetWorldLevel,
-         currencyBefore, currencyBefore - targetWorld.unlock_cost]
+        [
+          playerId,
+          targetWorld.unlock_cost,
+          'world_unlock',
+          targetWorldLevel,
+          currencyBefore,
+          currencyBefore - targetWorld.unlock_cost,
+        ]
       );
     }
 
@@ -736,7 +761,10 @@ const recoverStamina = async function (playerId) {
       maxStamina
     );
 
-    if (newStamina > player.current_stamina || maxStamina !== player.max_stamina) {
+    if (
+      newStamina > player.current_stamina ||
+      maxStamina !== player.max_stamina
+    ) {
       await pool.query(
         `UPDATE player_base
          SET current_stamina = $1, max_stamina = $2, last_stamina_recover_time = CURRENT_TIMESTAMP
@@ -773,7 +801,7 @@ const calculateMaxStamina = async function (playerLevel) {
     );
 
     const config = {};
-    configResult.rows.forEach(row => {
+    configResult.rows.forEach((row) => {
       config[row.key] = parseInt(row.value, 10);
     });
 
@@ -861,9 +889,10 @@ const getOfflineRewards = async function (playerId) {
       offlineTime: {
         minutes: offlineMinutes,
         hours: offlineHours,
-        displayText: displayHours > 0
-          ? `${displayHours}小时${displayMins}分`
-          : `${displayMins}分钟`,
+        displayText:
+          displayHours > 0
+            ? `${displayHours}小时${displayMins}分`
+            : `${displayMins}分钟`,
       },
       playerLevel: player.player_level,
       goldCalculation: {
@@ -886,9 +915,10 @@ const getOfflineRewards = async function (playerId) {
       hasRewards: true,
       offlineMinutes,
       offlineHours,
-      displayText: displayHours > 0
-        ? `${displayHours}小时${displayMins}分`
-        : `${displayMins}分钟`,
+      displayText:
+        displayHours > 0
+          ? `${displayHours}小时${displayMins}分`
+          : `${displayMins}分钟`,
       goldEarned,
       expEarned,
       details,

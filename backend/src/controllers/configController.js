@@ -429,7 +429,9 @@ exports.compareConfigVersions = async (req, res) => {
     }
 
     const diff = await configHistoryService.compareVersions(
-      key, version1, version2
+      key,
+      version1,
+      version2
     );
     res.json(successResponse(diff));
   } catch (error) {
@@ -437,8 +439,7 @@ exports.compareConfigVersions = async (req, res) => {
     if (error.message.includes('不存在')) {
       res.status(404).json(errorResponse(error.message));
     } else {
-      res.status(500).json(
-        errorResponse('比较配置版本失败', error.message));
+      res.status(500).json(errorResponse('比较配置版本失败', error.message));
     }
   }
 };
@@ -462,7 +463,8 @@ exports.getRollbackPreview = async (req, res) => {
     }
 
     const preview = await configHistoryService.getRollbackInfo(
-      key, targetVersion
+      key,
+      targetVersion
     );
     res.json(successResponse(preview));
   } catch (error) {
@@ -470,8 +472,7 @@ exports.getRollbackPreview = async (req, res) => {
     if (error.message.includes('不存在')) {
       res.status(404).json(errorResponse(error.message));
     } else {
-      res.status(500).json(
-        errorResponse('获取回滚预览失败', error.message));
+      res.status(500).json(errorResponse('获取回滚预览失败', error.message));
     }
   }
 };
@@ -547,7 +548,7 @@ exports.exportChangeHistory = async (req, res) => {
     // 获取全部历史记录(不分页)
     const history = await configHistoryService.getHistory(key, {
       page: 1,
-      limit: 10000
+      limit: 10000,
     });
 
     const records = history.records;
@@ -555,10 +556,17 @@ exports.exportChangeHistory = async (req, res) => {
     if (format === 'csv') {
       // 生成CSV
       const csvHeaders = [
-        'ID', '配置键', '变更类型', '变更字段', '操作人', 'IP地址',
-        '变更原因', '版本', '创建时间'
+        'ID',
+        '配置键',
+        '变更类型',
+        '变更字段',
+        '操作人',
+        'IP地址',
+        '变更原因',
+        '版本',
+        '创建时间',
       ];
-      const csvRows = records.map(r => [
+      const csvRows = records.map((r) => [
         r.id,
         r.config_key,
         r.change_type,
@@ -567,20 +575,23 @@ exports.exportChangeHistory = async (req, res) => {
         r.ip_address || '',
         r.change_reason || '',
         r.version,
-        r.created_at
+        r.created_at,
       ]);
 
       const csvContent = [csvHeaders, ...csvRows]
-        .map(row => row.map(cell =>
-          '"' + String(cell || '').replace(/"/g, '""') + '"'
-        ).join(','))
+        .map((row) =>
+          row
+            .map((cell) => '"' + String(cell || '').replace(/"/g, '""') + '"')
+            .join(',')
+        )
         .join('\r\n');
 
       res.setHeader('Content-Type', 'text/csv; charset=utf-8');
       res.setHeader(
         'Content-Disposition',
         `attachment; filename=config_history_${key}_${new Date()
-          .toISOString().slice(0, 10)}.csv`
+          .toISOString()
+          .slice(0, 10)}.csv`
       );
       res.send('\uFEFF' + csvContent);
     } else {
@@ -589,7 +600,8 @@ exports.exportChangeHistory = async (req, res) => {
       res.setHeader(
         'Content-Disposition',
         `attachment; filename=config_history_${key}_${new Date()
-          .toISOString().slice(0, 10)}.json`
+          .toISOString()
+          .slice(0, 10)}.json`
       );
       res.json(successResponse({ key, records, exportTime: new Date() }));
     }

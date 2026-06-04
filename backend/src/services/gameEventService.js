@@ -23,19 +23,19 @@ function calculateEventStatus(event) {
   if (!event.is_active) {
     return 'ended';
   }
-  
+
   const now = new Date();
   const startTime = new Date(event.start_time);
   const endTime = event.end_time ? new Date(event.end_time) : null;
-  
+
   if (now < startTime) {
     return 'upcoming';
   }
-  
+
   if (endTime && now > endTime) {
     return 'ended';
   }
-  
+
   return 'active';
 }
 
@@ -47,7 +47,7 @@ function calculateEventStatus(event) {
 function enhanceEventData(event) {
   return {
     ...event,
-    status: calculateEventStatus(event)
+    status: calculateEventStatus(event),
   };
 }
 
@@ -171,7 +171,10 @@ const gameEventService = {
       return enhanceEventData(event);
     } catch (error) {
       await client.query('ROLLBACK');
-      logger.error('创建活动失败', { error: error.message, eventName: eventData?.event_name });
+      logger.error('创建活动失败', {
+        error: error.message,
+        eventName: eventData?.event_name,
+      });
       throw error;
     } finally {
       client.release();
@@ -393,7 +396,8 @@ const gameEventService = {
    */
   async deleteTask(taskId) {
     try {
-      const query = 'UPDATE game_event_tasks SET is_active = false WHERE id = $1';
+      const query =
+        'UPDATE game_event_tasks SET is_active = false WHERE id = $1';
       await pool.query(query, [taskId]);
       logger.info('删除活动任务成功', { taskId });
       return { success: true };
@@ -426,7 +430,11 @@ const gameEventService = {
       const result = await pool.query(query, [playerId, eventId]);
       return result.rows;
     } catch (error) {
-      logger.error('获取玩家活动进度失败', { error: error.message, playerId, eventId });
+      logger.error('获取玩家活动进度失败', {
+        error: error.message,
+        playerId,
+        eventId,
+      });
       throw error;
     }
   },
@@ -519,7 +527,11 @@ const gameEventService = {
       return { updated: updatedProgresses };
     } catch (error) {
       await client.query('ROLLBACK');
-      logger.error('更新玩家活动进度失败', { error: error.message, playerId, eventId });
+      logger.error('更新玩家活动进度失败', {
+        error: error.message,
+        playerId,
+        eventId,
+      });
       throw error;
     } finally {
       client.release();
@@ -560,8 +572,13 @@ const gameEventService = {
       `INSERT INTO player_currency_log
        (player_id, type, amount, source, balance_before, balance_after)
        VALUES ($1, 1, $2, $3, $4, $5)`,
-      [playerId, currencyReward.amount,
-       'event_reward', beforeBalance, afterBalance]
+      [
+        playerId,
+        currencyReward.amount,
+        'event_reward',
+        beforeBalance,
+        afterBalance,
+      ]
     );
 
     logger.info('发放货币奖励成功', {
@@ -589,7 +606,10 @@ const gameEventService = {
       WHERE player_id = $1 AND item_type = 2 AND item_obj_id = $2
       FOR UPDATE
     `;
-    const checkResult = await client.query(checkQuery, [playerId, itemReward.item_id]);
+    const checkResult = await client.query(checkQuery, [
+      playerId,
+      itemReward.item_id,
+    ]);
 
     if (checkResult.rows.length > 0) {
       // 更新现有物品数量（修正字段名：quantity → item_num, updated_at → update_time）
@@ -886,16 +906,15 @@ const gameEventService = {
 
       return {
         summary: summaryResult.rows[0],
-        taskProgress: taskProgressResult.rows
+        taskProgress: taskProgressResult.rows,
       };
     } catch (error) {
-      logger.error('获取管理后台活动进度失败', { error: error.message, eventId });
+      logger.error('获取管理后台活动进度失败', {
+        error: error.message,
+        eventId,
+      });
       throw error;
     }
-  },
-
-  async resumeEvent(eventId) {
-    return this.updateEventStatus(eventId, true);
   },
 };
 

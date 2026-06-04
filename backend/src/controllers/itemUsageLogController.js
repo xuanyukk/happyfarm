@@ -19,9 +19,13 @@ exports.getMyLogs = async function (req, res) {
   try {
     const playerId = req.user.id.toString();
     const {
-      itemId, usageScene, result,
-      startTime, endTime,
-      page = 1, limit = 20,
+      itemId,
+      usageScene,
+      result,
+      startTime,
+      endTime,
+      page = 1,
+      limit = 20,
     } = req.query;
 
     const filters = {};

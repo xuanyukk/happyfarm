@@ -57,18 +57,20 @@ exports.createMailTemplate = [
     if (!errors.isEmpty()) {
       return res.status(400).json({
         success: false,
-        message: errors.array()[0].msg
+        message: errors.array()[0].msg,
       });
     }
 
     try {
       const template = adminMailService.createMailTemplate(req.body);
-      res.status(201).json({ success: true, data: template, message: '模板创建成功' });
+      res
+        .status(201)
+        .json({ success: true, data: template, message: '模板创建成功' });
     } catch (error) {
       logger.error('创建邮件模板失败', { error: error.message });
       res.status(500).json({ success: false, message: error.message });
     }
-  }
+  },
 ];
 
 /**
@@ -76,20 +78,31 @@ exports.createMailTemplate = [
  * PUT /api/admin/mails/templates/:templateId
  */
 exports.updateMailTemplate = [
-  body('title').optional().isString().notEmpty().withMessage('模板标题不能为空'),
-  body('content').optional().isString().notEmpty().withMessage('模板内容不能为空'),
+  body('title')
+    .optional()
+    .isString()
+    .notEmpty()
+    .withMessage('模板标题不能为空'),
+  body('content')
+    .optional()
+    .isString()
+    .notEmpty()
+    .withMessage('模板内容不能为空'),
   function (req, res) {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({
         success: false,
-        message: errors.array()[0].msg
+        message: errors.array()[0].msg,
       });
     }
 
     try {
       const templateId = parseInt(req.params.templateId);
-      const template = adminMailService.updateMailTemplate(templateId, req.body);
+      const template = adminMailService.updateMailTemplate(
+        templateId,
+        req.body
+      );
       res.json({ success: true, data: template, message: '模板更新成功' });
     } catch (error) {
       if (error.message === '邮件模板不存在') {
@@ -99,7 +112,7 @@ exports.updateMailTemplate = [
         res.status(500).json({ success: false, message: error.message });
       }
     }
-  }
+  },
 ];
 
 /**
@@ -134,7 +147,7 @@ exports.sendMail = [
     if (!errors.isEmpty()) {
       return res.status(400).json({
         success: false,
-        message: errors.array()[0].msg
+        message: errors.array()[0].msg,
       });
     }
 
@@ -143,13 +156,13 @@ exports.sendMail = [
       res.status(201).json({
         success: true,
         data: mailRecord,
-        message: '邮件发送成功'
+        message: '邮件发送成功',
       });
     } catch (error) {
       logger.error('发送邮件失败', { error: error.message });
       res.status(500).json({ success: false, message: error.message });
     }
-  }
+  },
 ];
 
 /**

@@ -1,4 +1,3 @@
-
 /**
  * 文件名: gameEventTemplateService.js
  * 作者: Trae AI
@@ -18,13 +17,13 @@ class GameEventTemplateService {
   async getAllTemplates(includeInactive = false) {
     let query = 'SELECT * FROM game_event_templates';
     const params = [];
-    
+
     if (!includeInactive) {
       query += ' WHERE is_active = TRUE';
     }
-    
+
     query += ' ORDER BY created_at DESC';
-    
+
     const result = await db.query(query, params);
     return result.rows;
   }
@@ -71,7 +70,7 @@ class GameEventTemplateService {
       template_type,
       description,
       template_config,
-      variables = []
+      variables = [],
     } = templateData;
 
     const client = await db.pool.connect();
@@ -85,7 +84,7 @@ class GameEventTemplateService {
          VALUES ($1, $2, $3, $4, $5, TRUE) RETURNING *`,
         [template_name, template_type, description, template_config, userId]
       );
-      
+
       const template = templateResult.rows[0];
 
       // 创建初始版本
@@ -109,7 +108,7 @@ class GameEventTemplateService {
             variable.default_value || null,
             variable.is_required !== false,
             variable.description || null,
-            variable.options || null
+            variable.options || null,
           ]
         );
       }
@@ -136,7 +135,7 @@ class GameEventTemplateService {
       description,
       template_config,
       change_log,
-      variables = []
+      variables = [],
     } = templateData;
 
     const client = await db.pool.connect();
@@ -148,11 +147,11 @@ class GameEventTemplateService {
         'SELECT version FROM game_event_templates WHERE id = $1',
         [templateId]
       );
-      
+
       if (currentResult.rows.length === 0) {
         throw new Error('模板不存在');
       }
-      
+
       const currentVersion = currentResult.rows[0].version;
       const newVersion = currentVersion + 1;
 
@@ -161,12 +160,18 @@ class GameEventTemplateService {
         'SELECT template_config FROM game_event_templates WHERE id = $1',
         [templateId]
       );
-      
+
       await client.query(
         `INSERT INTO game_event_template_versions 
          (template_id, version, template_config, change_log, created_by)
          VALUES ($1, $2, $3, $4, $5)`,
-        [templateId, currentVersion, oldTemplateResult.rows[0].template_config, change_log || '更新模板', userId]
+        [
+          templateId,
+          currentVersion,
+          oldTemplateResult.rows[0].template_config,
+          change_log || '更新模板',
+          userId,
+        ]
       );
 
       // 更新模板
@@ -175,12 +180,22 @@ class GameEventTemplateService {
          SET template_name = $1, template_type = $2, description = $3, 
              template_config = $4, version = $5, updated_at = CURRENT_TIMESTAMP
          WHERE id = $6 RETURNING *`,
-        [template_name, template_type, description, template_config, newVersion, templateId]
+        [
+          template_name,
+          template_type,
+          description,
+          template_config,
+          newVersion,
+          templateId,
+        ]
       );
 
       // 更新变量 - 先删除后重建
-      await client.query('DELETE FROM game_event_template_variables WHERE template_id = $1', [templateId]);
-      
+      await client.query(
+        'DELETE FROM game_event_template_variables WHERE template_id = $1',
+        [templateId]
+      );
+
       for (const variable of variables) {
         await client.query(
           `INSERT INTO game_event_template_variables 
@@ -193,7 +208,7 @@ class GameEventTemplateService {
             variable.default_value || null,
             variable.is_required !== false,
             variable.description || null,
-            variable.options || null
+            variable.options || null,
           ]
         );
       }
@@ -215,9 +230,12 @@ class GameEventTemplateService {
    */
   async validateVariables(template, variables) {
     const templateVariables = await this.getTemplateVariables(template.id);
-    
+
     for (const templateVar of templateVariables) {
-      if (templateVar.is_required && variables[templateVar.variable_name] === undefined) {
+      if (
+        templateVar.is_required &&
+        variables[templateVar.variable_name] === undefined
+      ) {
         throw new Error(`变量 ${templateVar.variable_name} 是必填项`);
       }
 
@@ -232,7 +250,9 @@ class GameEventTemplateService {
             break;
           case 'date':
             if (isNaN(Date.parse(value))) {
-              throw new Error(`变量 ${templateVar.variable_name} 必须是有效的日期`);
+              throw new Error(
+                `变量 ${templateVar.variable_name} 必须是有效的日期`
+              );
             }
             break;
         }
@@ -247,10 +267,10 @@ class GameEventTemplateService {
    */
   renderTemplate(template, variables) {
     let config = JSON.parse(JSON.stringify(template.template_config));
-    
+
     config = this.replaceVariables(config, variables);
     config = this.processDateExpressions(config, variables);
-    
+
     return config;
   }
 
@@ -281,7 +301,7 @@ class GameEventTemplateService {
         const amount = parseInt(dateMatch[1]);
         const unit = dateMatch[2];
         const now = new Date();
-        
+
         switch (unit) {
           case 'd':
             now.setDate(now.getDate() + amount);
@@ -293,7 +313,7 @@ class GameEventTemplateService {
             now.setFullYear(now.getFullYear() + amount);
             break;
         }
-        
+
         return now.toISOString().split('T')[0];
       }
     } else if (typeof obj === 'object' && obj !== null) {
@@ -322,16 +342,17 @@ class GameEventTemplateService {
     // 创建活动
     const eventData = {
       event_name: renderedConfig.event_name || template.template_name,
-      event_description: renderedConfig.event_description || template.description || '',
+      event_description:
+        renderedConfig.event_description || template.description || '',
       start_time: renderedConfig.start_time,
       end_time: renderedConfig.end_time,
       event_config: renderedConfig,
-      template_id: templateId
+      template_id: templateId,
     };
 
     const event = await gameEventService.createEvent(eventData, userId);
     logger.info('从模板创建活动成功', { templateId, eventId: event.id });
-    
+
     return event;
   }
 
@@ -358,15 +379,18 @@ class GameEventTemplateService {
        AND v1.version = $2 AND v2.version = $3`,
       [templateId, version1, version2]
     );
-    
+
     if (result.rows.length === 0) {
       return null;
     }
-    
+
     return {
       config1: result.rows[0].config1,
       config2: result.rows[0].config2,
-      differences: this.findDifferences(result.rows[0].config1, result.rows[0].config2)
+      differences: this.findDifferences(
+        result.rows[0].config1,
+        result.rows[0].config2
+      ),
     };
   }
 
@@ -375,31 +399,45 @@ class GameEventTemplateService {
    */
   findDifferences(obj1, obj2, path = '') {
     const differences = [];
-    
+
     const allKeys = new Set([...Object.keys(obj1), ...Object.keys(obj2)]);
-    
+
     for (const key of allKeys) {
       const currentPath = path ? `${path}.${key}` : key;
-      
+
       if (!(key in obj1)) {
-        differences.push({ path: currentPath, type: 'added', value: obj2[key] });
+        differences.push({
+          path: currentPath,
+          type: 'added',
+          value: obj2[key],
+        });
       } else if (!(key in obj2)) {
-        differences.push({ path: currentPath, type: 'removed', value: obj1[key] });
-      } else if (typeof obj1[key] === 'object' && obj1[key] !== null && typeof obj2[key] === 'object' && obj2[key] !== null) {
-        differences.push(...this.findDifferences(obj1[key], obj2[key], currentPath));
+        differences.push({
+          path: currentPath,
+          type: 'removed',
+          value: obj1[key],
+        });
+      } else if (
+        typeof obj1[key] === 'object' &&
+        obj1[key] !== null &&
+        typeof obj2[key] === 'object' &&
+        obj2[key] !== null
+      ) {
+        differences.push(
+          ...this.findDifferences(obj1[key], obj2[key], currentPath)
+        );
       } else if (JSON.stringify(obj1[key]) !== JSON.stringify(obj2[key])) {
-        differences.push({ 
-          path: currentPath, 
-          type: 'modified', 
-          oldValue: obj1[key], 
-          newValue: obj2[key] 
+        differences.push({
+          path: currentPath,
+          type: 'modified',
+          oldValue: obj1[key],
+          newValue: obj2[key],
         });
       }
     }
-    
+
     return differences;
   }
 }
 
 module.exports = new GameEventTemplateService();
-

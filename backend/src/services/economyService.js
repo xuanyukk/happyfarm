@@ -84,9 +84,11 @@ async function getCurrencyLogs(
       amount: row.amount,
       reason: row.source,
       related_id: row.related_id,
-      item_name: row.crop_name || row.item_name || row.quality_name
-        || (row.source === 'land_unlock' 
-            ? `地块 ${row.related_id}` : null),
+      item_name:
+        row.crop_name ||
+        row.item_name ||
+        row.quality_name ||
+        (row.source === 'land_unlock' ? `地块 ${row.related_id}` : null),
       balance_before: row.balance_before,
       balance_after: row.balance_after,
       created_at: row.create_time,

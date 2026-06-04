@@ -130,7 +130,7 @@
         ></div>
         <table class="logs-table">
           <tbody>
-            <tr v-for="(log, index) in visibleLogs" :key="log.id">
+            <tr v-for="log in visibleLogs" :key="log.id">
               <td>{{ log.id }}</td>
               <td>{{ log.operator_username || '-' }}</td>
               <td>

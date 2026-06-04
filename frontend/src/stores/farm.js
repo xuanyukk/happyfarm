@@ -355,12 +355,8 @@ export const useFarmStore = defineStore('farm', () => {
   };
 
   const getLandStarConfigs = async (qualityId) => {
-    try {
-      const result = await gameService.getLandStarConfigs(qualityId);
-      return result;
-    } catch (err) {
-      throw err;
-    }
+    const result = await gameService.getLandStarConfigs(qualityId);
+    return result;
   };
 
   /**

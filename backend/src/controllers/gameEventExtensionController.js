@@ -1,4 +1,3 @@
-
 /**
  * 文件名：gameEventExtensionController.js
  * 作者：Trae AI
@@ -36,7 +35,10 @@ exports.getAllTriggers = asyncHandler(async (req, res) => {
 
 exports.updateTrigger = asyncHandler(async (req, res) => {
   const { triggerId } = req.params;
-  const trigger = await gameEventTriggerService.updateTrigger(triggerId, req.body);
+  const trigger = await gameEventTriggerService.updateTrigger(
+    triggerId,
+    req.body
+  );
   successResponse(res, trigger, '触发器更新成功');
 });
 
@@ -58,7 +60,11 @@ exports.computeEventStats = asyncHandler(async (req, res) => {
 exports.getEventStats = asyncHandler(async (req, res) => {
   const { eventId } = req.params;
   const { start_date, end_date } = req.query;
-  const stats = await gameEventStatsService.getEventStats(eventId, start_date, end_date);
+  const stats = await gameEventStatsService.getEventStats(
+    eventId,
+    start_date,
+    end_date
+  );
   successResponse(res, stats, '获取活动统计成功');
 });
 
@@ -81,4 +87,3 @@ exports.getWebSocketQueueStats = asyncHandler(async (req, res) => {
   const stats = gameEventWebSocketService.getQueueStats();
   successResponse(res, stats, '获取WebSocket队列统计成功');
 });
-

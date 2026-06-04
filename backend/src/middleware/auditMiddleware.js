@@ -25,8 +25,7 @@ const auditMiddleware = (action, resourceType) => {
         const userId = req.user?.id;
         const ipAddress = req.ip || req.socket.remoteAddress;
         const userAgent = req.get('user-agent');
-        const status = res.statusCode & lt;
-        400 ? 'success' : 'failed';
+        const status = res.statusCode < 400 ? 'success' : 'failed';
 
         let oldValues = null;
         let newValues = null;

@@ -1,4 +1,3 @@
-
 /**
  * 文件名: adminCropController.js
  * 作者: Trae AI
@@ -19,7 +18,11 @@ const logger = require('../config/logger');
 exports.getCropList = async function (req, res) {
   try {
     const { worldId, cropType, search } = req.query;
-    const crops = await adminCropService.getCropList({ worldId, cropType, search });
+    const crops = await adminCropService.getCropList({
+      worldId,
+      cropType,
+      search,
+    });
     res.status(200).json({ success: true, data: crops });
   } catch (error) {
     logger.error('获取作物列表失败', { error: error.message });
@@ -52,7 +55,9 @@ exports.createCrop = async function (req, res) {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ success: false, message: errors.array()[0].msg });
+      return res
+        .status(400)
+        .json({ success: false, message: errors.array()[0].msg });
     }
 
     const operatorId = req.user?.id;
@@ -71,7 +76,9 @@ exports.updateCrop = async function (req, res) {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ success: false, message: errors.array()[0].msg });
+      return res
+        .status(400)
+        .json({ success: false, message: errors.array()[0].msg });
     }
 
     const { cropId } = req.params;
@@ -122,8 +129,14 @@ exports.createCropValidation = [
 ];
 
 exports.updateCropValidation = [
-  body('cropName').optional().isString().notEmpty().withMessage('作物名称不能为空'),
+  body('cropName')
+    .optional()
+    .isString()
+    .notEmpty()
+    .withMessage('作物名称不能为空'),
   body('worldId').optional().isInt({ min: 1 }).withMessage('世界等级无效'),
-  body('growthCycle').optional().isInt({ min: 3 }).withMessage('生长周期至少3分钟'),
+  body('growthCycle')
+    .optional()
+    .isInt({ min: 3 })
+    .withMessage('生长周期至少3分钟'),
 ];
-

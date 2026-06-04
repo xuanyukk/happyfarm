@@ -52,7 +52,11 @@ router.get('/:key/compare', configController.compareConfigVersions);
 router.get('/:key/rollback-preview', configController.getRollbackPreview);
 
 // 增强版回滚（需要请求体验证 + 填写原因）
-router.post('/:key/rollback', validate.rollbackConfig, configController.rollbackConfig);
+router.post(
+  '/:key/rollback',
+  validate.rollbackConfig,
+  configController.rollbackConfig
+);
 
 // 导出变更历史
 router.get('/:key/history/export', configController.exportChangeHistory);
@@ -77,7 +81,11 @@ router.post('/cache/refresh/:key', configController.refreshCache);
 router.get('/cache/:key', configController.getCachedConfig);
 
 // 批量更新配置（需要请求体验证）
-router.post('/batch/update', validate.batchUpdateConfigs, configController.batchUpdateConfigs);
+router.post(
+  '/batch/update',
+  validate.batchUpdateConfigs,
+  configController.batchUpdateConfigs
+);
 
 // 导入配置
 router.post('/import', configController.importConfigs);

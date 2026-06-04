@@ -263,12 +263,15 @@ exports.sellBatchCrops = async function (req, res) {
     const result = await cropService.sellBatchCrops(playerId, items);
 
     const totalQuantity = result.sold.reduce(
-      (sum, item) => sum + item.quantity, 0
+      (sum, item) => sum + item.quantity,
+      0
     );
     if (totalQuantity > 0) {
       try {
         await achievementService.checkAndUpdateAchievements(
-          playerId, 'economy', totalQuantity
+          playerId,
+          'economy',
+          totalQuantity
         );
       } catch (achErr) {
         logger.warn('成就检查失败', { error: achErr.message });

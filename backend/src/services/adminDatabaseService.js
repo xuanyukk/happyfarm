@@ -41,7 +41,7 @@ async function getDatabaseInfo() {
     return {
       version: versionResult.rows[0].version,
       size: sizeResult.rows[0],
-      connections: activityResult.rows
+      connections: activityResult.rows,
     };
   } catch (error) {
     logger.error('获取数据库信息失败', { error: error.message });
@@ -133,5 +133,5 @@ module.exports = {
   getDatabaseInfo,
   getDbTables,
   getDbIndexes,
-  getDbUnusedIndexes
+  getDbUnusedIndexes,
 };

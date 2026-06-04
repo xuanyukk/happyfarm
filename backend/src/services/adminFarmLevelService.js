@@ -22,7 +22,8 @@ async function getFarmLevelList(params = {}) {
     const queryParams = [];
 
     if (params.search) {
-      query = 'SELECT * FROM farm_level WHERE level_name ILIKE $1 ORDER BY level_num';
+      query =
+        'SELECT * FROM farm_level WHERE level_name ILIKE $1 ORDER BY level_num';
       queryParams.push(`%${params.search}%`);
     }
 
@@ -74,7 +75,7 @@ async function createFarmLevel(data) {
       data.maxLandCount || data.max_land_count || 5,
       data.unlockItemType || data.unlock_item_type || null,
       data.unlockItemId || data.unlock_item_id || null,
-      data.farmBonusRate || data.farm_bonus_rate || 0
+      data.farmBonusRate || data.farm_bonus_rate || 0,
     ];
     const result = await pool.query(query, values);
     return result.rows[0];
@@ -109,7 +110,7 @@ async function updateFarmLevel(levelId, data) {
       maxLandCount: 'max_land_count',
       unlockItemType: 'unlock_item_type',
       unlockItemId: 'unlock_item_id',
-      farmBonusRate: 'farm_bonus_rate'
+      farmBonusRate: 'farm_bonus_rate',
     };
 
     Object.entries(fieldMap).forEach(([key, column]) => {
@@ -164,5 +165,5 @@ module.exports = {
   getFarmLevelDetail,
   createFarmLevel,
   updateFarmLevel,
-  deleteFarmLevel
+  deleteFarmLevel,
 };

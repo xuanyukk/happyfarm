@@ -36,7 +36,11 @@ exports.getPlayerDailyTasks = async function (playerId) {
   }
 };
 
-exports.updateTaskProgress = async function (playerId, taskCategory, count = 1) {
+exports.updateTaskProgress = async function (
+  playerId,
+  taskCategory,
+  count = 1
+) {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -86,7 +90,11 @@ exports.updateTaskProgress = async function (playerId, taskCategory, count = 1) 
     return { success: true, updated };
   } catch (error) {
     await client.query('ROLLBACK');
-    logger.error('更新任务进度失败', { playerId, taskCategory, error: error.message });
+    logger.error('更新任务进度失败', {
+      playerId,
+      taskCategory,
+      error: error.message,
+    });
     return { success: false, error: error.message };
   } finally {
     client.release();
@@ -163,7 +171,13 @@ exports.claimTaskReward = async function (playerId, taskId) {
       `INSERT INTO player_currency_log
        (player_id, type, amount, source, related_id, balance_before, balance_after)
        VALUES ($1, 1, $2, 'daily_task_reward', $3, $4, $5)`,
-      [playerId, config.reward_gold, taskId, balanceBefore, balanceBefore + config.reward_gold]
+      [
+        playerId,
+        config.reward_gold,
+        taskId,
+        balanceBefore,
+        balanceBefore + config.reward_gold,
+      ]
     );
 
     const receivedItems = [];
@@ -210,7 +224,11 @@ exports.claimTaskReward = async function (playerId, taskId) {
     };
   } catch (error) {
     await client.query('ROLLBACK');
-    logger.error('领取任务奖励失败', { playerId, taskId, error: error.message });
+    logger.error('领取任务奖励失败', {
+      playerId,
+      taskId,
+      error: error.message,
+    });
     throw error;
   } finally {
     client.release();
@@ -261,7 +279,7 @@ async function initializeDailyTasksClient(client, playerId, date) {
 }
 
 async function enrichTaskData(tasks) {
-  const taskIds = tasks.map(t => t.task_id);
+  const taskIds = tasks.map((t) => t.task_id);
   if (taskIds.length === 0) return [];
 
   const configs = await pool.query(
@@ -270,9 +288,11 @@ async function enrichTaskData(tasks) {
   );
 
   const configMap = {};
-  configs.rows.forEach(c => { configMap[c.task_id] = c; });
+  configs.rows.forEach((c) => {
+    configMap[c.task_id] = c;
+  });
 
-  return tasks.map(t => {
+  return tasks.map((t) => {
     const config = configMap[t.task_id] || {};
     return {
       id: t.id,

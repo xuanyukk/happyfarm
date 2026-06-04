@@ -22,7 +22,9 @@ exports.adminMiddleware = (req, res, next) => {
         ip: req.ip,
         url: req.originalUrl,
       });
-      return res.status(401).json({ success: false, message: '未认证，请先登录' });
+      return res
+        .status(401)
+        .json({ success: false, message: '未认证，请先登录' });
     }
 
     if (!req.user.is_admin) {
@@ -32,7 +34,9 @@ exports.adminMiddleware = (req, res, next) => {
         ip: req.ip,
         url: req.originalUrl,
       });
-      return res.status(403).json({ success: false, message: '权限不足，需要管理员权限' });
+      return res
+        .status(403)
+        .json({ success: false, message: '权限不足，需要管理员权限' });
     }
 
     next();

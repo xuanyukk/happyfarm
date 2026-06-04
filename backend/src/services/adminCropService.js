@@ -1,4 +1,3 @@
-
 /**
  * 文件名: adminCropService.js
  * 作者: Trae AI
@@ -82,10 +81,22 @@ async function createCrop(data, operatorId) {
     `;
 
     const result = await client.query(query, [
-      data.cropName, data.worldId, data.unlockPlayerLevel, data.unlockFarmLevel,
-      data.growthCycle, data.baseYield, data.minYield, data.maxYield, data.sellPrice, data.seedCost,
-      data.gpPerMin, data.cropType, data.unlockDesc,
-      data.playerExpBase, data.farmExpBase, data.worldExpBase
+      data.cropName,
+      data.worldId,
+      data.unlockPlayerLevel,
+      data.unlockFarmLevel,
+      data.growthCycle,
+      data.baseYield,
+      data.minYield,
+      data.maxYield,
+      data.sellPrice,
+      data.seedCost,
+      data.gpPerMin,
+      data.cropType,
+      data.unlockDesc,
+      data.playerExpBase,
+      data.farmExpBase,
+      data.worldExpBase,
     ]);
 
     await client.query('COMMIT');
@@ -137,10 +148,23 @@ async function updateCrop(cropId, data) {
     `;
 
     const result = await client.query(query, [
-      cropId, data.cropName, data.worldId, data.unlockPlayerLevel, data.unlockFarmLevel,
-      data.growthCycle, data.baseYield, data.minYield, data.maxYield, data.sellPrice, data.seedCost,
-      data.gpPerMin, data.cropType, data.unlockDesc,
-      data.playerExpBase, data.farmExpBase, data.worldExpBase
+      cropId,
+      data.cropName,
+      data.worldId,
+      data.unlockPlayerLevel,
+      data.unlockFarmLevel,
+      data.growthCycle,
+      data.baseYield,
+      data.minYield,
+      data.maxYield,
+      data.sellPrice,
+      data.seedCost,
+      data.gpPerMin,
+      data.cropType,
+      data.unlockDesc,
+      data.playerExpBase,
+      data.farmExpBase,
+      data.worldExpBase,
     ]);
 
     await client.query('COMMIT');
@@ -178,4 +202,3 @@ module.exports = {
   updateCrop,
   deleteCrop,
 };
-

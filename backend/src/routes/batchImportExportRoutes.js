@@ -61,7 +61,12 @@ router.get('/export/:taskId/download', controller.downloadExportFile);
 
 /** 导入相关路由 */
 // POST /api/batch/import - 发起导入任务（multipart文件上传 + 请求体验证）
-router.post('/import', upload.single('file'), validate.importData, controller.importData);
+router.post(
+  '/import',
+  upload.single('file'),
+  validate.importData,
+  controller.importData
+);
 
 // GET /api/batch/import/:taskId/status - 查询导入进度
 router.get('/import/:taskId/status', controller.getImportProgress);

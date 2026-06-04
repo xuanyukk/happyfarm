@@ -1,4 +1,3 @@
-
 /**
  * 文件名: gameEventSchedulerService.js
  * 作者: Trae AI
@@ -67,11 +66,27 @@ class GameEventSchedulerService {
    */
   getAvailableTasks() {
     return [
-      { id: 'event_start', name: '活动开始', description: '在指定时间启动活动' },
+      {
+        id: 'event_start',
+        name: '活动开始',
+        description: '在指定时间启动活动',
+      },
       { id: 'event_end', name: '活动结束', description: '在指定时间结束活动' },
-      { id: 'daily_reset', name: '日常任务重置', description: '每日重置日常任务进度' },
-      { id: 'weekly_reset', name: '周常任务重置', description: '每周重置周常任务进度' },
-      { id: 'stats_compute', name: '统计数据计算', description: '定期计算活动统计数据' }
+      {
+        id: 'daily_reset',
+        name: '日常任务重置',
+        description: '每日重置日常任务进度',
+      },
+      {
+        id: 'weekly_reset',
+        name: '周常任务重置',
+        description: '每周重置周常任务进度',
+      },
+      {
+        id: 'stats_compute',
+        name: '统计数据计算',
+        description: '定期计算活动统计数据',
+      },
     ];
   }
 
@@ -85,7 +100,7 @@ class GameEventSchedulerService {
       cron_expression,
       scheduled_time,
       task_config,
-      max_retries = 3
+      max_retries = 3,
     } = taskData;
 
     const result = await db.query(
@@ -93,7 +108,14 @@ class GameEventSchedulerService {
        (task_type, event_id, cron_expression, scheduled_time, task_config, max_retries, status)
        VALUES ($1, $2, $3, $4, $5, $6, 'pending')
        RETURNING *`,
-      [task_type, event_id, cron_expression, scheduled_time, task_config, max_retries]
+      [
+        task_type,
+        event_id,
+        cron_expression,
+        scheduled_time,
+        task_config,
+        max_retries,
+      ]
     );
 
     const task = result.rows[0];
@@ -118,7 +140,7 @@ class GameEventSchedulerService {
 
     try {
       let job;
-      
+
       if (task.cron_expression) {
         // 使用cron表达式调度
         job = schedule.scheduleJob(jobId, task.cron_expression, () => {
@@ -145,7 +167,7 @@ class GameEventSchedulerService {
       logger.info('任务已调度', { taskId: task.id });
     } catch (error) {
       logger.error('调度任务失败', { taskId: task.id, error: error.message });
-      
+
       // 更新任务状态为失败
       await db.query(
         'UPDATE game_event_scheduled_tasks SET status = $1, last_error = $2 WHERE id = $3',
@@ -214,7 +236,6 @@ class GameEventSchedulerService {
       );
 
       logger.info('任务执行成功', { taskId, duration: Date.now() - startTime });
-
     } catch (error) {
       status = 'failed';
       errorMessage = error.message;
@@ -224,7 +245,13 @@ class GameEventSchedulerService {
       await this.handleTaskFailure(taskId, errorMessage);
     } finally {
       // 记录执行日志
-      await this.logTaskExecution(taskId, status, executionResult, errorMessage, Date.now() - startTime);
+      await this.logTaskExecution(
+        taskId,
+        status,
+        executionResult,
+        errorMessage,
+        Date.now() - startTime
+      );
 
       // 清理job
       const jobId = `task_${taskId}`;
@@ -246,7 +273,10 @@ class GameEventSchedulerService {
     await gameEventService.updateEventStatus(task.event_id, 'active');
 
     // 发送WebSocket通知
-    await gameEventWebSocketService.broadcastEventStatusChange(task.event_id, 'active');
+    await gameEventWebSocketService.broadcastEventStatusChange(
+      task.event_id,
+      'active'
+    );
 
     return { eventId: task.event_id, status: 'started' };
   }
@@ -263,7 +293,10 @@ class GameEventSchedulerService {
     await gameEventService.updateEventStatus(task.event_id, 'ended');
 
     // 发送WebSocket通知
-    await gameEventWebSocketService.broadcastEventStatusChange(task.event_id, 'ended');
+    await gameEventWebSocketService.broadcastEventStatusChange(
+      task.event_id,
+      'ended'
+    );
 
     return { eventId: task.event_id, status: 'ended' };
   }
@@ -313,7 +346,7 @@ class GameEventSchedulerService {
    */
   async executeStatsCompute(task) {
     const eventId = task.event_id;
-    
+
     if (eventId) {
       // 计算单个活动的统计数据
       await gameEventStatsService.computeEventStats(eventId);
@@ -343,7 +376,10 @@ class GameEventSchedulerService {
 
     if (newRetryCount <= task.max_retries) {
       // 可以重试
-      const retryDelay = Math.min(30 * 1000 * Math.pow(2, newRetryCount - 1), 3600 * 1000); // 指数退避，最大1小时
+      const retryDelay = Math.min(
+        30 * 1000 * Math.pow(2, newRetryCount - 1),
+        3600 * 1000
+      ); // 指数退避，最大1小时
       const retryTime = new Date(Date.now() + retryDelay);
 
       await db.query(
@@ -353,10 +389,17 @@ class GameEventSchedulerService {
         ['pending', newRetryCount, errorMessage, retryTime, taskId]
       );
 
-      logger.info('任务将重试', { taskId, retryCount: newRetryCount, retryTime });
+      logger.info('任务将重试', {
+        taskId,
+        retryCount: newRetryCount,
+        retryTime,
+      });
 
       // 重新调度任务
-      const updatedTask = await db.query('SELECT * FROM game_event_scheduled_tasks WHERE id = $1', [taskId]);
+      const updatedTask = await db.query(
+        'SELECT * FROM game_event_scheduled_tasks WHERE id = $1',
+        [taskId]
+      );
       await this.scheduleTask(updatedTask.rows[0]);
     } else {
       // 达到最大重试次数
@@ -374,12 +417,24 @@ class GameEventSchedulerService {
   /**
    * 记录任务执行日志
    */
-  async logTaskExecution(taskId, status, executionResult, errorMessage, durationMs) {
+  async logTaskExecution(
+    taskId,
+    status,
+    executionResult,
+    errorMessage,
+    durationMs
+  ) {
     await db.query(
       `INSERT INTO game_event_task_logs 
        (task_id, status, execution_result, error_message, execution_duration_ms)
        VALUES ($1, $2, $3, $4, $5)`,
-      [taskId, status, executionResult || null, errorMessage || null, durationMs]
+      [
+        taskId,
+        status,
+        executionResult || null,
+        errorMessage || null,
+        durationMs,
+      ]
     );
   }
 
@@ -388,7 +443,7 @@ class GameEventSchedulerService {
    */
   async cancelTask(taskId) {
     const jobId = `task_${taskId}`;
-    
+
     // 取消定时任务
     if (this.jobs.has(jobId)) {
       this.jobs.get(jobId).cancel();
@@ -482,13 +537,13 @@ class GameEventSchedulerService {
    */
   async shutdown() {
     logger.info('正在关闭活动定时任务调度器');
-    
+
     for (const [jobId, job] of this.jobs) {
       if (job.cancel) {
         job.cancel();
       }
     }
-    
+
     this.jobs.clear();
     this.isRunning = false;
     logger.info('活动定时任务调度器已关闭');
@@ -496,4 +551,3 @@ class GameEventSchedulerService {
 }
 
 module.exports = new GameEventSchedulerService();
-

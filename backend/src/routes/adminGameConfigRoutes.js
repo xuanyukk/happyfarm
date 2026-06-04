@@ -17,8 +17,16 @@ router.use(checkAdminPermission);
 
 router.get('/:type', adminGameConfigController.getList);
 router.get('/:type/:id', adminGameConfigController.getDetail);
-router.post('/:type', adminGameConfigController.createValidation, adminGameConfigController.create);
-router.put('/:type/:id', adminGameConfigController.updateValidation, adminGameConfigController.update);
+router.post(
+  '/:type',
+  adminGameConfigController.createValidation,
+  adminGameConfigController.create
+);
+router.put(
+  '/:type/:id',
+  adminGameConfigController.updateValidation,
+  adminGameConfigController.update
+);
 router.delete('/:type/:id', adminGameConfigController.remove);
 
 module.exports = router;

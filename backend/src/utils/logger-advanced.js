@@ -69,7 +69,7 @@ const SensitiveDataMasker = {
   patterns: {
     password: /password["']?\s*[:=]\s*["']([^"']+)["']/gi,
     token: /token["']?\s*[:=]\s*["']([^"']+)["']/gi,
-    creditCard: /\b(\d{4})[\d\s\-]{5,14}(\d{4})\b/g,
+    creditCard: /\b(\d{4})[\d\s-]{5,14}(\d{4})\b/g,
     email: /([a-zA-Z0-9._%+-]+)@([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g,
     phone: /(\d{3})\d{4}(\d{4})/g,
     idCard: /(\d{6})\d{8}(\d{4})/g,

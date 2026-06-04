@@ -212,9 +212,9 @@ v1.0.0 - 初始版本创建 */
               <label>操作符</label>
               <select v-model="ruleForm.operator" class="form-control">
                 <option value=">">></option>
-                <option value="<"><</option>
+                <option value="<">&lt;</option>
                 <option value=">=">>=</option>
-                <option value="<="><=</option>
+                <option value="<=">&lt;=</option>
                 <option value="==">=</option>
               </select>
             </div>

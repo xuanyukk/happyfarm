@@ -30,7 +30,10 @@ const refreshDailyDiscounts = async function () {
     );
     if (parseInt(existingResult.rows[0].cnt) >= 3) {
       await client.query('ROLLBACK');
-      logger.info('每日折扣已存在，跳过刷新', { today, count: parseInt(existingResult.rows[0].cnt) });
+      logger.info('每日折扣已存在，跳过刷新', {
+        today,
+        count: parseInt(existingResult.rows[0].cnt),
+      });
       const discounts = await getDailyDiscounts();
       return discounts;
     }
@@ -65,7 +68,9 @@ const refreshDailyDiscounts = async function () {
     const discounts = [];
     for (const goods of candidateResult.rows) {
       const discountRate = (Math.floor(Math.random() * 5) * 5 + 70) / 100;
-      const discountPrice = Math.floor(parseInt(goods.price_num) * discountRate);
+      const discountPrice = Math.floor(
+        parseInt(goods.price_num) * discountRate
+      );
 
       const insertResult = await client.query(
         `INSERT INTO daily_discount_goods
@@ -92,7 +97,10 @@ const refreshDailyDiscounts = async function () {
     logger.info('每日折扣刷新成功', {
       today,
       count: discounts.length,
-      discounts: discounts.map(d => ({ name: d.goodsName, rate: d.discountRate })),
+      discounts: discounts.map((d) => ({
+        name: d.goodsName,
+        rate: d.discountRate,
+      })),
     });
 
     return {
@@ -139,7 +147,7 @@ const getDailyDiscounts = async function () {
        ORDER BY dd.discount_rate ASC`
     );
 
-    return result.rows.map(row => ({
+    return result.rows.map((row) => ({
       discountId: row.discount_id,
       goodsId: row.goods_id,
       goodsName: row.goods_name,

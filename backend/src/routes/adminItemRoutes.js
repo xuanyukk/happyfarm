@@ -1,4 +1,3 @@
-
 /**
  * 文件名: adminItemRoutes.js
  * 作者: Trae AI
@@ -18,9 +17,16 @@ router.use(checkAdminPermission);
 
 router.get('/', adminItemController.getItemList);
 router.get('/:itemId', adminItemController.getItemDetail);
-router.post('/', adminItemController.createItemValidation, adminItemController.createItem);
-router.put('/:itemId', adminItemController.updateItemValidation, adminItemController.updateItem);
+router.post(
+  '/',
+  adminItemController.createItemValidation,
+  adminItemController.createItem
+);
+router.put(
+  '/:itemId',
+  adminItemController.updateItemValidation,
+  adminItemController.updateItem
+);
 router.delete('/:itemId', adminItemController.deleteItem);
 
 module.exports = router;
-

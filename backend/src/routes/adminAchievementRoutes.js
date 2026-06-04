@@ -17,9 +17,20 @@ router.use(checkAdminPermission);
 
 router.get('/', adminAchievementController.getAchievementList);
 router.get('/:achievementId', adminAchievementController.getAchievementDetail);
-router.post('/', adminAchievementController.createAchievementValidation, adminAchievementController.createAchievement);
-router.put('/:achievementId', adminAchievementController.updateAchievementValidation, adminAchievementController.updateAchievement);
+router.post(
+  '/',
+  adminAchievementController.createAchievementValidation,
+  adminAchievementController.createAchievement
+);
+router.put(
+  '/:achievementId',
+  adminAchievementController.updateAchievementValidation,
+  adminAchievementController.updateAchievement
+);
 router.delete('/:achievementId', adminAchievementController.deleteAchievement);
-router.get('/:achievementId/statistics', adminAchievementController.getAchievementStatistics);
+router.get(
+  '/:achievementId/statistics',
+  adminAchievementController.getAchievementStatistics
+);
 
 module.exports = router;

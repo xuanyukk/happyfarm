@@ -1,4 +1,3 @@
-
 /**
  * 文件名: gameEventMediumController.js
  * 作者: Trae AI
@@ -16,7 +15,8 @@ const templateController = {
   async getAllTemplates(req, res) {
     try {
       const includeInactive = req.query.include_inactive === 'true';
-      const templates = await gameEventTemplateService.getAllTemplates(includeInactive);
+      const templates =
+        await gameEventTemplateService.getAllTemplates(includeInactive);
       res.json({ success: true, data: templates });
     } catch (error) {
       res.status(500).json({ success: false, error: error.message });
@@ -26,21 +26,27 @@ const templateController = {
   // 获取单个模板
   async getTemplate(req, res) {
     try {
-      const template = await gameEventTemplateService.getTemplateById(req.params.id);
+      const template = await gameEventTemplateService.getTemplateById(
+        req.params.id
+      );
       if (!template) {
         return res.status(404).json({ success: false, error: '模板不存在' });
       }
-      
-      const variables = await gameEventTemplateService.getTemplateVariables(req.params.id);
-      const versions = await gameEventTemplateService.getTemplateVersions(req.params.id);
-      
-      res.json({ 
-        success: true, 
-        data: { 
-          template, 
-          variables, 
-          versions 
-        } 
+
+      const variables = await gameEventTemplateService.getTemplateVariables(
+        req.params.id
+      );
+      const versions = await gameEventTemplateService.getTemplateVersions(
+        req.params.id
+      );
+
+      res.json({
+        success: true,
+        data: {
+          template,
+          variables,
+          versions,
+        },
       });
     } catch (error) {
       res.status(500).json({ success: false, error: error.message });
@@ -51,7 +57,10 @@ const templateController = {
   async createTemplate(req, res) {
     try {
       const userId = req.user?.id;
-      const template = await gameEventTemplateService.createTemplate(req.body, userId);
+      const template = await gameEventTemplateService.createTemplate(
+        req.body,
+        userId
+      );
       res.status(201).json({ success: true, data: template });
     } catch (error) {
       res.status(500).json({ success: false, error: error.message });
@@ -62,7 +71,11 @@ const templateController = {
   async updateTemplate(req, res) {
     try {
       const userId = req.user?.id;
-      const template = await gameEventTemplateService.updateTemplate(req.params.id, req.body, userId);
+      const template = await gameEventTemplateService.updateTemplate(
+        req.params.id,
+        req.body,
+        userId
+      );
       res.json({ success: true, data: template });
     } catch (error) {
       res.status(500).json({ success: false, error: error.message });
@@ -74,8 +87,8 @@ const templateController = {
     try {
       const userId = req.user?.id;
       const event = await gameEventTemplateService.createEventFromTemplate(
-        req.params.id, 
-        req.body.variables, 
+        req.params.id,
+        req.body.variables,
         userId
       );
       res.status(201).json({ success: true, data: event });
@@ -87,7 +100,9 @@ const templateController = {
   // 停用模板
   async deactivateTemplate(req, res) {
     try {
-      const template = await gameEventTemplateService.deactivateTemplate(req.params.id);
+      const template = await gameEventTemplateService.deactivateTemplate(
+        req.params.id
+      );
       res.json({ success: true, data: template });
     } catch (error) {
       res.status(500).json({ success: false, error: error.message });
@@ -102,16 +117,16 @@ const templateController = {
         parseInt(req.query.version1),
         parseInt(req.query.version2)
       );
-      
+
       if (!comparison) {
         return res.status(404).json({ success: false, error: '版本不存在' });
       }
-      
+
       res.json({ success: true, data: comparison });
     } catch (error) {
       res.status(500).json({ success: false, error: error.message });
     }
-  }
+  },
 };
 
 // 定时任务控制器
@@ -142,7 +157,7 @@ const schedulerController = {
       const filters = {
         status: req.query.status,
         task_type: req.query.task_type,
-        event_id: req.query.event_id ? parseInt(req.query.event_id) : null
+        event_id: req.query.event_id ? parseInt(req.query.event_id) : null,
       };
       const tasks = await gameEventSchedulerService.getTasks(filters);
       res.json({ success: true, data: tasks });
@@ -155,12 +170,12 @@ const schedulerController = {
   async getTask(req, res) {
     try {
       const tasks = await gameEventSchedulerService.getTasks({});
-      const task = tasks.find(t => t.id === parseInt(req.params.id));
-      
+      const task = tasks.find((t) => t.id === parseInt(req.params.id));
+
       if (!task) {
         return res.status(404).json({ success: false, error: '任务不存在' });
       }
-      
+
       const logs = await gameEventSchedulerService.getTaskLogs(req.params.id);
       res.json({ success: true, data: { task, logs } });
     } catch (error) {
@@ -176,11 +191,10 @@ const schedulerController = {
     } catch (error) {
       res.status(500).json({ success: false, error: error.message });
     }
-  }
+  },
 };
 
 module.exports = {
   templateController,
-  schedulerController
+  schedulerController,
 };
-

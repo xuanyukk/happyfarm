@@ -1,4 +1,3 @@
-
 /**
  * 文件名: adminItemController.js
  * 作者: Trae AI
@@ -52,7 +51,9 @@ exports.createItem = async function (req, res) {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ success: false, message: errors.array()[0].msg });
+      return res
+        .status(400)
+        .json({ success: false, message: errors.array()[0].msg });
     }
 
     const item = await adminItemService.createItem(req.body);
@@ -70,7 +71,9 @@ exports.updateItem = async function (req, res) {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ success: false, message: errors.array()[0].msg });
+      return res
+        .status(400)
+        .json({ success: false, message: errors.array()[0].msg });
     }
 
     const { itemId } = req.params;
@@ -112,14 +115,20 @@ exports.createItemValidation = [
   body('itemName').isString().notEmpty().withMessage('道具名称必填'),
   body('itemDesc').isString().notEmpty().withMessage('道具描述必填'),
   body('effectValue').isFloat().withMessage('效果值格式无效'),
-  body('effectDuration').optional().isInt({ min: 0 }).withMessage('持续时间格式无效'),
+  body('effectDuration')
+    .optional()
+    .isInt({ min: 0 })
+    .withMessage('持续时间格式无效'),
   body('unlockWorldLevel').isInt({ min: 1 }).withMessage('解锁世界等级无效'),
   body('unlockPlayerLevel').isInt({ min: 1 }).withMessage('解锁玩家等级无效'),
   body('maxStack').isInt({ min: 1 }).withMessage('最大堆叠至少为1'),
 ];
 
 exports.updateItemValidation = [
-  body('itemName').optional().isString().notEmpty().withMessage('道具名称不能为空'),
+  body('itemName')
+    .optional()
+    .isString()
+    .notEmpty()
+    .withMessage('道具名称不能为空'),
   body('effectValue').optional().isFloat().withMessage('效果值格式无效'),
 ];
-

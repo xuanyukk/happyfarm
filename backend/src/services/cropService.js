@@ -43,26 +43,46 @@ const getItemDropConfigs = async function (sourceType, sourceId) {
     const result = await pool.query(query, [sourceType, sourceId]);
     return result.rows;
   } catch (error) {
-    logger.warn('查询道具掉落配置失败', { sourceType, sourceId, error: error.message });
+    logger.warn('查询道具掉落配置失败', {
+      sourceType,
+      sourceId,
+      error: error.message,
+    });
     return [];
   }
 };
 
-const processItemDrops = async function (client, playerId, cropId, land, playerData) {
+const processItemDrops = async function (
+  client,
+  playerId,
+  cropId,
+  land,
+  playerData
+) {
   const drops = [];
   try {
     const dropConfigs = await getItemDropConfigs('harvest', cropId);
 
     for (const config of dropConfigs) {
-      if (config.quality_min && land.current_quality < config.quality_min) continue;
-      if (config.world_level_min && playerData.world_level < config.world_level_min) continue;
-      if (config.player_level_min && playerData.player_level < config.player_level_min) continue;
+      if (config.quality_min && land.current_quality < config.quality_min)
+        continue;
+      if (
+        config.world_level_min &&
+        playerData.world_level < config.world_level_min
+      )
+        continue;
+      if (
+        config.player_level_min &&
+        playerData.player_level < config.player_level_min
+      )
+        continue;
 
       const roll = Math.random();
       if (roll <= parseFloat(config.drop_rate)) {
-        const count = Math.floor(
-          Math.random() * (config.max_count - config.min_count + 1)
-        ) + config.min_count;
+        const count =
+          Math.floor(
+            Math.random() * (config.max_count - config.min_count + 1)
+          ) + config.min_count;
 
         const existingItem = await client.query(
           'SELECT id, item_num FROM player_inventory WHERE player_id = $1 AND item_type = 2 AND item_obj_id = $2 FOR UPDATE',
@@ -234,15 +254,18 @@ const plantCrop = async function (playerId, landNum, cropId) {
     );
 
     let actualGrowthSpeed = parseFloat(land.grow_speed);
-    
+
     // speed_boost: 1.0=正常速度, >1.0=加速倍率, 值越大越快
     // IS-02修复：检查speed_boost_end_time过期，过期不应用加速效果
     if (land.speed_boost && land.speed_boost > 1.0) {
-      if (!land.speed_boost_end_time || new Date(land.speed_boost_end_time) > new Date()) {
+      if (
+        !land.speed_boost_end_time ||
+        new Date(land.speed_boost_end_time) > new Date()
+      ) {
         actualGrowthSpeed = actualGrowthSpeed * parseFloat(land.speed_boost);
       }
     }
-    
+
     const actualGrowthCycle = Math.floor(
       parseInt(crop.growth_cycle) / actualGrowthSpeed
     );
@@ -342,7 +365,7 @@ const harvestCrop = async function (playerId, landNum) {
 
     let randomYield = calculateRandomYield(crop.min_yield, crop.max_yield);
     let actualYield = Math.floor(randomYield * parseFloat(land.yield_rate));
-    
+
     /*
      * IS-01 修复说明：增产效果过期检查
      * - 问题：增产剂(道具ID:1-3,7)和丰收之神(道具ID:11)设置yield_boost后无过期检查
@@ -353,11 +376,14 @@ const harvestCrop = async function (playerId, landNum) {
      *   - 过期效果被静默跳过，不阻断收获流程
      */
     if (land.yield_boost && land.yield_boost !== 1.0) {
-      if (!land.yield_boost_end_time || new Date(land.yield_boost_end_time) > new Date()) {
+      if (
+        !land.yield_boost_end_time ||
+        new Date(land.yield_boost_end_time) > new Date()
+      ) {
         actualYield = Math.floor(actualYield * parseFloat(land.yield_boost));
       }
     }
-    
+
     // 应用幸运种子效果（50%概率双倍收益）
     let luckyApplied = false;
     if (land.lucky_seed_active) {
@@ -366,7 +392,7 @@ const harvestCrop = async function (playerId, landNum) {
         luckyApplied = true;
       }
     }
-    
+
     // 保存经验药水状态（事务外使用）
     const expPotionActive = land.exp_potion_active;
 
@@ -413,11 +439,15 @@ const harvestCrop = async function (playerId, landNum) {
 
     const playerData = await playerService.getPlayerData(playerId);
     const droppedItems = await processItemDrops(
-      client, playerId, land.crop_id, land, playerData
+      client,
+      playerId,
+      land.crop_id,
+      land,
+      playerData
     );
 
     await client.query('COMMIT');
-    
+
     let playerExp = playerService.calculatePlayerExpByCrop(
       crop.player_exp_base,
       actualYield,
@@ -432,7 +462,7 @@ const harvestCrop = async function (playerId, landNum) {
       actualYield,
       playerData.world_level
     );
-    
+
     if (expPotionActive) {
       playerExp = playerExp * 2;
       farmExp = farmExp * 2;
@@ -531,7 +561,9 @@ const sellCrop = async function (playerId, cropId, quantity) {
 
     // 校验货币上限
     const holdCheck = await currencyConfigService.validateCurrencyAdd(
-      playerId, totalIncome, 1
+      playerId,
+      totalIncome,
+      1
     );
     const actualIncome = holdCheck.actualAdd;
     if (holdCheck.isExceeded) {
@@ -704,7 +736,9 @@ const sellBatchCrops = async function (playerId, items) {
     const currencyBefore = parseInt(currencyResult.rows[0].currency_num);
 
     const holdCheck = await currencyConfigService.validateCurrencyAdd(
-      playerId, totalIncome, 1
+      playerId,
+      totalIncome,
+      1
     );
     const actualIncome = holdCheck.actualAdd;
     const currencyAfter = currencyBefore + actualIncome;
@@ -734,14 +768,7 @@ const sellBatchCrops = async function (playerId, items) {
       `INSERT INTO player_currency_log 
        (player_id, type, amount, source, related_id, balance_before, balance_after)
        VALUES ($1, 1, $2, $3, $4, $5, $6)`,
-      [
-        playerId,
-        actualIncome,
-        'batch_sell',
-        0,
-        currencyBefore,
-        currencyAfter,
-      ]
+      [playerId, actualIncome, 'batch_sell', 0, currencyBefore, currencyAfter]
     );
 
     await client.query('COMMIT');
@@ -749,7 +776,10 @@ const sellBatchCrops = async function (playerId, items) {
     for (const detail of soldDetails) {
       try {
         await gameActivityService.logSell(
-          playerId, detail.cropName, detail.quantity, detail.income
+          playerId,
+          detail.cropName,
+          detail.quantity,
+          detail.income
         );
       } catch (logError) {
         logger.warn('记录出售活动日志失败', { error: logError.message });
@@ -802,16 +832,12 @@ const harvestAllMatured = async function (playerId) {
     }
 
     // 批量预加载作物信息
-    const cropIds = [...new Set(
-      landsResult.rows.map(l => l.crop_id)
-    )];
+    const cropIds = [...new Set(landsResult.rows.map((l) => l.crop_id))];
     const cropsResult = await client.query(
       'SELECT * FROM crop WHERE crop_id = ANY($1::int[])',
       [cropIds]
     );
-    const cropMap = new Map(
-      cropsResult.rows.map(c => [c.crop_id, c])
-    );
+    const cropMap = new Map(cropsResult.rows.map((c) => [c.crop_id, c]));
 
     const harvested = [];
     const failed = [];
@@ -827,8 +853,7 @@ const harvestAllMatured = async function (playerId) {
       try {
         const crop = cropMap.get(land.crop_id);
         if (!crop) {
-          failed.push({ landNum: land.land_num,
-                        error: '作物数据不存在' });
+          failed.push({ landNum: land.land_num, error: '作物数据不存在' });
           continue;
         }
 
@@ -841,30 +866,32 @@ const harvestAllMatured = async function (playerId) {
              WHERE player_id = $1 AND land_num = $2`,
             [playerId, land.land_num]
           );
-          failed.push({ landNum: land.land_num,
-                        error: '作物已枯萎超过48小时' });
+          failed.push({
+            landNum: land.land_num,
+            error: '作物已枯萎超过48小时',
+          });
           continue;
         }
 
-        let randomYield = calculateRandomYield(
-          crop.min_yield,
-          crop.max_yield
-        );
-        let actualYield = Math.floor(
-          randomYield * parseFloat(land.yield_rate)
-        );
-        
+        let randomYield = calculateRandomYield(crop.min_yield, crop.max_yield);
+        let actualYield = Math.floor(randomYield * parseFloat(land.yield_rate));
+
         /*
          * IS-01 修复说明：增产效果过期检查（同一键收获）
          * - 与 harvestCrop 中相同的过期检查逻辑
          * - 确保一键收获时也不会应用已过期的增产效果
          */
         if (land.yield_boost && land.yield_boost !== 1.0) {
-          if (!land.yield_boost_end_time || new Date(land.yield_boost_end_time) > new Date()) {
-            actualYield = Math.floor(actualYield * parseFloat(land.yield_boost));
+          if (
+            !land.yield_boost_end_time ||
+            new Date(land.yield_boost_end_time) > new Date()
+          ) {
+            actualYield = Math.floor(
+              actualYield * parseFloat(land.yield_boost)
+            );
           }
         }
-        
+
         // 应用幸运种子效果（50%概率双倍收益）
         let luckyApplied = false;
         if (land.lucky_seed_active) {
@@ -873,7 +900,7 @@ const harvestAllMatured = async function (playerId) {
             luckyApplied = true;
           }
         }
-        
+
         // 计算经验
         const expPotionActive = land.exp_potion_active;
         let playerExp = playerService.calculatePlayerExpByCrop(
@@ -890,7 +917,7 @@ const harvestAllMatured = async function (playerId) {
           actualYield,
           playerData.world_level
         );
-        
+
         // 应用经验药水效果
         if (expPotionActive) {
           playerExp = playerExp * 2;
@@ -940,7 +967,11 @@ const harvestAllMatured = async function (playerId) {
         );
 
         const droppedItems = await processItemDrops(
-          client, playerId, land.crop_id, land, playerData
+          client,
+          playerId,
+          land.crop_id,
+          land,
+          playerData
         );
         if (droppedItems.length > 0) {
           allItemDrops.push({
@@ -964,17 +995,15 @@ const harvestAllMatured = async function (playerId) {
         });
 
         // 异步日志（非阻塞）
-        gameActivityService.logHarvest(
-          playerId,
-          crop.crop_name,
-          land.land_num,
-          actualYield,
-          {
+        gameActivityService
+          .logHarvest(playerId, crop.crop_name, land.land_num, actualYield, {
             playerExp,
             farmExp,
             worldExp,
-          }
-        ).catch(err => logger.warn('记录收获活动日志失败', { error: err.message }));
+          })
+          .catch((err) =>
+            logger.warn('记录收获活动日志失败', { error: err.message })
+          );
       } catch (error) {
         failed.push({
           landNum: land.land_num,

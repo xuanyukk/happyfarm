@@ -37,7 +37,11 @@ async function getAchievementList(params = {}) {
       queryParams.push(`%${params.search}%`);
     }
 
-    if (params.isActive !== undefined && params.isActive !== null && params.isActive !== '') {
+    if (
+      params.isActive !== undefined &&
+      params.isActive !== null &&
+      params.isActive !== ''
+    ) {
       query += ` AND is_active = $${paramIndex++}`;
       queryParams.push(params.isActive === 'true' || params.isActive === true);
     }
@@ -59,7 +63,8 @@ async function getAchievementList(params = {}) {
  */
 async function getAchievementDetail(achievementId) {
   try {
-    const query = 'SELECT * FROM achievement_definition WHERE achievement_id = $1';
+    const query =
+      'SELECT * FROM achievement_definition WHERE achievement_id = $1';
     const result = await pool.query(query, [achievementId]);
     if (result.rows.length === 0) {
       throw new Error('成就不存在');
@@ -97,7 +102,7 @@ async function createAchievement(data) {
       data.rewardAmount || data.reward_amount || 0,
       data.rewardItemId || data.reward_item_id || null,
       data.rewardTitle || data.reward_title || null,
-      data.isActive !== undefined ? data.isActive : true
+      data.isActive !== undefined ? data.isActive : true,
     ];
     const result = await pool.query(query, values);
     return result.rows[0];
@@ -115,7 +120,8 @@ async function createAchievement(data) {
  */
 async function updateAchievement(achievementId, data) {
   try {
-    const checkQuery = 'SELECT * FROM achievement_definition WHERE achievement_id = $1';
+    const checkQuery =
+      'SELECT * FROM achievement_definition WHERE achievement_id = $1';
     const checkResult = await pool.query(checkQuery, [achievementId]);
     if (checkResult.rows.length === 0) {
       throw new Error('成就不存在');
@@ -136,7 +142,7 @@ async function updateAchievement(achievementId, data) {
       rewardAmount: 'reward_amount',
       rewardItemId: 'reward_item_id',
       rewardTitle: 'reward_title',
-      isActive: 'is_active'
+      isActive: 'is_active',
     };
 
     Object.entries(fieldMap).forEach(([key, column]) => {
@@ -171,13 +177,15 @@ async function updateAchievement(achievementId, data) {
  */
 async function deleteAchievement(achievementId) {
   try {
-    const checkQuery = 'SELECT * FROM achievement_definition WHERE achievement_id = $1';
+    const checkQuery =
+      'SELECT * FROM achievement_definition WHERE achievement_id = $1';
     const checkResult = await pool.query(checkQuery, [achievementId]);
     if (checkResult.rows.length === 0) {
       throw new Error('成就不存在');
     }
 
-    const query = 'DELETE FROM achievement_definition WHERE achievement_id = $1';
+    const query =
+      'DELETE FROM achievement_definition WHERE achievement_id = $1';
     await pool.query(query, [achievementId]);
     return { message: '成就已删除' };
   } catch (error) {
@@ -193,7 +201,8 @@ async function deleteAchievement(achievementId) {
  */
 async function getAchievementStatistics(achievementId) {
   try {
-    const checkQuery = 'SELECT * FROM achievement_definition WHERE achievement_id = $1';
+    const checkQuery =
+      'SELECT * FROM achievement_definition WHERE achievement_id = $1';
     const checkResult = await pool.query(checkQuery, [achievementId]);
     if (checkResult.rows.length === 0) {
       throw new Error('成就不存在');
@@ -210,7 +219,7 @@ async function getAchievementStatistics(achievementId) {
     const statsResult = await pool.query(statsQuery, [achievementId]);
     return {
       achievement: checkResult.rows[0],
-      statistics: statsResult.rows[0]
+      statistics: statsResult.rows[0],
     };
   } catch (error) {
     logger.error('获取成就统计失败', { achievementId, error: error.message });
@@ -224,5 +233,5 @@ module.exports = {
   createAchievement,
   updateAchievement,
   deleteAchievement,
-  getAchievementStatistics
+  getAchievementStatistics,
 };

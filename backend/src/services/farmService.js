@@ -366,9 +366,7 @@ const upgradeLandStar = async (playerId, landNum) => {
     const starConfig = starConfigResult.rows[0];
 
     if (land.player_level < starConfig.unlock_player_level) {
-      throw new Error(
-        `玩家等级不足，需要${starConfig.unlock_player_level}级`
-      );
+      throw new Error(`玩家等级不足，需要${starConfig.unlock_player_level}级`);
     }
 
     const cost = parseInt(starConfig.upgrade_cost);

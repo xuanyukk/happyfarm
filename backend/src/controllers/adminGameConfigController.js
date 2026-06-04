@@ -18,7 +18,10 @@ exports.getList = async function (req, res) {
   try {
     const { type } = req.params;
     if (!VALID_TYPES.includes(type)) {
-      return res.status(400).json({ success: false, message: '无效的配置类型，可选：player_level/daily_task/item_drop' });
+      return res.status(400).json({
+        success: false,
+        message: '无效的配置类型，可选：player_level/daily_task/item_drop',
+      });
     }
     const result = await adminGameConfigService.getList(type, req.query);
     res.status(200).json({ success: true, data: result });
@@ -32,7 +35,9 @@ exports.getDetail = async function (req, res) {
   try {
     const { type, id } = req.params;
     if (!VALID_TYPES.includes(type)) {
-      return res.status(400).json({ success: false, message: '无效的配置类型' });
+      return res
+        .status(400)
+        .json({ success: false, message: '无效的配置类型' });
     }
     const result = await adminGameConfigService.getDetail(type, parseInt(id));
     res.status(200).json({ success: true, data: result });
@@ -50,11 +55,15 @@ exports.create = async function (req, res) {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ success: false, message: errors.array()[0].msg });
+      return res
+        .status(400)
+        .json({ success: false, message: errors.array()[0].msg });
     }
     const { type } = req.params;
     if (!VALID_TYPES.includes(type)) {
-      return res.status(400).json({ success: false, message: '无效的配置类型' });
+      return res
+        .status(400)
+        .json({ success: false, message: '无效的配置类型' });
     }
     const result = await adminGameConfigService.create(type, req.body);
     res.status(201).json({ success: true, data: result, message: '创建成功' });
@@ -68,13 +77,21 @@ exports.update = async function (req, res) {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ success: false, message: errors.array()[0].msg });
+      return res
+        .status(400)
+        .json({ success: false, message: errors.array()[0].msg });
     }
     const { type, id } = req.params;
     if (!VALID_TYPES.includes(type)) {
-      return res.status(400).json({ success: false, message: '无效的配置类型' });
+      return res
+        .status(400)
+        .json({ success: false, message: '无效的配置类型' });
     }
-    const result = await adminGameConfigService.update(type, parseInt(id), req.body);
+    const result = await adminGameConfigService.update(
+      type,
+      parseInt(id),
+      req.body
+    );
     res.status(200).json({ success: true, data: result, message: '更新成功' });
   } catch (error) {
     logger.error('更新配置失败', { error: error.message });
@@ -90,7 +107,9 @@ exports.remove = async function (req, res) {
   try {
     const { type, id } = req.params;
     if (!VALID_TYPES.includes(type)) {
-      return res.status(400).json({ success: false, message: '无效的配置类型' });
+      return res
+        .status(400)
+        .json({ success: false, message: '无效的配置类型' });
     }
     const result = await adminGameConfigService.remove(type, parseInt(id));
     res.status(200).json({ success: true, message: result.message });
@@ -104,10 +123,6 @@ exports.remove = async function (req, res) {
   }
 };
 
-exports.createValidation = [
-  body().isObject().withMessage('请求体必须是对象'),
-];
+exports.createValidation = [body().isObject().withMessage('请求体必须是对象')];
 
-exports.updateValidation = [
-  body().isObject().withMessage('请求体必须是对象'),
-];
+exports.updateValidation = [body().isObject().withMessage('请求体必须是对象')];

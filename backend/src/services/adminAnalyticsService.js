@@ -62,7 +62,9 @@ async function getEconomyStats() {
       FROM shop_transaction_log
       WHERE created_at >= CURRENT_DATE
     `;
-    let shopResult = { rows: [{ total_transactions: '0', total_turnover: '0' }] };
+    let shopResult = {
+      rows: [{ total_transactions: '0', total_turnover: '0' }],
+    };
     try {
       shopResult = await pool.query(shopQuery);
     } catch (e) {
@@ -84,15 +86,29 @@ async function getEconomyStats() {
     return {
       totalCurrency: parseInt(currencyResult.rows[0]?.total_currency || 0),
       totalHarvests: parseInt(harvestResult.rows[0]?.total_harvests || 0),
-      dailyTransactions: parseInt(dailyTransResult.rows[0]?.daily_transactions || 0),
+      dailyTransactions: parseInt(
+        dailyTransResult.rows[0]?.daily_transactions || 0
+      ),
       shopTurnover: parseInt(shopResult.rows[0]?.total_turnover || 0),
       playerCount: parseInt(currencyResult.rows[0]?.player_count || 0),
       trends: {
-        totalCurrency: calculateTrend(parseInt(currencyResult.rows[0]?.total_currency || 0), 0),
-        totalHarvests: calculateTrend(parseInt(harvestResult.rows[0]?.total_harvests || 0), 0),
-        dailyTransactions: calculateTrend(parseInt(dailyTransResult.rows[0]?.daily_transactions || 0), 0),
-        shopTurnover: calculateTrend(parseInt(shopResult.rows[0]?.total_turnover || 0), 0)
-      }
+        totalCurrency: calculateTrend(
+          parseInt(currencyResult.rows[0]?.total_currency || 0),
+          0
+        ),
+        totalHarvests: calculateTrend(
+          parseInt(harvestResult.rows[0]?.total_harvests || 0),
+          0
+        ),
+        dailyTransactions: calculateTrend(
+          parseInt(dailyTransResult.rows[0]?.daily_transactions || 0),
+          0
+        ),
+        shopTurnover: calculateTrend(
+          parseInt(shopResult.rows[0]?.total_turnover || 0),
+          0
+        ),
+      },
     };
   } catch (error) {
     logger.error('获取经济分析数据失败', { error: error.message });
@@ -133,7 +149,9 @@ async function getPlayerAnalytics() {
         (SELECT COUNT(*) FROM week_players) AS week_ago_players,
         (SELECT COUNT(*) FROM returning_players) AS returning_count
     `;
-    let retentionResult = { rows: [{ week_ago_players: '0', returning_count: '0' }] };
+    let retentionResult = {
+      rows: [{ week_ago_players: '0', returning_count: '0' }],
+    };
     try {
       retentionResult = await pool.query(weekAgoQuery);
     } catch (e) {
@@ -142,7 +160,8 @@ async function getPlayerAnalytics() {
 
     const weekAgo = parseInt(retentionResult.rows[0]?.week_ago_players || 1);
     const returning = parseInt(retentionResult.rows[0]?.returning_count || 0);
-    const retentionRate = weekAgo > 0 ? Math.round((returning / weekAgo) * 100 * 10) / 10 : 0;
+    const retentionRate =
+      weekAgo > 0 ? Math.round((returning / weekAgo) * 100 * 10) / 10 : 0;
 
     const revenueQuery = `
       SELECT
@@ -150,7 +169,9 @@ async function getPlayerAnalytics() {
         COALESCE(SUM(price_num * quantity), 0) AS total_revenue
       FROM shop_transaction_log
     `;
-    let revenueResult = { rows: [{ total_transactions: '0', total_revenue: '0' }] };
+    let revenueResult = {
+      rows: [{ total_transactions: '0', total_revenue: '0' }],
+    };
     try {
       revenueResult = await pool.query(revenueQuery);
     } catch (e) {
@@ -163,11 +184,20 @@ async function getPlayerAnalytics() {
       retentionRate: retentionRate,
       totalRevenue: parseInt(revenueResult.rows[0]?.total_revenue || 0),
       trends: {
-        totalPlayers: calculateTrend(parseInt(totalResult.rows[0]?.total_players || 0), 0),
-        dailyActive: calculateTrend(parseInt(activeResult.rows[0]?.daily_active || 0), 0),
+        totalPlayers: calculateTrend(
+          parseInt(totalResult.rows[0]?.total_players || 0),
+          0
+        ),
+        dailyActive: calculateTrend(
+          parseInt(activeResult.rows[0]?.daily_active || 0),
+          0
+        ),
         retentionRate: calculateTrend(retentionRate, 0),
-        totalRevenue: calculateTrend(parseInt(revenueResult.rows[0]?.total_revenue || 0), 0)
-      }
+        totalRevenue: calculateTrend(
+          parseInt(revenueResult.rows[0]?.total_revenue || 0),
+          0
+        ),
+      },
     };
   } catch (error) {
     logger.error('获取玩家分析数据失败', { error: error.message });
@@ -197,11 +227,12 @@ async function getPlayerProfile() {
     let levelDistribution = [];
     try {
       const result = await pool.query(levelQuery);
-      const total = result.rows.reduce((sum, r) => sum + parseInt(r.count), 0) || 1;
+      const total =
+        result.rows.reduce((sum, r) => sum + parseInt(r.count), 0) || 1;
       levelDistribution = result.rows.map((row) => ({
         range: row.level_range,
         count: parseInt(row.count),
-        percentage: Math.round((parseInt(row.count) / total) * 100)
+        percentage: Math.round((parseInt(row.count) / total) * 100),
       }));
     } catch (e) {
       logger.warn('等级分布查询失败', { error: e.message });
@@ -213,15 +244,21 @@ async function getPlayerProfile() {
         COALESCE(MAX(current_stamina), 0) AS max_stamina
       FROM player_base
     `;
-    let gameTime = { avgDailyOnline: '45分钟', maxSingleSession: '3.2小时', peakHours: '19:00-22:00' };
+    let gameTime = {
+      avgDailyOnline: '45分钟',
+      maxSingleSession: '3.2小时',
+      peakHours: '19:00-22:00',
+    };
     try {
       const result = await pool.query(timeQuery);
       const avgStamina = parseInt(result.rows[0]?.avg_stamina || 0);
       const maxStamina = parseInt(result.rows[0]?.max_stamina || 0);
       gameTime = {
-        avgDailyOnline: avgStamina > 0 ? `${Math.round(avgStamina / 2)}分钟` : '45分钟',
-        maxSingleSession: maxStamina > 0 ? `${(maxStamina / 60).toFixed(1)}小时` : '3.2小时',
-        peakHours: '19:00-22:00'
+        avgDailyOnline:
+          avgStamina > 0 ? `${Math.round(avgStamina / 2)}分钟` : '45分钟',
+        maxSingleSession:
+          maxStamina > 0 ? `${(maxStamina / 60).toFixed(1)}小时` : '3.2小时',
+        peakHours: '19:00-22:00',
       };
     } catch (e) {
       logger.warn('游戏时长查询失败', { error: e.message });
@@ -247,12 +284,13 @@ async function getPlayerProfile() {
 
       const payRate = Math.round((payingUsers / totalPlayers) * 1000) / 10;
       const arpu = Math.round(totalRevenue / totalPlayers);
-      const arppu = payingUsers > 0 ? Math.round(totalRevenue / payingUsers) : 0;
+      const arppu =
+        payingUsers > 0 ? Math.round(totalRevenue / payingUsers) : 0;
 
       payPrefs = {
         payRate: `${payRate}%`,
         arpu: `¥${arpu}`,
-        arppu: `¥${arppu}`
+        arppu: `¥${arppu}`,
       };
     } catch (e) {
       logger.warn('付费偏好查询失败', { error: e.message });
@@ -261,7 +299,7 @@ async function getPlayerProfile() {
     return {
       levelDistribution,
       gameTime,
-      payPrefs
+      payPrefs,
     };
   } catch (error) {
     logger.error('获取玩家画像失败', { error: error.message });
@@ -277,7 +315,7 @@ module.exports = {
   getShopStats,
   getEconomyAlerts,
   getTopPlayers,
-  getPlayerAlerts
+  getPlayerAlerts,
 };
 
 /**
@@ -312,15 +350,23 @@ async function getTransactionList(params = {}) {
       for (const row of result.rows) {
         let amount = 0;
         try {
-          const detailObj = typeof row.details === 'string'
-            ? JSON.parse(row.details) : row.details;
-          amount = parseInt(detailObj?.amount || detailObj?.value || detailObj?.currency_num || 0);
+          const detailObj =
+            typeof row.details === 'string'
+              ? JSON.parse(row.details)
+              : row.details;
+          amount = parseInt(
+            detailObj?.amount ||
+              detailObj?.value ||
+              detailObj?.currency_num ||
+              0
+          );
         } catch (e) {
           amount = 0;
         }
 
         if (amount === 0) {
-          amount = row.type === 'expense' ? -500 : row.type === 'income' ? 2000 : 0;
+          amount =
+            row.type === 'expense' ? -500 : row.type === 'income' ? 2000 : 0;
         }
 
         runningBalance += amount;
@@ -329,10 +375,10 @@ async function getTransactionList(params = {}) {
           id: row.id,
           time: row.time,
           type: row.type,
-          playerName: row.player_name || ('玩家' + (row.player_id || '000')),
+          playerName: row.player_name || '玩家' + (row.player_id || '000'),
           amount: amount,
           balance: Math.max(0, runningBalance),
-          detail: row.details || '交易记录'
+          detail: row.details || '交易记录',
         });
       }
     } catch (e) {
@@ -395,9 +441,13 @@ async function getShopStats() {
       `;
       const repurchaseResult = await pool.query(repurchaseQuery);
       const totalBuyers = parseInt(repurchaseResult.rows[0]?.total_buyers || 0);
-      const repeatBuyers = parseInt(repurchaseResult.rows[0]?.repeat_buyers || 0);
-      repurchaseRate = totalBuyers > 0
-        ? Math.round((repeatBuyers / totalBuyers) * 1000) / 10 : 0;
+      const repeatBuyers = parseInt(
+        repurchaseResult.rows[0]?.repeat_buyers || 0
+      );
+      repurchaseRate =
+        totalBuyers > 0
+          ? Math.round((repeatBuyers / totalBuyers) * 1000) / 10
+          : 0;
     } catch (e) {
       logger.warn('复购率查询失败', { error: e.message });
     }
@@ -412,7 +462,9 @@ async function getShopStats() {
           AND stl.created_at >= CURRENT_DATE
       `;
       const newUserResult = await pool.query(newUserQuery);
-      newUserPurchases = parseInt(newUserResult.rows[0]?.new_user_purchases || 0);
+      newUserPurchases = parseInt(
+        newUserResult.rows[0]?.new_user_purchases || 0
+      );
     } catch (e) {
       logger.warn('新用户购买查询失败', { error: e.message });
     }
@@ -421,7 +473,7 @@ async function getShopStats() {
       topProduct,
       avgOrderValue,
       repurchaseRate,
-      newUserPurchases
+      newUserPurchases,
     };
   } catch (error) {
     logger.error('获取商店统计失败', { error: error.message });
@@ -449,7 +501,7 @@ async function getEconomyAlerts() {
         alerts.push({
           level: 'critical',
           title: '货币超发预警',
-          message: `当前货币总量 ${(total / 1000000).toFixed(1)}M 超出阈值`
+          message: `当前货币总量 ${(total / 1000000).toFixed(1)}M 超出阈值`,
         });
       }
     } catch (e) {
@@ -487,7 +539,7 @@ async function getTopPlayers(params = {}) {
       players = result.rows.map((row) => ({
         id: row.id,
         name: row.name || '未知玩家',
-        score: parseInt(row.score || 0)
+        score: parseInt(row.score || 0),
       }));
     } catch (e) {
       logger.warn('玩家排行查询失败', { error: e.message });
@@ -523,7 +575,7 @@ async function getPlayerAlerts() {
         alerts.push({
           level: 'critical',
           title: '疑似作弊账号',
-          message: `玩家${row.player_id}一小时内收获${row.cnt}次，超出正常范围`
+          message: `玩家${row.player_id}一小时内收获${row.cnt}次，超出正常范围`,
         });
       }
     } catch (e) {

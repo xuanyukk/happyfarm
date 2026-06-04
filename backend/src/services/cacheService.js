@@ -32,7 +32,7 @@ let isConnected = false;
 // 初始化Redis连接
 function initRedis() {
   if (redisClient) return redisClient;
-  
+
   try {
     redisClient = new Redis({
       host: process.env.REDIS_HOST || 'localhost',
@@ -42,21 +42,21 @@ function initRedis() {
       maxRetriesPerRequest: 3,
       retryStrategy: (times) => Math.min(times * 50, 2000),
     });
-    
+
     redisClient.on('error', (err) => {
       isConnected = false;
       logger.warn('Redis缓存服务连接失败', { error: err.message });
     });
-    
+
     redisClient.on('ready', () => {
       isConnected = true;
       logger.info('Redis缓存服务初始化成功');
     });
-    
+
     redisClient.on('end', () => {
       isConnected = false;
     });
-    
+
     return redisClient;
   } catch (err) {
     logger.warn('Redis缓存客户端初始化失败', { error: err.message });
@@ -85,10 +85,10 @@ async function get(namespace, key) {
       logger.debug('Redis不可用，跳过缓存获取');
       return null;
     }
-    
+
     const cacheKey = generateKey(namespace, key);
     const value = await redis.get(cacheKey);
-    
+
     if (value !== null) {
       logger.debug('缓存命中', { namespace, key });
       try {
@@ -97,7 +97,7 @@ async function get(namespace, key) {
         return value;
       }
     }
-    
+
     logger.debug('缓存未命中', { namespace, key });
     return null;
   } catch (err) {
@@ -114,10 +114,11 @@ async function set(namespace, key, value, ttl = CACHE_CONFIG.TTL.MEDIUM) {
       logger.debug('Redis不可用，跳过缓存设置');
       return false;
     }
-    
+
     const cacheKey = generateKey(namespace, key);
-    const serialized = typeof value === 'string' ? value : JSON.stringify(value);
-    
+    const serialized =
+      typeof value === 'string' ? value : JSON.stringify(value);
+
     await redis.setex(cacheKey, ttl, serialized);
     logger.debug('缓存设置成功', { namespace, key, ttl });
     return true;
@@ -134,10 +135,10 @@ async function del(namespace, key) {
     if (!redis || !isConnected) {
       return false;
     }
-    
+
     const cacheKey = generateKey(namespace, key);
     const deleted = await redis.del(cacheKey);
-    
+
     logger.debug('缓存删除成功', { namespace, key, deleted });
     return deleted > 0;
   } catch (err) {
@@ -153,16 +154,16 @@ async function delNamespace(namespace) {
     if (!redis || !isConnected) {
       return 0;
     }
-    
+
     const pattern = generateKey(namespace, '*');
     const keys = await redis.keys(pattern);
-    
+
     if (keys.length > 0) {
       const deleted = await redis.del(...keys);
       logger.debug('命名空间缓存批量删除成功', { namespace, count: deleted });
       return deleted;
     }
-    
+
     return 0;
   } catch (err) {
     logger.warn('批量删除缓存失败', { error: err.message, namespace });
@@ -174,27 +175,28 @@ async function delNamespace(namespace) {
 function cacheable(namespace, keyGenerator, ttl = CACHE_CONFIG.TTL.MEDIUM) {
   return function (target, propertyKey, descriptor) {
     const originalMethod = descriptor.value;
-    
+
     descriptor.value = async function (...args) {
-      const cacheKey = typeof keyGenerator === 'function' 
-        ? keyGenerator(...args) 
-        : JSON.stringify(args);
-      
+      const cacheKey =
+        typeof keyGenerator === 'function'
+          ? keyGenerator(...args)
+          : JSON.stringify(args);
+
       // 尝试从缓存获取
       const cached = await get(namespace, cacheKey);
       if (cached !== null) {
         return cached;
       }
-      
+
       // 执行原方法
       const result = await originalMethod.apply(this, args);
-      
+
       // 缓存结果
       await set(namespace, cacheKey, result, ttl);
-      
+
       return result;
     };
-    
+
     return descriptor;
   };
 }
@@ -203,15 +205,17 @@ function cacheable(namespace, keyGenerator, ttl = CACHE_CONFIG.TTL.MEDIUM) {
 async function preloadHotData() {
   try {
     logger.info('开始预热热点数据...');
-    
+
     // 预热作物数据
     const db = require('../config/db');
-    const result = await db.query('SELECT id, crop_name, world_id, unlock_player_level FROM crop ORDER BY id');
-    
+    const result = await db.query(
+      'SELECT id, crop_name, world_id, unlock_player_level FROM crop ORDER BY id'
+    );
+
     for (const crop of result.rows) {
       await set('crop', `id:${crop.id}`, crop, CACHE_CONFIG.TTL.CONFIG);
     }
-    
+
     logger.info('热点数据预热完成', { cropsCount: result.rows.length });
     return true;
   } catch (err) {
@@ -227,15 +231,15 @@ async function clearAll() {
     if (!redis || !isConnected) {
       return false;
     }
-    
+
     const pattern = `${CACHE_CONFIG.PREFIX}:*`;
     const keys = await redis.keys(pattern);
-    
+
     if (keys.length > 0) {
       await redis.del(...keys);
       logger.info('清空所有缓存成功', { count: keys.length });
     }
-    
+
     return true;
   } catch (err) {
     logger.warn('清空缓存失败', { error: err.message });
@@ -250,10 +254,10 @@ async function getStats() {
     if (!redis || !isConnected) {
       return { connected: false };
     }
-    
+
     const info = await redis.info('stats');
     const keys = await redis.keys(`${CACHE_CONFIG.PREFIX}:*`);
-    
+
     return {
       connected: true,
       keyCount: keys.length,

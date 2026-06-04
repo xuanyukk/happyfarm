@@ -61,11 +61,11 @@ const configBodyRules = [
     .isLength({ min: 1, max: 200 })
     .withMessage('配置键长度必须在 1-200 之间')
     .matches(/^[a-zA-Z_][a-zA-Z0-9_.]*$/)
-    .withMessage('配置键只能包含字母、数字、下划线和点号，且必须以字母或下划线开头'),
+    .withMessage(
+      '配置键只能包含字母、数字、下划线和点号，且必须以字母或下划线开头'
+    ),
 
-  body('value')
-    .notEmpty()
-    .withMessage('配置值(value)不能为空'),
+  body('value').notEmpty().withMessage('配置值(value)不能为空'),
 
   body('category')
     .optional()
@@ -129,9 +129,7 @@ const batchUpdateRules = [
     .isLength({ min: 1, max: 200 })
     .withMessage('配置键长度必须在 1-200 之间'),
 
-  body('configs.*.value')
-    .notEmpty()
-    .withMessage('配置值(value)不能为空'),
+  body('configs.*.value').notEmpty().withMessage('配置值(value)不能为空'),
 ];
 
 // ============================================================
@@ -162,7 +160,13 @@ const updatePlayerStatusRules = [
 const createApprovalRules = [
   body('type')
     .trim()
-    .isIn(['config_update', 'config_delete', 'batch_operation', 'data_import', 'other'])
+    .isIn([
+      'config_update',
+      'config_delete',
+      'batch_operation',
+      'data_import',
+      'other',
+    ])
     .withMessage('审批类型(type)不合法'),
 
   body('target_key')
@@ -171,9 +175,7 @@ const createApprovalRules = [
     .isString()
     .withMessage('目标键(target_key)必须为字符串'),
 
-  body('detail')
-    .notEmpty()
-    .withMessage('审批详情(detail)不能为空'),
+  body('detail').notEmpty().withMessage('审批详情(detail)不能为空'),
 
   body('reason')
     .optional()
@@ -213,7 +215,9 @@ const handleAlertRules = [
   body('action')
     .trim()
     .isIn(['acknowledge', 'resolve', 'mute', 'escalate'])
-    .withMessage('告警处理动作(action)必须是 acknowledge、resolve、mute 或 escalate'),
+    .withMessage(
+      '告警处理动作(action)必须是 acknowledge、resolve、mute 或 escalate'
+    ),
 
   body('comment')
     .optional()
@@ -298,9 +302,7 @@ const paginationRules = [
 
 /** ID 参数验证（通用） */
 const idParamRules = [
-  param('id')
-    .isInt({ min: 1 })
-    .withMessage('ID必须是大于0的整数'),
+  param('id').isInt({ min: 1 }).withMessage('ID必须是大于0的整数'),
 ];
 
 // ============================================================
@@ -317,9 +319,17 @@ module.exports = {
 
   // 组合好的验证规则集
   /** 创建配置 */
-  createConfig: [...configBodyRules, body('key').notEmpty().withMessage('创建时配置键(key)必填'), handleValidationErrors],
+  createConfig: [
+    ...configBodyRules,
+    body('key').notEmpty().withMessage('创建时配置键(key)必填'),
+    handleValidationErrors,
+  ],
   /** 更新配置 */
-  updateConfig: [body('key').optional(), ...configBodyRules, handleValidationErrors],
+  updateConfig: [
+    body('key').optional(),
+    ...configBodyRules,
+    handleValidationErrors,
+  ],
   /** 回滚配置 */
   rollbackConfig: [...rollbackRules, handleValidationErrors],
   /** 批量更新配置 */

@@ -17,8 +17,16 @@ router.use(checkAdminPermission);
 
 router.get('/', adminShopController.getShopGoodsList);
 router.get('/:goodsId', adminShopController.getShopGoodsDetail);
-router.post('/', adminShopController.createShopGoodsValidation, adminShopController.createShopGoods);
-router.put('/:goodsId', adminShopController.updateShopGoodsValidation, adminShopController.updateShopGoods);
+router.post(
+  '/',
+  adminShopController.createShopGoodsValidation,
+  adminShopController.createShopGoods
+);
+router.put(
+  '/:goodsId',
+  adminShopController.updateShopGoodsValidation,
+  adminShopController.updateShopGoods
+);
 router.delete('/:goodsId', adminShopController.deleteShopGoods);
 router.post('/:goodsId/status', adminShopController.toggleShopGoodsStatus);
 
