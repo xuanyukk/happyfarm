@@ -1,12 +1,12 @@
-//
-// 文件名: batchController.js
-// 作者: Trae AI
-// 日期: 2026-05-01
-// 版本: v1.0.0
-// 功能描述: 批量操作功能控制器
-// 更新记录:
-//   2026-05-01 - v1.0.0 - 初始版本创建
-//
+/**
+ * 文件名：batchController.js
+ * 作者：开发者
+ * 日期：2026-05-01
+ * 版本：v1.0.0
+ * 功能描述：批量操作功能控制器
+ * 更新记录：
+ *   2026-05-01 - v1.0.0 - 初始版本创建
+ */
 
 const batchService = require('../services/batchService');
 const logger = require('../config/logger');

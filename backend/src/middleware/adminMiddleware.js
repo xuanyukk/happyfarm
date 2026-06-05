@@ -2,15 +2,20 @@
  * 文件名：adminMiddleware.js
  * 作者：SOLO
  * 日期：2026-06-03
- * 版本：v1.0.0
- * 功能描述：管理员权限验证中间件，验证当前用户是否为管理员
+ * 版本：v1.1.0
+ * 功能描述：管理员权限验证中间件，统一验证当前用户是否为管理员
+ * 更新记录：
+ *   2026-06-03 - v1.0.0 - 初始创建
+ *   2026-06-05 - v1.1.0 - 统一使用响应工具函数，消除重复的权限检查代码
  */
 
 const logger = require('../config/logger');
+const { forbiddenResponse } = require('../utils/response');
 
 /**
  * 管理员权限中间件
  * 检查 req.user 是否存在且 is_admin 为 true
+ * 用于已认证路由中，在 authMiddleware 之后使用
  * @param {Object} req - Express 请求对象
  * @param {Object} res - Express 响应对象
  * @param {Function} next - 下一个中间件
@@ -34,9 +39,7 @@ exports.adminMiddleware = (req, res, next) => {
         ip: req.ip,
         url: req.originalUrl,
       });
-      return res
-        .status(403)
-        .json({ success: false, message: '权限不足，需要管理员权限' });
+      return forbiddenResponse(res, '权限不足，需要管理员权限');
     }
 
     next();
@@ -49,3 +52,16 @@ exports.adminMiddleware = (req, res, next) => {
     res.status(500).json({ success: false, message: '权限验证失败' });
   }
 };
+
+/**
+ * 组合中间件：认证 + 管理员权限
+ * 合并 authMiddleware 和 adminMiddleware，减少路由层重复代码
+ * 使用方式：router.get('/path', requireAdmin, handler)
+ * @param {Object} req - Express 请求对象
+ * @param {Object} res - Express 响应对象
+ * @param {Function} next - 下一个中间件
+ */
+exports.requireAdmin = [
+  require('./authMiddleware').authMiddleware,
+  exports.adminMiddleware,
+];

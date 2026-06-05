@@ -33,6 +33,23 @@ const hasDangerousXSS = (str) => {
     /data:/i,
     /vbscript:/i,
     /expression/i,
+    /eval\s*\(/i,
+    /setTimeout\s*\(/i,
+    /setInterval\s*\(/i,
+    /Function\s*\(/i,
+    /document\.cookie/i,
+    /document\.write/i,
+    /innerHTML\s*=/i,
+    /<iframe/i,
+    /<embed/i,
+    /<object/i,
+    /<link/i,
+    /<meta/i,
+    /&#x/i,       // HTML实体编码绕过
+    /&#\d+/i,     // HTML数字实体编码绕过
+    /%3C/i,       // URL编码 <
+    /%3E/i,       // URL编码 >
+    /\\x[0-9a-fA-F]{2}/i, // 十六进制编码绕过
   ];
   return dangerousPatterns.some((pattern) => pattern.test(str));
 };
@@ -47,6 +64,8 @@ const sanitizeAttributes = (html) => {
 
 /**
  * 检测SQL注入
+ * 注意：正则检测仅作为辅助层，核心防护依赖参数化查询（pool.query(query, [params])）
+ * 所有 Service 层已统一使用参数化查询，此处提供额外防御层
  */
 const hasSQLInjection = (str) => {
   if (!str || typeof str !== 'string') return false;
@@ -59,6 +78,21 @@ const hasSQLInjection = (str) => {
     /insert\s+into/i,
     /delete\s+from/i,
     /update\s+\w+\s+set/i,
+    // 新增：高级绕过检测
+    /exec\s*\(/i,                    // 存储过程执行
+    /xp_cmdshell/i,                  // SQL Server 命令执行
+    /information_schema/i,           // 数据库元数据探测
+    /sleep\s*\(/i,                   // 时间盲注
+    /benchmark\s*\(/i,               // MySQL 基准测试盲注
+    /waitfor\s+delay/i,              // SQL Server 时间盲注
+    /\/\*!.*\*\//i,                  // MySQL 条件注释绕过
+    /\\x[0-9a-fA-F]{2}/i,            // 十六进制编码绕过
+    /0x[0-9a-fA-F]+/i,               // 十六进制字面量
+    /UNICODE\s*\(/i,                  // Unicode 编码绕过
+    /char\s*\(/i,                     // ASCII 字符函数绕过
+    /concat\s*\(/i,                   // 字符串拼接绕过
+    /load_file\s*\(/i,               // 文件读取函数
+    /into\s+(outfile|dumpfile)/i,    // 文件写入
   ];
   return injectionPatterns.some((pattern) => pattern.test(str));
 };

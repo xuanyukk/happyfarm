@@ -38,6 +38,15 @@ const generateRandomToken = () => {
   return crypto.randomBytes(64).toString('hex');
 };
 
+/**
+ * 安全延迟辅助函数 - 防止基于响应时间的用户名枚举攻击
+ * 在登录失败场景中添加 50-200ms 随机延迟，统一响应时间
+ */
+const securityDelay = () => {
+  const delay = 50 + Math.floor(Math.random() * 150); // 50-200ms
+  return new Promise((resolve) => setTimeout(resolve, delay));
+};
+
 // 计算过期时间
 const calculateExpiresAt = (expiresIn) => {
   const now = new Date();
@@ -202,6 +211,7 @@ exports.login = async (req, res) => {
 
     if (result.rows.length === 0) {
       logger.warn('登录失败：用户不存在', { identifier, ip: req.ip });
+      await securityDelay(); // 安全延迟，防止用户名枚举
       return res.status(401).json({ message: '用户名/邮箱或密码错误' });
     }
 
@@ -214,6 +224,7 @@ exports.login = async (req, res) => {
         username: user.username,
         ip: req.ip,
       });
+      await securityDelay(); // 安全延迟，防止状态枚举
       return res.status(403).json({ message: '账号已被禁用' });
     }
 
@@ -225,6 +236,7 @@ exports.login = async (req, res) => {
         username: user.username,
         ip: req.ip,
       });
+      await securityDelay(); // 安全延迟，防止用户名枚举
       return res.status(401).json({ message: '用户名/邮箱或密码错误' });
     }
 

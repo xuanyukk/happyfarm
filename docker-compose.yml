@@ -213,6 +213,12 @@ services:
     ports:
       - "3001:3000"
     environment:
+      # ============================================
+      # 🔒 安全警告：生产环境必须修改默认密码！
+      #    请通过 .env 文件设置 GF_SECURITY_ADMIN_PASSWORD
+      #    密码要求：至少12位，含大小写字母+数字+特殊字符
+      #    当前默认值仅用于本地开发环境
+      # ============================================
       - GF_SECURITY_ADMIN_USER=${GF_SECURITY_ADMIN_USER:-admin}
       - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD:-happyfarm123}
       - GF_USERS_ALLOW_SIGN_UP=false

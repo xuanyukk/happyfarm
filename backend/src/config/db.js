@@ -112,16 +112,34 @@ const cacheManager = {
   },
 
   // 按表名模式清除缓存（用于写操作后失效相关缓存）
+  // 优先按表名前缀精确清除，回退到全量清除
   invalidateTable(tableName) {
     if (!CACHE_ENABLED) return 0;
     let count = 0;
-    for (const [key] of queryCache.entries()) {
-      queryCache.delete(key);
-      count++;
+
+    if (tableName) {
+      // 按表名前缀精确清除关联缓存
+      const prefix = `query:${tableName}`;
+      for (const [key] of queryCache.entries()) {
+        if (key.startsWith(prefix)) {
+          queryCache.delete(key);
+          count++;
+        }
+      }
+      if (count > 0) {
+        logger.debug('缓存精确失效', { tableName, clearedCount: count });
+      }
     }
-    if (count > 0) {
-      logger.debug('缓存失效', { tableName, clearedCount: count });
+
+    // 如果精确清除没有命中，或未指定表名，执行全量清除
+    if (count === 0) {
+      for (const [key] of queryCache.entries()) {
+        queryCache.delete(key);
+        count++;
+      }
+      logger.debug('缓存全量失效', { tableName: tableName || 'unknown', clearedCount: count });
     }
+
     return count;
   },
 

@@ -2,12 +2,13 @@
  * 文件名：authMiddleware.js
  * 作者：开发者
  * 日期：2026-03-18
- * 版本：v1.2.0
- * 功能描述：JWT认证中间件，验证用户登录状态，集成Redis缓存
+ * 版本：v1.3.0
+ * 功能描述：JWT认证中间件，验证用户登录状态，集成 L1 内存缓存 + L2 Redis 缓存
  * 更新记录：
  *   2026-03-18 - v1.0.0 - JWT认证中间件，验证用户登录状态
  *   2026-03-22 - v1.1.0 - 统一文件头注释格式
  *   2026-05-01 - v1.2.0 - 添加Redis缓存机制，减少数据库查询
+ *   2026-06-05 - v1.3.0 - 添加 L1 内存缓存层，减少 Redis 网络开销
  */
 // JWT认证中间件
 const jwt = require('jsonwebtoken');
@@ -23,10 +24,52 @@ dotenv.config({
 
 // 用户信息缓存TTL（秒）
 const USER_CACHE_TTL = 3600;
+// L1 内存缓存 TTL（秒），比 Redis 短以减少不一致窗口
+const L1_CACHE_TTL = 60 * 1000; // 60秒，单位毫秒
+
+// L1 内存缓存：存储用户信息，减少 Redis 网络开销
+const l1Cache = new Map();
+
+/**
+ * 从 L1 内存缓存获取用户信息
+ * @param {number} userId - 用户ID
+ * @returns {Object|null} 用户信息或 null
+ */
+const getL1Cache = (userId) => {
+  const entry = l1Cache.get(userId);
+  if (!entry) return null;
+  if (Date.now() > entry.expiresAt) {
+    l1Cache.delete(userId);
+    return null;
+  }
+  return entry.data;
+};
+
+/**
+ * 设置 L1 内存缓存
+ * @param {number} userId - 用户ID
+ * @param {Object} userData - 用户信息
+ */
+const setL1Cache = (userId, userData) => {
+  l1Cache.set(userId, {
+    data: userData,
+    expiresAt: Date.now() + L1_CACHE_TTL,
+  });
+};
+
+/**
+ * 清除 L1 内存缓存
+ * @param {number} userId - 用户ID
+ */
+const clearL1Cache = (userId) => {
+  l1Cache.delete(userId);
+};
 
 // 缓存用户信息
 const cacheUserInfo = async (userId, userData) => {
   try {
+    // 同时写入 L1 内存缓存和 L2 Redis 缓存
+    setL1Cache(userId, userData);
     const cacheKey = `user:info:${userId}`;
     await cacheService.set(cacheKey, userData, USER_CACHE_TTL);
     logger.debug('用户信息已缓存', { userId });
@@ -38,6 +81,9 @@ const cacheUserInfo = async (userId, userData) => {
 // 清除用户缓存（例如用户信息更新时调用）
 const clearUserCache = async (userId) => {
   try {
+    // 清除 L1 内存缓存
+    clearL1Cache(userId);
+    // 清除 L2 Redis 缓存
     const cacheKey = `user:info:${userId}`;
     await cacheService.del(cacheKey);
     logger.debug('用户缓存已清除', { userId });
@@ -70,18 +116,28 @@ const authMiddleware = async (req, res, next) => {
     const cacheKey = `user:info:${userId}`;
     let user = null;
 
-    // 先尝试从缓存获取用户信息
-    try {
-      const cachedUser = await cacheService.get(cacheKey);
-      if (cachedUser) {
-        user = cachedUser;
-        logger.debug('用户信息从缓存获取成功', { userId });
-      }
-    } catch (cacheError) {
-      logger.warn('缓存读取失败，从数据库查询', { error: cacheError.message });
+    // L1: 先尝试从内存缓存获取用户信息
+    user = getL1Cache(userId);
+    if (user) {
+      logger.debug('用户信息从 L1 内存缓存命中', { userId });
     }
 
-    // 缓存未命中，从数据库查询
+    // L2: L1 未命中，尝试从 Redis 缓存获取
+    if (!user) {
+      try {
+        const cachedUser = await cacheService.get(cacheKey);
+        if (cachedUser) {
+          user = cachedUser;
+          // 回填 L1 缓存
+          setL1Cache(userId, user);
+          logger.debug('用户信息从 Redis 缓存获取成功', { userId });
+        }
+      } catch (cacheError) {
+        logger.warn('Redis 缓存读取失败，从数据库查询', { error: cacheError.message });
+      }
+    }
+
+    // L3: 缓存未命中，从数据库查询
     if (!user) {
       const query =
         'SELECT id, username, email, phone, is_active, is_admin FROM sys_user WHERE id = $1';
@@ -97,7 +153,7 @@ const authMiddleware = async (req, res, next) => {
 
       user = result.rows[0];
 
-      // 缓存用户信息
+      // 缓存用户信息到 L1 和 L2
       await cacheUserInfo(userId, user);
     }
 

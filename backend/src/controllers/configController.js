@@ -1,11 +1,13 @@
-// 文件名: configController.js
-// 作者: Trae AI
-// 日期: 2026-04-30
-// 版本: v1.1.0
-// 功能描述: 游戏参数配置管理控制器(含变更历史与回滚增强)
-// 更新记录:
-//   2026-04-30 - v1.0.0 - 初始版本创建
-//   2026-05-26 - v1.1.0 - 增强：版本对比、回滚预览、变更统计、历史导出
+/**
+ * 文件名：configController.js
+ * 作者：开发者
+ * 日期：2026-04-30
+ * 版本：v1.1.0
+ * 功能描述：游戏参数配置管理控制器，含变更历史与回滚增强
+ * 更新记录：
+ *   2026-04-30 - v1.0.0 - 初始版本创建
+ *   2026-05-26 - v1.1.0 - 增强：版本对比、回滚预览、变更统计、历史导出
+ */
 
 const configService = require('../services/configService');
 const configHistoryService = require('../services/configHistoryService');
