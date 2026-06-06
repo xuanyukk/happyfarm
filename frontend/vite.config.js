@@ -122,9 +122,14 @@ export default defineConfig(({ command, mode }) => {
       port: 5173,
       open: true,
       cors: true,
+      host: true,
+      // 启用热重载相关配置
+      watch: {
+        usePolling: true, // Docker环境需要轮询检测文件变化
+      },
       proxy: {
         '/api': {
-          target: 'http://localhost:3001',
+          target: 'http://backend:3000', // Docker环境直接使用容器名访问
           changeOrigin: true,
           secure: false,
         }
