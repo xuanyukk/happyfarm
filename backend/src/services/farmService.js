@@ -76,6 +76,10 @@ const unlockLand = async function (playerId, landNum) {
       'SELECT is_unlocked FROM player_land_status WHERE player_id = $1 AND land_num = $2';
     const statusResult = await client.query(statusQuery, [playerId, landNum]);
 
+    if (statusResult.rows.length === 0) {
+      throw new Error('玩家地块状态不存在');
+    }
+
     if (statusResult.rows[0].is_unlocked) {
       throw new Error('地块已解锁');
     }
@@ -83,6 +87,10 @@ const unlockLand = async function (playerId, landNum) {
     const currencyQuery =
       'SELECT currency_num FROM player_currency WHERE player_id = $1 FOR UPDATE';
     const currencyResult = await client.query(currencyQuery, [playerId]);
+
+    if (currencyResult.rows.length === 0) {
+      throw new Error('玩家资产数据不存在');
+    }
 
     const currentCurrency = parseInt(currencyResult.rows[0].currency_num);
 

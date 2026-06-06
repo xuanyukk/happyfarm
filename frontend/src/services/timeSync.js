@@ -8,7 +8,7 @@
  *   2026-03-29 - v1.0.0 - 初始创建，实现时间同步功能
  */
 
-import axios from 'axios';
+import api from './api';
 import { logger } from './logger';
 import metricsCollector from './metricsCollector';
 
@@ -83,7 +83,7 @@ class TimeSyncService {
       logger.info('TimeSyncService: 开始同步服务器时间');
 
       // 请求服务器时间
-      const response = await axios.get('/api/time');
+      const response = await api.get('/api/time');
 
       const endTime = Date.now();
       const networkDelay = (endTime - startTime) / 2;

@@ -34,7 +34,7 @@ onUnmounted(() => {
     <!-- 对高频复用的路由页面使用 keep-alive 缓存 -->
     <router-view v-slot="{ Component, route }">
       <keep-alive :include="['Home', 'ShopPage', 'InventoryPage']" :max="3">
-        <component :is="Component" :key="route.path" />
+        <component :is="Component" :key="route.name" />
       </keep-alive>
     </router-view>
     <TutorialGuide />

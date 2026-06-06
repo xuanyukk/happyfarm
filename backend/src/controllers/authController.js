@@ -18,6 +18,24 @@ require('dotenv').config();
 const logger = require('../config/logger');
 const { sendPasswordResetEmail } = require('../services/emailService');
 const { ensurePlayerInitialized } = require('../services/initService');
+const { validatePasswordStrength } = require('../utils/security');
+
+// bcrypt 盐轮数，从环境变量读取，默认10轮
+const BCRYPT_SALT_ROUNDS = parseInt(process.env.BCRYPT_SALT_ROUNDS) || 10;
+const validateJwtSecret = () => {
+  if (!process.env.JWT_SECRET) {
+    logger.error('JWT_SECRET 环境变量未设置，应用将无法安全运行');
+    throw new Error(
+      'JWT_SECRET 环境变量未设置，请在 .env 文件中配置 JWT_SECRET'
+    );
+  }
+  if (process.env.JWT_SECRET.length < 32) {
+    logger.warn('JWT_SECRET 长度不足32位，建议使用更长的密钥以增强安全性');
+  }
+};
+
+// 模块加载时验证JWT_SECRET
+validateJwtSecret();
 
 // 生成JWT访问令牌
 const generateAccessToken = (userId) => {
@@ -131,7 +149,7 @@ exports.register = async (req, res) => {
     }
 
     // 加密密码
-    const hashedPwd = await bcrypt.hash(password, 10);
+    const hashedPwd = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
 
     // 创建用户
     const insertQuery = `
@@ -434,9 +452,20 @@ exports.getCurrentUser = async (req, res) => {
 
 // 验证规则
 exports.registerValidation = [
-  body('username').notEmpty().withMessage('用户名不能为空'),
+  body('username')
+    .notEmpty().withMessage('用户名不能为空')
+    .matches(/^[a-zA-Z0-9_]{3,20}$/)
+    .withMessage('用户名须为3-20位字母、数字或下划线'),
   body('email').optional().isEmail().withMessage('邮箱格式错误'),
-  body('password').isLength({ min: 6 }).withMessage('密码长度至少6位'),
+  body('password')
+    .isLength({ min: 8 })
+    .withMessage('密码长度至少8位')
+    .custom((value) => {
+      if (!validatePasswordStrength(value)) {
+        throw new Error('密码须包含大写字母、小写字母和数字');
+      }
+      return true;
+    }),
 ];
 
 exports.loginValidation = [
@@ -603,7 +632,7 @@ exports.resetPassword = async (req, res) => {
     const tokenData = tokenResult.rows[0];
 
     // 加密新密码
-    const hashedPwd = await bcrypt.hash(password, 10);
+    const hashedPwd = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
 
     // 更新用户密码
     const updateUserQuery =

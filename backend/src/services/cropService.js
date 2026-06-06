@@ -2,7 +2,7 @@
  * 文件名：cropService.js
  * 作者：开发者
  * 日期：2026-03-21
- * 版本：v2.5.0
+ * 版本：v2.6.0
  * 功能描述：作物服务，处理种植、收获、出售、作物解锁等功能
  * 更新记录：
  *   2026-03-21 - v1.1.0 - 修复数据库字段名映射，添加getUnlockedCrops函数实现作物解锁系统，添加道具效果支持
@@ -16,6 +16,7 @@
  *   2026-05-31 - v2.3.0 - LG-04修复：收获接口接入item_drop_config实现道具概率掉落
  *   2026-05-31 - v2.4.0 - IS-01/IS-02修复：收获时检查yield_boost_end_time过期，过期自动重置为1.0
  *   2026-05-31 - v2.5.0 - 简化收获经验计算（消除双重计算）、添加种子扣减双重保险、修复harvestAllMatured成功条件
+ *   2026-06-06 - v2.6.0 - 修复harvestAllMatured经验添加在事务外的问题，确保原子性
  */
 
 const pool = require('../config/db');
@@ -1012,8 +1013,7 @@ const harvestAllMatured = async function (playerId) {
       }
     }
 
-    await client.query('COMMIT');
-
+    // 经验添加放入事务内，确保经验与收获操作的原子性
     if (totalPlayerExp > 0) {
       await playerService.addExp(
         playerId,
@@ -1023,6 +1023,8 @@ const harvestAllMatured = async function (playerId) {
       );
       await playerService.checkAndUpgradeLevel(playerId);
     }
+
+    await client.query('COMMIT');
 
     logger.info('一键收获完成', {
       playerId,

@@ -12,6 +12,7 @@
 
 import axios from 'axios';
 import { usePlayerStore } from '@/stores/player';
+import { useAuthStore } from '@/stores/auth';
 import router from '@/router';
 import { storage } from './localStorage';
 
@@ -115,8 +116,10 @@ request.interceptors.response.use(
           return request(originalRequest);
         }
       } catch (refreshError) {
+        const authStore = useAuthStore();
         const playerStore = usePlayerStore();
-        playerStore.logout();
+        authStore.logout();
+        playerStore.clearPlayer();
         router.push('/login');
       }
     }

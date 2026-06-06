@@ -84,29 +84,15 @@ COMMENT ON COLUMN config_approval.request_data IS '申请配置';
 COMMENT ON COLUMN config_approval.reason IS '申请原因';
 COMMENT ON COLUMN config_approval.approval_comment IS '审批意见';
 
--- 配置变更日志
-CREATE TABLE IF NOT EXISTS config_change_log (
-    id SERIAL PRIMARY KEY,
-    config_id INTEGER REFERENCES game_config(id),
-    operator_id INTEGER REFERENCES sys_user(id),
-    action VARCHAR(20),
-    old_value TEXT,
-    new_value TEXT,
-    reason TEXT,
-    ip_address VARCHAR(50),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    CHECK (action IN ('CREATE', 'UPDATE', 'DELETE', 'ROLLBACK'))
-);
-
-COMMENT ON TABLE config_change_log IS '配置变更日志';
+-- 注意：config_change_log 表由 34_config_change_log.sql 独立创建（增强版），
+-- 此处不再重复创建，避免 34 脚本 DROP 重建时数据丢失
 
 -- 创建索引
 CREATE INDEX IF NOT EXISTS idx_game_config_category ON game_config(category);
 CREATE INDEX IF NOT EXISTS idx_game_config_active ON game_config(is_active);
 CREATE INDEX IF NOT EXISTS idx_config_version_config_id ON config_version(config_id);
 CREATE INDEX IF NOT EXISTS idx_config_approval_status ON config_approval(status);
-CREATE INDEX IF NOT EXISTS idx_config_change_log_config_id ON config_change_log(config_id);
-CREATE INDEX IF NOT EXISTS idx_config_change_log_created_at ON config_change_log(created_at DESC);
+-- config_change_log 索引由 34_config_change_log.sql 独立创建
 
 -- 添加更新时间触发器
 DROP TRIGGER IF EXISTS update_game_config_updated_at ON game_config;

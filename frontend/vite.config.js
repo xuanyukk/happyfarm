@@ -122,7 +122,7 @@ export default defineConfig(({ command, mode }) => {
       port: 5173,
       open: true,
       cors: true,
-      host: true,
+      host: 'localhost', // Windows下禁用0.0.0.0，避免安全风险
       // 启用热重载相关配置
       watch: {
         usePolling: true, // Docker环境需要轮询检测文件变化

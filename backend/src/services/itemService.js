@@ -941,7 +941,7 @@ const useWateringBoost = async function (client, playerId, item) {
     UPDATE player_base
     SET watering_speed_multiplier = $1,
         watering_boost_expire_at = CURRENT_TIMESTAMP + ($2 || ' minutes')::INTERVAL
-    WHERE user_id = $3
+    WHERE player_id = $3
   `,
     [effectValue, durationMinutes, playerId]
   );
@@ -978,7 +978,7 @@ const useFertilizeBoost = async function (client, playerId, item, landNum) {
 
   const effectValue = parseFloat(item.effect_value);
   const playerResult = await client.query(
-    'SELECT * FROM player_base WHERE user_id = $1',
+    'SELECT * FROM player_base WHERE player_id = $1',
     [playerId]
   );
   if (playerResult.rows.length === 0) {
@@ -1177,7 +1177,7 @@ const useSkin = async function (client, playerId, item) {
     `
     UPDATE player_base
     SET active_skin_id = $1
-    WHERE user_id = $2
+    WHERE player_id = $2
   `,
     [item.item_id, playerId]
   );

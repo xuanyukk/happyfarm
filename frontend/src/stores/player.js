@@ -14,6 +14,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { gameService } from '../services/gameService';
+import { timeSyncService } from '../services/timeSync';
 
 // 本地缓存时间（毫秒）
 const CACHE_DURATION = 30000; // 30秒
@@ -37,9 +38,9 @@ export const usePlayerStore = defineStore('player', () => {
   const farmLevel = computed(() => playerData.value?.farm_level || 1);
   const worldLevel = computed(() => playerData.value?.world_level || 1);
 
-  // 检查是否需要刷新数据
+  // 检查是否需要刷新数据（使用服务器时间）
   const shouldRefresh = computed(() => {
-    return Date.now() - lastFetchTime.value > CACHE_DURATION;
+    return timeSyncService.now() - lastFetchTime.value > CACHE_DURATION;
   });
 
   const fetchPlayerData = async (forceRefresh = false) => {
@@ -54,7 +55,7 @@ export const usePlayerStore = defineStore('player', () => {
       const result = await gameService.getPlayerData();
       if (result.success) {
         playerData.value = result.data;
-        lastFetchTime.value = Date.now();
+        lastFetchTime.value = timeSyncService.now();
       }
     } catch (err) {
       error.value = err.response?.data?.message || err.message;

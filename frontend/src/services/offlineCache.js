@@ -10,6 +10,8 @@
 
 import { logger } from './logger';
 import { networkMonitor } from './networkMonitor';
+import api from './api';
+import { gameService } from './gameService';
 
 /**
  * 离线操作缓存服务
@@ -276,15 +278,8 @@ class OfflineCache {
     try {
       await this.updateOperationStatus(operation.id, 'syncing');
 
-      // 这里需要根据操作类型调用相应的API
-      // 实际使用时需要传入execute函数或映射到具体的API调用
-      logger.info('OfflineCache: 同步操作', {
-        id: operation.id,
-        type: operation.type,
-      });
-
-      // 模拟同步成功
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      // 根据操作类型调用对应的API
+      await this.executeOperation(operation);
 
       await this.deleteOperation(operation.id);
       this.notify('operation_synced', { id: operation.id, operation });
@@ -308,6 +303,35 @@ class OfflineCache {
           error: error.message,
         });
       }
+    }
+  }
+
+  /**
+   * 根据操作类型执行对应的API调用
+   * @param {Object} operation 操作对象
+   */
+  async executeOperation(operation) {
+    const { type, data } = operation;
+
+    // 操作类型到API调用的映射
+    const operationMap = {
+      plant: () => api.post('/crops/plant', data),
+      harvest: () => api.post('/crops/harvest', data),
+      water: () => api.post('/crops/water', data),
+      fertilize: () => api.post('/crops/fertilize', data),
+      unlockLand: () => api.post('/farm/unlock-land', data),
+      upgradeLand: () => api.post('/farm/upgrade-land', data),
+      buyItem: () => api.post('/shop/buy', data),
+      sellItem: () => api.post('/shop/sell', data),
+      useItem: () => api.post('/items/use', data),
+    };
+
+    const handler = operationMap[type];
+    if (handler) {
+      logger.info('OfflineCache: 执行离线操作', { type, data });
+      return await handler();
+    } else {
+      throw new Error(`未知的操作类型: ${type}`);
     }
   }
 

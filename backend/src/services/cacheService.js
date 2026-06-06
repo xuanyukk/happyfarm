@@ -6,6 +6,7 @@
  * 功能描述：Redis缓存服务层，提供统一的缓存管理，支持热点数据自动预热、缓存击穿防护
  * 更新记录：
  *   2026-05-20 - v2.0.0 - 重构缓存服务，支持多种缓存策略
+ *   2026-06-06 - v2.4.0 - Redis KEYS 替换为 SCAN 避免阻塞，新增扫描辅助函数
  */
 
 const Redis = require('ioredis');
@@ -92,6 +93,37 @@ function getRedis() {
     return initRedis();
   }
   return redisClient;
+}
+
+/**
+ * 使用 SCAN 命令安全扫描匹配的键，避免 KEYS 阻塞 Redis
+ * 每次 SCAN 返回一批键，迭代直到游标回到 0
+ * @param {string} pattern - 匹配模式，如 "cache:*"
+ * @param {number} count - 每次 SCAN 的建议数量（默认 100）
+ * @returns {Promise<string[]>} 匹配的键列表
+ */
+async function scanKeys(pattern, count = 100) {
+  const redis = getRedis();
+  if (!redis || !isConnected) {
+    return [];
+  }
+
+  const keys = [];
+  let cursor = '0';
+
+  do {
+    const [nextCursor, batch] = await redis.scan(
+      cursor,
+      'MATCH',
+      pattern,
+      'COUNT',
+      count
+    );
+    cursor = nextCursor;
+    keys.push(...batch);
+  } while (cursor !== '0');
+
+  return keys;
 }
 
 // 生成缓存键
@@ -245,8 +277,8 @@ async function delNamespace(namespace) {
     const redis = getRedis();
     if (!redis || !isConnected) {
       // 测试模式兼容
-      if (redis && typeof redis.keys === 'function') {
-        const keys = await redis.keys(namespace);
+      if (redis && typeof redis.scan === 'function') {
+        const keys = await scanKeys(namespace);
         if (keys.length > 0) await redis.del(keys);
         return keys.length;
       }
@@ -254,7 +286,7 @@ async function delNamespace(namespace) {
     }
 
     const pattern = generateKey(namespace, '*');
-    const keys = await redis.keys(pattern);
+    const keys = await scanKeys(pattern);
 
     if (keys.length > 0) {
       const deleted = await redis.del(...keys);
@@ -369,7 +401,7 @@ async function clearAll() {
     }
 
     const pattern = `${CACHE_CONFIG.PREFIX}:*`;
-    const keys = await redis.keys(pattern);
+    const keys = await scanKeys(pattern);
 
     if (keys.length > 0) {
       await redis.del(...keys);
@@ -392,7 +424,7 @@ async function getStats() {
     }
 
     const info = await redis.info('stats');
-    const keys = await redis.keys(`${CACHE_CONFIG.PREFIX}:*`);
+    const keys = await scanKeys(`${CACHE_CONFIG.PREFIX}:*`);
 
     return {
       connected: true,
@@ -433,8 +465,8 @@ async function wrap(key, fn) {
 }
 async function delPattern(pattern) {
   const redis = getRedis();
-  if (redis && typeof redis.keys === 'function') {
-    const keys = await redis.keys(pattern);
+  if (redis && typeof redis.scan === 'function') {
+    const keys = await scanKeys(pattern);
     if (keys.length > 0) {
       await redis.del(keys);
       return keys.length;
@@ -458,6 +490,7 @@ module.exports = {
   CACHE_KEYS,
   initRedis,
   getRedis,
+  scanKeys,
   get,
   set,
   del,

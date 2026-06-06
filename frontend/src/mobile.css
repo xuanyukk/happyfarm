@@ -23,6 +23,14 @@
   user-select: none;
 }
 
+/* 恢复输入框和文本域的文字选择功能 */
+input,
+textarea,
+[contenteditable="true"] {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
 html, body {
   overscroll-behavior: none;
   -webkit-overflow-scrolling: touch;
@@ -941,5 +949,62 @@ textarea {
 
   .stats-grid {
     grid-template-columns: repeat(4, 1fr) !important;
+  }
+}
+
+/* ============================================
+   触摸友好 Tooltip 增强
+   解决移动端 HTML title 属性无法触发的问题
+   使用 CSS :active 伪类在移动端显示提示
+   ============================================ */
+
+/* 移动端触摸设备：使用 :active 替代 :hover 显示 tooltip */
+@media (hover: none) and (pointer: coarse) {
+  /* 通用触摸 tooltip 容器 */
+  .touch-tooltip {
+    position: relative;
+  }
+
+  /* 触摸 tooltip 文本 */
+  .touch-tooltip::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 6px 12px;
+    background: rgba(0, 0, 0, 0.85);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 400;
+    border-radius: 6px;
+    white-space: nowrap;
+    z-index: 1000;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .touch-tooltip:active::after {
+    opacity: 1;
+  }
+
+  /* 箭头 */
+  .touch-tooltip::before {
+    content: '';
+    position: absolute;
+    bottom: calc(100% + 2px);
+    left: 50%;
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+    border-top-color: rgba(0, 0, 0, 0.85);
+    z-index: 1000;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .touch-tooltip:active::before {
+    opacity: 1;
   }
 }

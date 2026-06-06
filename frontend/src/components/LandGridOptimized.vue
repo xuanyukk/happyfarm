@@ -121,9 +121,6 @@ const handleLoadMore = async () => {
     loadCount: props.pageSize,
   });
 
-  // 模拟加载延迟
-  await new Promise((resolve) => setTimeout(resolve, 300));
-
   visibleCount.value = Math.min(
     visibleCount.value + props.pageSize,
     props.lands.length

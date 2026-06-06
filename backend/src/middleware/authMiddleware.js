@@ -9,9 +9,11 @@
  *   2026-03-22 - v1.1.0 - 统一文件头注释格式
  *   2026-05-01 - v1.2.0 - 添加Redis缓存机制，减少数据库查询
  *   2026-06-05 - v1.3.0 - 添加 L1 内存缓存层，减少 Redis 网络开销
+ *   2026-06-06 - v1.4.0 - L1缓存使用lru-cache限制内存上限，防止内存泄漏
  */
 // JWT认证中间件
 const jwt = require('jsonwebtoken');
+const { LRUCache } = require('lru-cache');
 const pool = require('../config/db');
 const dotenv = require('dotenv');
 const logger = require('../config/logger');
@@ -26,9 +28,15 @@ dotenv.config({
 const USER_CACHE_TTL = 3600;
 // L1 内存缓存 TTL（秒），比 Redis 短以减少不一致窗口
 const L1_CACHE_TTL = 60 * 1000; // 60秒，单位毫秒
+// L1 缓存最大条目数，防止内存泄漏
+const L1_CACHE_MAX_SIZE = 5000;
 
-// L1 内存缓存：存储用户信息，减少 Redis 网络开销
-const l1Cache = new Map();
+// L1 内存缓存：使用 LRU 策略存储用户信息，限制内存上限
+const l1Cache = new LRUCache({
+  max: L1_CACHE_MAX_SIZE,
+  ttl: L1_CACHE_TTL,
+  updateAgeOnGet: true,
+});
 
 /**
  * 从 L1 内存缓存获取用户信息
@@ -36,13 +44,7 @@ const l1Cache = new Map();
  * @returns {Object|null} 用户信息或 null
  */
 const getL1Cache = (userId) => {
-  const entry = l1Cache.get(userId);
-  if (!entry) return null;
-  if (Date.now() > entry.expiresAt) {
-    l1Cache.delete(userId);
-    return null;
-  }
-  return entry.data;
+  return l1Cache.get(userId) || null;
 };
 
 /**
@@ -51,10 +53,7 @@ const getL1Cache = (userId) => {
  * @param {Object} userData - 用户信息
  */
 const setL1Cache = (userId, userData) => {
-  l1Cache.set(userId, {
-    data: userData,
-    expiresAt: Date.now() + L1_CACHE_TTL,
-  });
+  l1Cache.set(userId, userData);
 };
 
 /**

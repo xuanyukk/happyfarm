@@ -2,7 +2,7 @@
 -- 文件名: full_init.sql
 -- 作者: Trae AI
 -- 日期: 2026-05-26
--- 版本: v4.61.0
+-- 版本: v4.72.0
 -- 功能描述: 完整数据库初始化 - 轻量级引导脚本
 -- 更新记录:
 --   2026-05-14 - v3.0.0 - 重构为引导脚本，使用 \i 引用模块化文件
@@ -12,6 +12,7 @@
 --   2026-05-23 - v4.53.0 - 移除 system_config 旧表，统一使用 game_config
 --   2026-05-25 - v4.60.1 - 同步项目版本号，表总数确认为69张
 --   2026-05-26 - v4.61.0 - 新增配置变更日志增强表（34_config_change_log），增强回滚机制
+--   2026-06-06 - v4.72.0 - 修复缺失36-44号schema文件及39号schema文件，补充16-18号数据文件，同步版本号
 -- ============================================
 
 \echo '========================================'
@@ -73,6 +74,15 @@
 \i '02_schema/33_game_event_system.sql'
 \i '02_schema/34_config_change_log.sql'
 \i '02_schema/35_player_shop_daily_limit.sql'
+\i '02_schema/36_player_level_config.sql'
+\i '02_schema/37_daily_task_config.sql'
+\i '02_schema/38_item_drop_config.sql'
+\i '02_schema/39_player_daily_task.sql'
+\i '02_schema/40_player_item_usage_log.sql'
+\i '02_schema/41_player_combo_tracker.sql'
+\i '02_schema/42_daily_discount_goods.sql'
+\i '02_schema/43_player_skin_record.sql'
+\i '02_schema/44_farm_decoration.sql'
 \echo '✅ 表结构创建完成'
 
 -- ============================================
@@ -94,6 +104,9 @@
 \i '03_data/12_game_config_data.sql'
 \i '03_data/14_admin_system_data.sql'
 \i '03_data/15_game_event_data.sql'
+\i '03_data/16_player_level_config_data.sql'
+\i '03_data/17_daily_task_config_data.sql'
+\i '03_data/18_item_drop_config_data.sql'
 \echo '✅ 初始数据插入完成'
 
 -- ============================================
@@ -102,6 +115,6 @@
 \echo ''
 \echo '========================================'
 \echo '🎉 数据库初始化完成！'
-\echo '📊 共 62 张核心表 + 7 张数据仓库表 = 69 张表'
+\echo '📊 共 69 张核心表（含分区表）'
 \echo '👤 默认账户: admin / 123456'
 \echo '========================================'

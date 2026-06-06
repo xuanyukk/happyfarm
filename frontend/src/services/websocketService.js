@@ -79,6 +79,8 @@ class WebSocketService {
       if (this.token) {
         this.send('authenticate', this.token);
       }
+      // 重连后恢复所有已注册的事件订阅
+      this.restoreHandlers();
     });
 
     this.socket.on('authenticated', (data) => {
@@ -123,6 +125,19 @@ class WebSocketService {
     if (this.socket && handler) {
       this.socket.off(event, handler);
     }
+  }
+
+  /**
+   * 恢复所有已注册的事件订阅（重连时调用）
+   */
+  restoreHandlers() {
+    if (!this.socket) return;
+    this.messageHandlers.forEach((handlers, event) => {
+      handlers.forEach((handler) => {
+        this.socket.off(event, handler); // 避免重复注册
+        this.socket.on(event, handler);
+      });
+    });
   }
 
   disconnect() {

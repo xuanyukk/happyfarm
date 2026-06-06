@@ -133,4 +133,31 @@ onUnmounted(() => {
   max-width: 1050px;
   margin: 0 auto;
 }
+
+/* 平板端适配 */
+@media (max-width: 1024px) {
+  .land-grid {
+    grid-template-columns: repeat(8, 1fr);
+    gap: 10px;
+    padding: 20px;
+  }
+}
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+  .land-grid {
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+    padding: 12px;
+  }
+}
+
+/* 小屏手机适配 */
+@media (max-width: 375px) {
+  .land-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    padding: 8px;
+  }
+}
 </style>
