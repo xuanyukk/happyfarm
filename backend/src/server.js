@@ -132,6 +132,7 @@ const adminDatabaseRoutes = require('./routes/adminDatabaseRoutes');
 const adminMailRoutes = require('./routes/adminMailRoutes');
 const adminManagementRoutes = require('./routes/adminManagementRoutes');
 const queueRoutes = require('./routes/queueRoutes');
+const docsAuthRoutes = require('./routes/docsAuthRoutes');
 const requestLogger = require('./middleware/requestLogger');
 const { authMiddleware } = require('./middleware/authMiddleware');
 const schedulerService = require('./services/schedulerService');
@@ -293,6 +294,7 @@ app.get('/api/metrics', async (req, res) => {
 
 // 路由挂载
 app.use('/api/auth', authRoutes);
+app.use('/api/docs/auth', docsAuthRoutes);
 app.use('/api/player', playerRoutes);
 app.use('/api/farm', farmRoutes);
 app.use('/api/crops', cropRoutes);

@@ -1,0 +1,274 @@
+# 密码和配置快速参考
+
+**文档版本**：v4.71.9  
+**最后更新**：2026-06-02  
+**适用版本**：开心农场 v4.71.9+
+
+---
+
+## 当前默认配置（.env 文件）
+
+### 数据库（PostgreSQL）配置
+
+| 配置项 | 默认值 | 说明 |
+|------|------|------|
+| POSTGRES_DB | happy_farm | 数据库名称 |
+| POSTGRES_USER | happy_farm | 数据库用户名 |
+| POSTGRES_PASSWORD | happy_farm_password | 数据库密码 |
+| DB_HOST | postgres | 数据库主机（Docker 服务名） |
+| DB_PORT | 5432 | 数据库端口（容器内部） |
+| 外部访问端口 | 5433 | localhost:5433（Docker 映射端口） |
+| DATABASE_URL | postgresql://happy_farm:happy_farm_password@postgres:5432/happy_farm | 完整连接字符串（容器内部） |
+
+### Redis 缓存配置
+
+| 配置项 | 默认值 | 说明 |
+|------|------|------|
+| REDIS_ENABLED | true | 启用 Redis |
+| REDIS_HOST | redis | Redis 主机（Docker 服务名） |
+| REDIS_PORT | 6379 | Redis 端口 |
+| REDIS_PASSWORD | (空) | Redis 密码（默认无密码） |
+| REDIS_DB | 0 | Redis 数据库编号 |
+
+### JWT 和安全配置
+
+| 配置项 | 默认值 | 说明 |
+|------|------|------|
+| JWT_SECRET | (需自行生成) | JWT 签名密钥（生产环境请修改） |
+| ENCRYPTION_KEY | (需自行生成) | 数据加密密钥（生产环境请修改） |
+
+### Grafana 配置
+
+| 配置项 | 默认值 | 说明 |
+|------|------|------|
+| 访问地址 | http://localhost:3001 | Grafana 访问地址 |
+| 用户名 | admin | Grafana 用户名 |
+| 密码 | your_grafana_password | Grafana 密码 |
+
+---
+
+## Docker部署 vs 本地部署端口差异
+
+### 端口对照表
+
+| 服务 | Docker部署端口 | 本地开发端口 | 说明 |
+|------|--------------|-----------|------|
+| **前端应用** | 80 | 5173 | Docker使用Nginx，本地使用Vite开发服务器 |
+| **后端API** | 3000 | 3000 | 两者相同 |
+| **API文档** | 3000 | 3000 | 两者相同 |
+| **Grafana** | 3001 | 3001 | 两者相同 |
+| **PostgreSQL(外部)** | 5433 | 5432 | Docker映射5433避免冲突 |
+| **PostgreSQL(内部)** | 5432 | 5432 | 容器内部或本地直接访问 |
+| **Redis(外部)** | 6380 | 6379 | Docker映射6380避免冲突 |
+| **Redis(内部)** | 6379 | 6379 | 容器内部或本地直接访问 |
+| **文档网站** | 8080 | 5174 | Docker使用8080，本地使用Vite 5174 |
+| **Loki** | 3100 | - | 仅Docker部署 |
+
+### Docker部署访问地址
+
+```
+前端应用：http://localhost
+后端API：http://localhost:3000/api
+API文档：http://localhost:3000/api-docs
+Grafana：http://localhost:3001
+文档网站：http://localhost:8080
+PostgreSQL：localhost:5433
+Redis：localhost:6380
+```
+
+### 本地开发访问地址
+
+```
+前端应用：http://localhost:5173
+后端API：http://localhost:3000/api
+API文档：http://localhost:3000/api-docs
+文档网站：http://localhost:5174
+PostgreSQL：localhost:5432
+Redis：localhost:6379
+```
+
+---
+
+## 如何修改密码？
+
+### 1. 修改数据库密码
+
+1. **编辑 `.env` 文件**，修改以下变量：
+   ```env
+   # 数据库配置
+   POSTGRES_USER=你的新用户名
+   POSTGRES_PASSWORD=你的新密码
+   
+   # 更新数据库连接字符串
+   DATABASE_URL=postgresql://你的新用户名:你的新密码@postgres:5432/happy_farm
+   DB_USER=你的新用户名
+   DB_PASSWORD=你的新密码
+   ```
+
+2. **⚠️ 重要提示**：
+   - 如果数据库容器已经运行且数据已存在，您需要手动修改数据库密码，或者重新初始化数据库
+   - 如果是第一次部署，修改后直接启动即可
+
+3. **重新初始化数据库（如果需要）**：
+   ```powershell
+   # 停止容器并删除数据卷（⚠️ 会丢失所有数据）
+   docker-compose down -v
+   
+   # 重新启动
+   docker-compose up -d
+   ```
+
+---
+
+### 2. 设置 Redis 密码
+
+1. **编辑 `.env` 文件**，添加或修改以下变量：
+   ```env
+   # Redis 密码（可选）
+   REDIS_PASSWORD=你的Redis密码
+   ```
+
+2. **重新部署 Redis 服务**：
+   ```powershell
+   # 停止并重新启动 Redis
+   docker-compose up -d --force-recreate redis
+   ```
+
+---
+
+### 3. 修改 JWT 和加密密钥
+
+1. **生成新的随机密钥**：
+   ```powershell
+   # 生成 JWT_SECRET (64字节)
+   node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
+   
+   # 生成 ENCRYPTION_KEY (32字节)
+   node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+   ```
+
+2. **编辑 `.env` 文件**，替换以下变量：
+   ```env
+   JWT_SECRET=刚才生成的64字节密钥
+   ENCRYPTION_KEY=刚才生成的32字节密钥
+   ```
+
+3. **重启后端服务**：
+   ```powershell
+   docker-compose restart backend
+   ```
+
+---
+
+### 4. 修改 Grafana 密码
+
+1. **登录 Grafana**：http://localhost:3001
+2. **用户名**：admin
+3. **密码**：your_grafana_password
+4. **登录后修改密码**：
+   - 点击左侧菜单的 "Administration" → "Users"
+   - 选择 admin 用户
+   - 点击 "Change password"
+
+---
+
+## 部署后可访问的服务
+
+### Docker部署服务列表
+
+| 服务 | 地址 | 默认账号 | 默认密码 |
+|------|------|---------|---------|
+| 前端应用 | http://localhost | admin | 123456 |
+| 后端 API | http://localhost:3000/api | - | - |
+| API 文档 | http://localhost:3000/api-docs | - | - |
+| Grafana | http://localhost:3001 | admin | your_grafana_password |
+| 文档网站 | http://localhost:8080 | - | - |
+| PostgreSQL（外部） | localhost:5433 | happy_farm | happy_farm_password |
+| Redis（外部） | localhost:6380 | - | (无密码) |
+
+### 本地开发服务列表
+
+| 服务 | 地址 | 默认账号 | 默认密码 |
+|------|------|---------|---------|
+| 前端应用 | http://localhost:5173 | admin | 123456 |
+| 后端 API | http://localhost:3000/api | - | - |
+| API 文档 | http://localhost:3000/api-docs | - | - |
+| 文档网站 | http://localhost:5174 | - | - |
+| PostgreSQL | localhost:5432 | happy_farm | happy_farm_password |
+| Redis | localhost:6379 | - | (无密码) |
+
+### 一键启动
+
+#### 方式一：完整本地部署工具（推荐）
+
+提供环境准备、依赖验证、分步部署、断点续传、部署后验证和一键回滚功能。
+
+```powershell
+# 直接运行本地部署工具
+python local_deploy.py
+
+# 或通过 start.py 进入后选择 [2] 本地部署 → [F] 高级部署工具
+python start.py
+```
+
+#### 方式二：快速部署
+
+```powershell
+# Python 脚本（中英双语菜单，自动生成部署日志到 logs/ 目录）
+python start.py
+
+# 或双击 start.bat
+```
+
+> 部署日志保存在 `logs/deployment_YYYYMMDD_HHMMSS_ffffff_PID.log`（微秒级时间戳+进程ID，防止重名冲突），可通过主菜单 `[L]` 查看历史日志。
+
+---
+
+## 修改 `.env` 的完整示例
+
+以下是一个完整的自定义配置示例：
+
+```env
+# ================================================================================
+# 数据库配置
+# ================================================================================
+POSTGRES_DB=happy_farm
+POSTGRES_USER=happy_farm
+POSTGRES_PASSWORD=your_strong_db_password
+
+DATABASE_URL=postgresql://happy_farm:your_strong_db_password@postgres:5432/happy_farm
+DB_HOST=postgres
+DB_PORT=5432
+DB_NAME=happy_farm
+DB_USER=happy_farm
+DB_PASSWORD=your_strong_db_password
+
+# ================================================================================
+# Redis 配置
+# ================================================================================
+REDIS_ENABLED=true
+REDIS_HOST=redis
+REDIS_PORT=6379
+REDIS_PASSWORD=your_redis_password
+REDIS_DB=0
+
+# ================================================================================
+# JWT 和安全配置
+# ================================================================================
+# 生成方式：node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
+JWT_SECRET=your_random_generated_jwt_secret_key_here_64_bytes_minimum
+JWT_EXPIRES_IN=7d
+JWT_REFRESH_EXPIRES_IN=30d
+# 生成方式：node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+ENCRYPTION_KEY=your_random_generated_encryption_key_here_32_bytes
+```
+
+---
+
+## 安全提示
+
+1. **生产环境必须修改所有默认密码**
+2. **使用强密码**，包含大小写字母、数字和特殊字符
+3. **不要将 `.env` 文件提交到版本控制系统**
+4. **定期轮换密码和密钥**
+5. **如果 Redis 不需要密码，可以保持 `REDIS_PASSWORD` 为空**

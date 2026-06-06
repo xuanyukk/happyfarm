@@ -1,9 +1,19 @@
 import { defineConfig } from 'vitepress'
 
+/**
+ * 文件名：config.mjs
+ * 作者：Trae AI
+ * 日期：2026-06-06
+ * 版本：v2.0.0
+ * 功能描述：VitePress 配置文件，重组侧边栏为 general/player/dev 三区结构
+ * 更新记录：
+ *   2026-06-06 - v2.0.0 - 移除权限控制，文档重组为三区结构
+ */
+
 export default defineConfig({
   title: '开心农场',
   description: '开心农场 - 完整的农场模拟游戏项目文档',
-  
+
   // 禁用死链接检查：避免 localhost 等本地链接和外部链接在构建时的检查失败
   ignoreDeadLinks: true,
 
@@ -16,110 +26,141 @@ export default defineConfig({
   themeConfig: {
     nav: [
       { text: '首页', link: '/' },
-      { text: '快速开始', link: '/guide/getting-started' },
-      { text: '功能特性', link: '/features/overview' },
-      { text: 'API 文档', link: '/api/overview' },
-      { text: '部署指南', link: '/deployment/docker' },
-      { text: '教程资源', link: '/tutorials/' },
+      { text: '快速开始', link: '/general/getting-started' },
+      { text: '游戏指南', link: '/player/core-gameplay' },
+      { text: '功能特性', link: '/player/overview' },
+      {
+        text: '更多',
+        items: [
+          { text: 'API 文档', link: '/dev/api-overview' },
+          { text: '部署指南', link: '/dev/deployment/docker' },
+          { text: '开发者指南', link: '/dev/dev-guide/environment-setup' },
+          { text: '技术文档', link: '/dev/tech/rbac' },
+          { text: '教程资源', link: '/general/tutorials/' },
+        ]
+      },
     ],
 
     sidebar: [
+      // ========== 通用文档 ==========
       {
-        text: '指南',
+        text: '📖 入门指南',
         items: [
-          { text: '介绍', link: '/guide/introduction' },
-          { text: '快速开始', link: '/guide/getting-started' },
-          { text: '项目结构', link: '/guide/project-structure' },
-          { text: '核心玩法', link: '/guide/core-gameplay' },
-          { text: '游戏活动', link: '/guide/game-events' },
-          { text: '用户手册', link: '/guide/user-manual' },
+          { text: '介绍', link: '/general/introduction' },
+          { text: '快速开始', link: '/general/getting-started' },
+          { text: '项目结构', link: '/general/project-structure' },
         ]
       },
       {
-        text: '功能特性',
+        text: '❓ 常见问题',
         items: [
-          { text: '功能概览', link: '/features/overview' },
-          { text: '用户系统', link: '/features/user-system' },
-          { text: '农场管理', link: '/features/farm-management' },
-          { text: '作物系统', link: '/features/crop-system' },
-          { text: '商店系统', link: '/features/shop-system' },
-          { text: '成就系统', link: '/features/achievement-system' },
-          { text: '多货币体系', link: '/features/multi-currency-system' },
-          { text: '数据仓库', link: '/features/data-warehouse' },
+          { text: 'FAQ', link: '/general/faq' },
         ]
       },
       {
-        text: '部署指南',
+        text: '🎓 教程资源',
         items: [
-          { text: 'Docker 部署（完整）', link: '/deployment/docker-full' },
-          { text: 'Docker 部署（快速）', link: '/deployment/docker' },
-          { text: '本地部署（完整）', link: '/deployment/local-full' },
-          { text: '本地部署（快速）', link: '/deployment/local' },
-          { text: '环境配置', link: '/deployment/environment' },
-          { text: '安全加固指南', link: '/deployment/security-hardening' },
-          { text: '灾难恢复和备份', link: '/deployment/disaster-recovery' },
+          { text: '教程概览', link: '/general/tutorials/' },
+          { text: '视频教程', link: '/general/tutorials/video-tutorials' },
+          { text: '代码示例', link: '/general/tutorials/code-examples' },
+        ]
+      },
+
+      // ========== 用户文档 ==========
+      {
+        text: '🎮 游戏指南',
+        items: [
+          { text: '核心玩法', link: '/player/core-gameplay' },
+          { text: '游戏活动', link: '/player/game-events' },
+          { text: '用户手册', link: '/player/user-manual' },
         ]
       },
       {
-        text: '架构设计',
+        text: '🎮 游戏功能',
         items: [
-          { text: '系统架构', link: '/architecture/system' },
-          { text: '数据库设计', link: '/architecture/database' },
-          { text: 'DI 容器', link: '/architecture/di-container' },
+          { text: '功能概览', link: '/player/overview' },
+          { text: '用户系统', link: '/player/user-system' },
+          { text: '农场管理', link: '/player/farm-management' },
+          { text: '作物系统', link: '/player/crop-system' },
+          { text: '商店系统', link: '/player/shop-system' },
+          { text: '成就系统', link: '/player/achievement-system' },
+          { text: '多货币体系', link: '/player/multi-currency-system' },
+          { text: '道具获取途径', link: '/player/item-acquisition' },
+          { text: '农场装饰系统', link: '/player/decoration-system' },
+          { text: '音效系统', link: '/player/sound-system' },
+          { text: '数据仓库', link: '/player/data-warehouse' },
+        ]
+      },
+
+      // ========== 开发管理员文档 ==========
+      {
+        text: '🛠️ 后台管理',
+        items: [
+          { text: '后台管理系统', link: '/dev/admin-system' },
         ]
       },
       {
-        text: '技术实施',
+        text: '🏗️ 架构设计',
         items: [
-          { text: 'RBAC 权限控制', link: '/tech/rbac' },
-          { text: 'WebSocket 优化', link: '/tech/websocket' },
-          { text: '日志分析平台', link: '/tech/logging' },
-          { text: '性能优化', link: '/tech/performance' },
-          { text: '前端渲染优化', link: '/tech/frontend-rendering' },
-          { text: '优化模块使用', link: '/tech/optimization-module' },
-          { text: '监控告警体系', link: '/tech/monitoring' },
-          { text: '业务指标监控', link: '/tech/business-metrics' },
-          { text: 'PM2 进程管理', link: '/tech/pm2' },
-          { text: 'TypeScript迁移指南', link: '/tech/typescript-migration' },
-          { text: '数据库迁移管理', link: '/tech/database-migration' },
-          { text: '性能基准测试', link: '/tech/performance-benchmark' },
+          { text: '系统架构', link: '/dev/architecture/system' },
+          { text: '数据库设计', link: '/dev/architecture/database' },
+          { text: 'DI 容器', link: '/dev/architecture/di-container' },
         ]
       },
       {
-        text: 'API 参考',
+        text: '⚙️ 技术实施',
         items: [
-          { text: 'API 概览', link: '/api/overview' },
-          { text: '访问地址', link: '/api/access-addresses' },
-          { text: '默认账户与访问地址', link: '/api/default-accounts' },
+          { text: 'RBAC 权限控制', link: '/dev/tech/rbac' },
+          { text: 'WebSocket 优化', link: '/dev/tech/websocket' },
+          { text: '缓存失效策略', link: '/dev/tech/cache-strategy' },
+          { text: '日志分析平台', link: '/dev/tech/logging' },
+          { text: '性能优化', link: '/dev/tech/performance' },
+          { text: '前端渲染优化', link: '/dev/tech/frontend-rendering' },
+          { text: '优化模块使用', link: '/dev/tech/optimization-module' },
+          { text: '监控告警体系', link: '/dev/tech/monitoring' },
+          { text: '业务指标监控', link: '/dev/tech/business-metrics' },
+          { text: 'PM2 进程管理', link: '/dev/tech/pm2' },
+          { text: 'TypeScript迁移指南', link: '/dev/tech/typescript-migration' },
+          { text: '数据库迁移管理', link: '/dev/tech/database-migration' },
+          { text: '性能基准测试', link: '/dev/tech/performance-benchmark' },
+          { text: '每日任务系统', link: '/dev/tech/daily-tasks' },
+          { text: '每日折扣系统', link: '/dev/tech/daily-discount' },
         ]
       },
       {
-        text: '开发者指南',
+        text: '🚀 部署指南',
         items: [
-          { text: '开发环境配置', link: '/dev-guide/environment-setup' },
-          { text: '数据库开发工具', link: '/dev-guide/database-tools' },
-          { text: '图标工具链', link: '/dev-guide/icon-tools' },
-          { text: '开发规范', link: '/dev-guide/code-standards' },
-          { text: 'Git 工作流', link: '/dev-guide/git-workflow' },
-          { text: '代码审查检查清单', link: '/dev-guide/code-review' },
-          { text: '测试指南', link: '/dev-guide/testing' },
-          { text: '贡献指南', link: '/dev-guide/contributing' },
+          { text: 'Docker 部署（完整）', link: '/dev/deployment/docker-full' },
+          { text: 'Docker 部署（快速）', link: '/dev/deployment/docker' },
+          { text: '本地部署（完整）', link: '/dev/deployment/local-full' },
+          { text: '本地部署（快速）', link: '/dev/deployment/local' },
+          { text: '环境配置', link: '/dev/deployment/environment' },
+          { text: '安全加固指南', link: '/dev/deployment/security-hardening' },
+          { text: '灾难恢复和备份', link: '/dev/deployment/disaster-recovery' },
+          { text: '密码和配置快速参考', link: '/dev/deployment/quick-reference' },
         ]
       },
       {
-        text: '常见问题',
+        text: '📚 API 参考',
         items: [
-          { text: 'FAQ', link: '/faq/index' },
+          { text: 'API 概览', link: '/dev/api-overview' },
+          { text: '访问地址', link: '/player/access-addresses' },
+          { text: '默认账户与访问地址', link: '/dev/api-default-accounts' },
         ]
       },
       {
-        text: '教程资源',
+        text: '👨‍💻 开发者指南',
         items: [
-          { text: '教程概览', link: '/tutorials/' },
-          { text: '视频教程', link: '/tutorials/video-tutorials' },
-          { text: '代码示例', link: '/tutorials/code-examples' },
+          { text: '开发环境配置', link: '/dev/dev-guide/environment-setup' },
+          { text: '数据库开发工具', link: '/dev/dev-guide/database-tools' },
+          { text: '图标工具链', link: '/dev/dev-guide/icon-tools' },
+          { text: '开发规范', link: '/dev/dev-guide/code-standards' },
+          { text: 'Git 工作流', link: '/dev/dev-guide/git-workflow' },
+          { text: '代码审查检查清单', link: '/dev/dev-guide/code-review' },
+          { text: '测试指南', link: '/dev/dev-guide/testing' },
+          { text: '贡献指南', link: '/dev/dev-guide/contributing' },
         ]
-      }
+      },
     ],
 
     socialLinks: [
