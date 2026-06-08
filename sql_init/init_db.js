@@ -3,10 +3,11 @@
 /**
  * 文件名：init_db.js
  * 作者：Trae AI、xuanyukk
- * 日期：2026-06-02
- * 版本：v4.71.6
+ * 日期：2026-06-07
+ * 版本：v4.72.1
  * 功能描述：使用pg库初始化开心农场数据库，创建表结构并导入初始数据
  * 更新记录：
+ *   2026-06-07 - v4.72.1 - 补充缺失的schema 34-44和数据16-18，新增归档表和drop表列表
  *   2026-06-02 - v4.71.6 - 同步项目版本号，表总数84张
  *   2026-05-23 - v4.53.0 - 移除旧版system_config表，统一使用game_config，更新表总数为69张
  *   2026-05-22 - v4.51.0 - 添加游戏活动系统短中期优化（触发器、统计、模板系统、定时任务）
@@ -130,7 +131,19 @@ const sqlConfig = {
     '02_schema/30_announcement_system.sql',
     '02_schema/31_game_config_system.sql',
     '02_schema/32_data_warehouse.sql',
-    '02_schema/33_game_event_system.sql'
+    '02_schema/33_game_event_system.sql',
+    '02_schema/34_config_change_log.sql',
+    '02_schema/35_player_shop_daily_limit.sql',
+    '02_schema/36_player_level_config.sql',
+    '02_schema/37_daily_task_config.sql',
+    '02_schema/38_item_drop_config.sql',
+    '02_schema/39_player_daily_task.sql',
+    '02_schema/40_player_item_usage_log.sql',
+    '02_schema/41_player_combo_tracker.sql',
+    '02_schema/42_daily_discount_goods.sql',
+    '02_schema/43_player_skin_record.sql',
+    '02_schema/44_farm_decoration.sql',
+    '02_schema/45_log_cleanup.sql'
   ],
   // 第四阶段：初始数据插入
   data: [
@@ -147,7 +160,10 @@ const sqlConfig = {
     '03_data/11_announcement_data.sql',
     '03_data/12_game_config_data.sql',
     '03_data/14_admin_system_data.sql',
-    '03_data/15_game_event_data.sql'
+    '03_data/15_game_event_data.sql',
+    '03_data/16_player_level_config_data.sql',
+    '03_data/17_daily_task_config_data.sql',
+    '03_data/18_item_drop_config_data.sql'
   ]
 };
 
@@ -155,7 +171,19 @@ const sqlConfig = {
 const dropTablesOrder = [
     // 视图先删除
     'v_retention_analysis', 'v_revenue_stats', 'v_crop_stats', 'v_dau_stats',
-    // 游戏活动中期优化表
+    // 日志归档表
+    'game_activity_log_archive_2026_09', 'game_activity_log_archive_2026_08',
+    'game_activity_log_archive_2026_07', 'game_activity_log_archive_2026_06',
+    'game_activity_log_archive',
+    'player_currency_log_archive_2026_09', 'player_currency_log_archive_2026_08',
+    'player_currency_log_archive_2026_07', 'player_currency_log_archive_2026_06',
+    'player_currency_log_archive',
+    // 日志分区子表
+    'game_activity_log_2026_09', 'game_activity_log_2026_08',
+    'game_activity_log_2026_07', 'game_activity_log_2026_06',
+    'player_currency_log_2026_09', 'player_currency_log_2026_08',
+    'player_currency_log_2026_07', 'player_currency_log_2026_06',
+    // 游戏中后期优化表
     'game_event_task_logs', 'game_event_scheduled_tasks',
     'game_event_template_variables', 'game_event_template_versions',
     // 游戏活动短期优化表
@@ -163,12 +191,19 @@ const dropTablesOrder = [
     'game_event_trigger_logs', 'game_event_triggers',
     // 游戏活动基础表
     'game_event_rewards', 'player_event_progress', 'game_event_tasks', 'game_events', 'game_event_templates',
-  // 数据仓库事实表
-  'fact_daily_revenue', 'fact_crop_planting', 'fact_daily_transactions', 'fact_daily_active_players',
-  // 数据仓库维度表
-  'dim_crop', 'dim_player', 'dim_date',
-  // 其他表（保持原顺序）
-  'config_change_log', 'config_approval', 'config_version', 'game_config',
+    // 数据仓库事实表
+    'fact_daily_revenue', 'fact_crop_planting', 'fact_daily_transactions', 'fact_daily_active_players',
+    // 数据仓库维度表
+    'dim_crop', 'dim_player', 'dim_date',
+    // 农场装饰表
+    'farm_beauty_record', 'farm_decoration_placement', 'player_decoration_inventory',
+    // 皮肤/组合/折扣表
+    'player_skin_record', 'player_combo_tracker', 'daily_discount_goods',
+    // 每日任务/道具记录表
+    'player_item_usage_log', 'player_daily_task', 'item_drop_config',
+    'daily_task_config', 'player_level_config', 'player_shop_daily_limit',
+    // 其他表
+    'config_change_log', 'config_approval', 'config_version', 'game_config',
   'announcement_draft', 'announcement_read', 'announcement', 'announcement_category',
   'admin_login_log', 'admin_session', 'admins',
   'achievement_unlock_log', 'player_achievement', 'achievement_definition',
@@ -351,7 +386,16 @@ async function initDatabase() {
       'game_event_stats', 'game_event_funnel',
       // 游戏活动管理表（中期规划）
       'game_event_template_versions', 'game_event_template_variables',
-      'game_event_scheduled_tasks', 'game_event_task_logs'
+      'game_event_scheduled_tasks', 'game_event_task_logs',
+      // 新增表（34-44）
+      'config_change_log', 'player_shop_daily_limit',
+      'player_level_config', 'daily_task_config', 'player_daily_task',
+      'item_drop_config', 'player_item_usage_log',
+      'player_combo_tracker', 'daily_discount_goods',
+      'player_skin_record', 'player_decoration_inventory',
+      'farm_decoration_placement', 'farm_beauty_record',
+      // 日志归档表
+      'player_currency_log_archive', 'game_activity_log_archive'
     ];
     
     let allTablesOk = true;
@@ -426,7 +470,7 @@ async function initDatabase() {
     console.log('  9. 数据仓库：BI分析表已就绪，支持DAU、留存、营收分析');
     console.log(' 10. 性能优化：新增10+查询优化索引，覆盖所有核心查询场景');
     console.log(' 11. 游戏活动系统：活动管理、触发器、统计、模板系统、定时任务');
-    console.log('📊 数据表：共 69 张表（62 张核心表 + 7 张数据仓库表）');
+    console.log('📊 数据表：共 84 张表（含分区表与归档表）');
     console.log('📝 初始数据：全服公共配置，无玩家模拟数据，上线后玩家数据自动生成');
     console.log('👤 默认账户：admin / 123456（管理员）');
     console.log('📖 详细文档：请查看执行顺序说明.md');

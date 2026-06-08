@@ -3,10 +3,11 @@
 /**
  * 文件名：db_manager.js
  * 作者：Trae AI
- * 日期：2026-05-23
- * 版本：v4.60.1
+ * 日期：2026-06-07
+ * 版本：v4.72.1
  * 功能描述：交互式数据库管理脚本 - 完整功能版本
  * 更新记录：
+ *   2026-06-07 - v4.72.1 - 补充缺失的schema 34-45和数据16-18，更新drop表列表
  *   2026-05-25 - v4.60.1 - 同步项目版本号，统一内部版本号，表总数更新为69张
  *   2026-05-23 - v4.53.0 - 移除旧版system_config表，统一使用game_config，更新表总数为69张
  *   2026-05-22 - v4.50.0 - 添加缺失的3个数据文件，统一版本号，修复数据完整性问题
@@ -196,7 +197,19 @@ const sqlFiles = {
     '02_schema/30_announcement_system.sql',
     '02_schema/31_game_config_system.sql',
     '02_schema/32_data_warehouse.sql',
-    '02_schema/33_game_event_system.sql'
+    '02_schema/33_game_event_system.sql',
+    '02_schema/34_config_change_log.sql',
+    '02_schema/35_player_shop_daily_limit.sql',
+    '02_schema/36_player_level_config.sql',
+    '02_schema/37_daily_task_config.sql',
+    '02_schema/38_item_drop_config.sql',
+    '02_schema/39_player_daily_task.sql',
+    '02_schema/40_player_item_usage_log.sql',
+    '02_schema/41_player_combo_tracker.sql',
+    '02_schema/42_daily_discount_goods.sql',
+    '02_schema/43_player_skin_record.sql',
+    '02_schema/44_farm_decoration.sql',
+    '02_schema/45_log_cleanup.sql'
   ],
   data: [
     '03_data/01_world_level_data.sql',
@@ -212,7 +225,10 @@ const sqlFiles = {
     '03_data/11_announcement_data.sql',
     '03_data/12_game_config_data.sql',
     '03_data/14_admin_system_data.sql',
-    '03_data/15_game_event_data.sql'
+    '03_data/15_game_event_data.sql',
+    '03_data/16_player_level_config_data.sql',
+    '03_data/17_daily_task_config_data.sql',
+    '03_data/18_item_drop_config_data.sql'
   ]
 };
 
@@ -227,9 +243,34 @@ const coreTables = [
 // 删除表顺序
 const dropTablesOrder = [
   'v_retention_analysis', 'v_revenue_stats', 'v_crop_stats', 'v_dau_stats',
+  // 日志归档表
+  'game_activity_log_archive_2026_09', 'game_activity_log_archive_2026_08',
+  'game_activity_log_archive_2026_07', 'game_activity_log_archive_2026_06',
+  'game_activity_log_archive',
+  'player_currency_log_archive_2026_09', 'player_currency_log_archive_2026_08',
+  'player_currency_log_archive_2026_07', 'player_currency_log_archive_2026_06',
+  'player_currency_log_archive',
+  // 日志分区子表
+  'game_activity_log_2026_09', 'game_activity_log_2026_08',
+  'game_activity_log_2026_07', 'game_activity_log_2026_06',
+  'player_currency_log_2026_09', 'player_currency_log_2026_08',
+  'player_currency_log_2026_07', 'player_currency_log_2026_06',
+  // 游戏中后期优化表
+  'game_event_task_logs', 'game_event_scheduled_tasks',
+  'game_event_template_variables', 'game_event_template_versions',
+  // 游戏活动短期优化表
+  'game_event_funnel', 'game_event_stats',
+  'game_event_trigger_logs', 'game_event_triggers',
   'game_event_rewards', 'player_event_progress', 'game_event_tasks', 'game_events', 'game_event_templates',
   'fact_daily_revenue', 'fact_crop_planting', 'fact_daily_transactions', 'fact_daily_active_players',
   'dim_crop', 'dim_player', 'dim_date',
+  // 农场装饰表
+  'farm_beauty_record', 'farm_decoration_placement', 'player_decoration_inventory',
+  // 皮肤/组合/折扣表
+  'player_skin_record', 'player_combo_tracker', 'daily_discount_goods',
+  // 每日任务/道具记录表
+  'player_item_usage_log', 'player_daily_task', 'item_drop_config',
+  'daily_task_config', 'player_level_config', 'player_shop_daily_limit',
   'config_change_log', 'config_approval', 'config_version', 'game_config',
   'announcement_draft', 'announcement_read', 'announcement', 'announcement_category',
   'admin_login_log', 'admin_session', 'admins',

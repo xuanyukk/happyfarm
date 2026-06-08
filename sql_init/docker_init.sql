@@ -14,6 +14,7 @@
 --   2026-05-25 - v4.60.1 - 同步项目版本号，表总数确认为69张
 --   2026-05-26 - v4.61.0 - 新增配置变更日志增强表（34_config_change_log），增强回滚机制
 --   2026-06-06 - v4.72.0 - 修复缺失39_player_daily_task.sql，同步版本号
+--   2026-06-07 - v4.72.1 - 新增45_log_cleanup.sql（日志归档清理机制）
 -- ============================================
 
 \echo '========================================'
@@ -77,6 +78,7 @@
 \i '/docker-entrypoint-initdb.d/sql_init/02_schema/42_daily_discount_goods.sql'
 \i '/docker-entrypoint-initdb.d/sql_init/02_schema/43_player_skin_record.sql'
 \i '/docker-entrypoint-initdb.d/sql_init/02_schema/44_farm_decoration.sql'
+\i '/docker-entrypoint-initdb.d/sql_init/02_schema/45_log_cleanup.sql'
 \echo '✅ 表结构创建完成!'
 
 -- ============================================
