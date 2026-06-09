@@ -2,9 +2,13 @@
  * 文件名：playerService.js
  * 作者：开发者
  * 日期：2026-03-21
- * 版本：v2.2.0
- * 功能描述：玩家服务，处理三等级体系（玩家等级、农场等级、世界等级）的升级、查询等功能
+ * 版本：v2.14.0
+ * 功能描述：玩家核心服务 - 等级系统、经验管理、体力恢复、离线收益、世界等级、农场等级
  * 更新记录：
+ * 2026-06-10 - v2.13.0 - 🔴 修复 addExp/checkAndUpgradeLevel 使用独立连接导致
+ *             无法与调用方事务原子化；增加 externalClient 可选参数复用外部事务
+ * 2026-06-10 - v2.14.0 - recoverStamina 改为事务+FOR UPDATE行锁防并发体力超量；
+ *             getOfflineRewards 包装事务保护金币/经验/updated_at原子性
  *   2026-03-21 - v1.0.0 - 新建文件，实现三等级体系完整功能
  *   2026-03-24 - v1.1.0 - 添加输入验证和类型转换，修复 NaN 错误，确保所有经验计算返回有效数字
  *   2026-03-24 - v1.2.0 - 重新设计经验计算方法，使用正确的作物字段（world_id、growth_cycle、base_yield、sell_price）
@@ -13,6 +17,7 @@
  *   2026-03-25 - v2.0.0 - 等级系统平衡修复：调整升级所需经验，添加基于作物基础经验值的计算方法
  *   2026-05-24 - v2.1.0 - 性能优化：checkAndUpgradeLevel/addExp中SELECT *改为精确字段
  *   2026-05-31 - v2.2.0 - LG-03修复：接入player_level_config表替换硬编码公式，支持里程碑奖励和体力上限
+ *   2026-06-09 - v2.3.0 - 时间字段统一：update_time → updated_at, create_time → created_at
  */
 
 const pool = require('../config/db');
@@ -242,8 +247,8 @@ const getPlayerData = async function (playerId) {
       max_stamina: player.max_stamina || 100,
       avatar: player.avatar || '👤',
       is_admin: player.is_admin || false,
-      create_time: player.create_time,
-      update_time: player.update_time,
+      created_at: player.created_at,
+      updated_at: player.updated_at,
     };
   } catch (error) {
     logger.error('获取玩家数据失败', { playerId, error: error.message });
@@ -251,10 +256,11 @@ const getPlayerData = async function (playerId) {
   }
 };
 
-const checkAndUpgradeLevel = async function (playerId) {
-  const client = await pool.connect();
+const checkAndUpgradeLevel = async function (playerId, externalClient = null) {
+  const client = externalClient || await pool.connect();
+  const ownClient = !externalClient;
   try {
-    await client.query('BEGIN');
+    if (ownClient) await client.query('BEGIN');
 
     const query =
       'SELECT player_id, player_level, player_exp, farm_level, farm_exp, world_level, world_exp, max_stamina FROM player_base WHERE player_id = $1 FOR UPDATE';
@@ -342,7 +348,7 @@ const checkAndUpgradeLevel = async function (playerId) {
     ) {
       await client.query(
         `UPDATE player_base 
-         SET player_level = $1, farm_level = $2, world_level = $3, max_stamina = $4, update_time = CURRENT_TIMESTAMP
+         SET player_level = $1, farm_level = $2, world_level = $3, max_stamina = $4, updated_at = CURRENT_TIMESTAMP
          WHERE player_id = $5`,
         [newPlayerLevel, newFarmLevel, newWorldLevel, newMaxStamina, playerId]
       );
@@ -397,7 +403,7 @@ const checkAndUpgradeLevel = async function (playerId) {
       }
     }
 
-    await client.query('COMMIT');
+    if (ownClient) await client.query('COMMIT');
 
     return {
       success: true,
@@ -411,18 +417,19 @@ const checkAndUpgradeLevel = async function (playerId) {
       maxStamina: newMaxStamina,
     };
   } catch (error) {
-    await client.query('ROLLBACK');
+    if (ownClient) await client.query('ROLLBACK');
     logger.error('检查升级失败', { playerId, error: error.message });
     throw error;
   } finally {
-    client.release();
+    if (ownClient) client.release();
   }
 };
 
-const addExp = async function (playerId, playerExp, farmExp, worldExp) {
-  const client = await pool.connect();
+const addExp = async function (playerId, playerExp, farmExp, worldExp, externalClient = null) {
+  const client = externalClient || await pool.connect();
+  const ownClient = !externalClient;
   try {
-    await client.query('BEGIN');
+    if (ownClient) await client.query('BEGIN');
 
     const query =
       'SELECT player_id, player_level, player_exp, farm_level, farm_exp, world_level, world_exp FROM player_base WHERE player_id = $1 FOR UPDATE';
@@ -441,12 +448,12 @@ const addExp = async function (playerId, playerExp, farmExp, worldExp) {
        SET player_exp = player_exp + $1, 
            farm_exp = COALESCE(farm_exp, 0) + $2, 
            world_exp = COALESCE(world_exp, 0) + $3,
-           update_time = CURRENT_TIMESTAMP
+           updated_at = CURRENT_TIMESTAMP
        WHERE player_id = $4`,
       [safePlayerExp, safeFarmExp, safeWorldExp, playerId]
     );
 
-    await client.query('COMMIT');
+    if (ownClient) await client.query('COMMIT');
 
     logger.info('经验添加成功', {
       playerId,
@@ -461,11 +468,11 @@ const addExp = async function (playerId, playerExp, farmExp, worldExp) {
       worldExp: safeWorldExp,
     };
   } catch (error) {
-    await client.query('ROLLBACK');
+    if (ownClient) await client.query('ROLLBACK');
     logger.error('添加经验失败', { playerId, error: error.message });
     throw error;
   } finally {
-    client.release();
+    if (ownClient) client.release();
   }
 };
 
@@ -672,7 +679,7 @@ const unlockWorldLevel = async function (playerId, targetWorldLevel) {
 
     await client.query(
       `UPDATE player_base 
-       SET world_level = $1, update_time = CURRENT_TIMESTAMP
+       SET world_level = $1, updated_at = CURRENT_TIMESTAMP
        WHERE player_id = $2`,
       [targetWorldLevel, playerId]
     );
@@ -708,7 +715,7 @@ const updateAvatar = async function (playerId, avatar) {
   try {
     const query = `
       UPDATE player_base 
-      SET avatar = $1, update_time = CURRENT_TIMESTAMP
+      SET avatar = $1, updated_at = CURRENT_TIMESTAMP
       WHERE player_id = $2
       RETURNING *
     `;
@@ -727,12 +734,16 @@ const updateAvatar = async function (playerId, avatar) {
 };
 
 const recoverStamina = async function (playerId) {
+  const client = await pool.connect();
   try {
+    await client.query('BEGIN');
+
     const playerQuery = `
       SELECT current_stamina, max_stamina, last_stamina_recover_time, player_level
       FROM player_base WHERE player_id = $1
+      FOR UPDATE
     `;
-    const result = await pool.query(playerQuery, [playerId]);
+    const result = await client.query(playerQuery, [playerId]);
 
     if (result.rows.length === 0) {
       throw new Error('玩家不存在');
@@ -747,6 +758,7 @@ const recoverStamina = async function (playerId) {
     const elapsedMinutes = Math.floor((now - lastRecoverTime) / 60000);
 
     if (elapsedMinutes <= 0) {
+      await client.query('COMMIT');
       return {
         currentStamina: player.current_stamina,
         maxStamina,
@@ -765,13 +777,15 @@ const recoverStamina = async function (playerId) {
       newStamina > player.current_stamina ||
       maxStamina !== player.max_stamina
     ) {
-      await pool.query(
+      await client.query(
         `UPDATE player_base
          SET current_stamina = $1, max_stamina = $2, last_stamina_recover_time = CURRENT_TIMESTAMP
          WHERE player_id = $3`,
         [newStamina, maxStamina, playerId]
       );
     }
+
+    await client.query('COMMIT');
 
     const remainingToMax = maxStamina - newStamina;
     const recoverTimeSeconds = remainingToMax > 0 ? remainingToMax * 60 : null;
@@ -782,8 +796,11 @@ const recoverStamina = async function (playerId) {
       recoverTime: recoverTimeSeconds,
     };
   } catch (error) {
+    await client.query('ROLLBACK');
     logger.error('体力恢复失败', { playerId, error: error.message });
     throw error;
+  } finally {
+    client.release();
   }
 };
 
@@ -820,24 +837,30 @@ const calculateMaxStamina = async function (playerLevel) {
 };
 
 const getOfflineRewards = async function (playerId) {
+  const client = await pool.connect();
   try {
+    await client.query('BEGIN');
+
     const playerQuery = `
-      SELECT player_level, farm_level, world_level, update_time
+      SELECT player_level, farm_level, world_level, updated_at
       FROM player_base WHERE player_id = $1
+      FOR UPDATE
     `;
-    const result = await pool.query(playerQuery, [playerId]);
+    const result = await client.query(playerQuery, [playerId]);
 
     if (result.rows.length === 0) {
+      await client.query('ROLLBACK');
       throw new Error('玩家不存在');
     }
 
     const player = result.rows[0];
     const now = new Date();
-    const lastLogin = new Date(player.update_time || now);
+    const lastLogin = new Date(player.updated_at || now);
     const offlineMs = now - lastLogin;
     const offlineMinutes = Math.floor(offlineMs / 60000);
 
     if (offlineMinutes < 5) {
+      await client.query('COMMIT');
       return { hasRewards: false, offlineMinutes: 0 };
     }
 
@@ -850,38 +873,31 @@ const getOfflineRewards = async function (playerId) {
     const expRate = 5 + player.player_level;
     const expEarned = Math.floor(offlineMinutes * expRate * 0.3);
 
-    await pool.query(
-      `UPDATE player_base SET update_time = CURRENT_TIMESTAMP WHERE player_id = $1`,
+    // updated_at 更新移至事务内，与其他写操作原子化
+    await client.query(
+      `UPDATE player_base SET updated_at = CURRENT_TIMESTAMP WHERE player_id = $1`,
       [playerId]
     );
 
-    // 并行执行金币和经验更新
-    const updatePromises = [];
     if (goldEarned > 0) {
-      updatePromises.push(
-        pool.query(
-          `UPDATE player_currency 
-           SET currency_num = currency_num + $1, total_earn = total_earn + $1, daily_earn = daily_earn + $1, last_earn_time = CURRENT_TIMESTAMP
-           WHERE player_id = $2`,
-          [goldEarned, playerId]
-        )
+      await client.query(
+        `UPDATE player_currency 
+         SET currency_num = currency_num + $1, total_earn = total_earn + $1, daily_earn = daily_earn + $1, last_earn_time = CURRENT_TIMESTAMP
+         WHERE player_id = $2`,
+        [goldEarned, playerId]
       );
     }
 
     if (expEarned > 0) {
-      updatePromises.push(
-        pool.query(
-          `UPDATE player_base 
-           SET player_exp = player_exp + $1, update_time = CURRENT_TIMESTAMP
-           WHERE player_id = $2`,
-          [expEarned, playerId]
-        )
+      await client.query(
+        `UPDATE player_base 
+         SET player_exp = player_exp + $1, updated_at = CURRENT_TIMESTAMP
+         WHERE player_id = $2`,
+        [expEarned, playerId]
       );
     }
 
-    if (updatePromises.length > 0) {
-      await Promise.all(updatePromises);
-    }
+    await client.query('COMMIT');
 
     const offlineHours = Math.floor(offlineMinutes / 60);
 
@@ -924,8 +940,11 @@ const getOfflineRewards = async function (playerId) {
       details,
     };
   } catch (error) {
+    await client.query('ROLLBACK');
     logger.error('离线收益计算失败', { playerId, error: error.message });
     return { hasRewards: false, offlineMinutes: 0 };
+  } finally {
+    client.release();
   }
 };
 

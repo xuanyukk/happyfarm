@@ -2,7 +2,7 @@
  * 文件名：server.js
  * 作者：开发者
  * 日期：2026-05-22
- * 版本：v3.11.0
+ * 版本：v2.11.0
  * 功能描述：后端服务器入口文件
  * 更新记录：
  *   2026-03-19 - v1.0.0 - 初始版本创建
@@ -38,6 +38,7 @@
  *   2026-05-26 - v3.9.0 - 添加Grafana监控嵌入功能和批量数据导入/导出路由
  *   2026-05-26 - v3.10.0 - 优化全局异常处理（优雅关闭），为管理后台路由集成express-validator请求验证
  *   2026-06-05 - v3.11.0 - 拆分行内管理员路由到adminManagementRoutes.js，精简server.js至约800行
+ *   2026-06-10 - v2.11.0 - 集成限流中间件（全局限流与认证路由宽松限流）
  */
 
 // 修复Windows终端中文乱码问题
@@ -58,6 +59,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const { rateLimiterMiddleware, softRateLimiterMiddleware } = require('./middleware/rateLimiter');
 const compression = require('compression');
 const dotenv = require('dotenv');
 const swaggerUi = require('swagger-ui-express');
@@ -97,6 +99,7 @@ const economyRoutes = require('./routes/economyRoutes');
 const gameActivityRoutes = require('./routes/gameActivityRoutes');
 const achievementRoutes = require('./routes/achievementRoutes');
 const adminRoutes = require('./routes/adminRoutes');
+const adminAnalyticsRoutes = require('./routes/adminAnalyticsRoutes');
 const rbacRoutes = require('./routes/rbacRoutes');
 const announcementRoutes = require('./routes/announcementRoutes');
 const configRoutes = require('./routes/configRoutes');
@@ -265,23 +268,17 @@ app.use((req, res, next) => {
 // 速率限制（防止暴力破解）
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15分钟
-  max: parseInt(process.env.RATE_LIMIT_MAX), // 从环境变量获取限制次数
+  max: parseInt(process.env.RATE_LIMIT_MAX) || 100, // 从环境变量获取限制次数，默认100次
   message: { message: '请求过于频繁，请稍后再试' },
   standardHeaders: true,
   legacyHeaders: false,
 });
 // 将限流器应用到所有认证路由，防止暴力破解和枚举攻击
-app.use('/api/auth', (req, res, next) => {
-  limiter(req, res, (err) => {
-    if (err) {
-      logger.warn('速率限制触发', {
-        ip: req.ip,
-        url: req.originalUrl,
-      });
-    }
-    next();
-  });
-});
+// 全局限流中间件（基于Redis的分布式限流）
+app.use(rateLimiterMiddleware);
+// 认证路由宽松限流
+app.use('/api/auth', softRateLimiterMiddleware);
+app.use('/api/auth', limiter);
 
 // Prometheus指标端点（仅在prom-client可用时）
 app.get('/api/metrics', async (req, res) => {
@@ -301,9 +298,10 @@ app.use('/api/crops', cropRoutes);
 app.use('/api/shop', shopRoutes);
 app.use('/api/items', itemRoutes);
 app.use('/api/economy', economyRoutes);
-app.use('/api/game-activity', gameActivityRoutes);
+app.use('/api/game-activities', gameActivityRoutes);
 app.use('/api', achievementRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/admin/analytics', adminAnalyticsRoutes);
 app.use('/api/admin/rbac', rbacRoutes);
 app.use('/api/admin/announcements', announcementRoutes);
 app.use('/api/admin/configs', configRoutes);

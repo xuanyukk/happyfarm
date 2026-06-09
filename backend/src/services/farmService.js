@@ -2,19 +2,33 @@
  * 文件名：farmService.js
  * 作者：开发者
  * 日期：2026-03-21
- * 版本：v1.5.0
- * 功能描述：农场服务，处理地块解锁、状态查询、品质提升等
+ * 版本：v2.10.0
+ * 功能描述：农场服务 - 地块解锁、品质升级、星级升级、等级配置查询
  * 更新记录：
+ * 2026-06-10 - v2.10.0 - 集成分布式锁：unlockLand 通过 withLock 防止并发冲突
  *   2026-03-21 - v1.1.0 - 修复数据库字段名映射，添加upgradeLandQuality函数实现8档品质提升功能
  *   2026-03-22 - v1.2.0 - 修复解锁地块的货币日志参数错误
  *   2026-03-23 - v1.3.0 - 获取地块时返回完整解锁要求信息（玩家等级、农场等级、世界等级）
  *   2026-03-28 - v1.4.0 - 【阶段二完成】品质提升功能完整实现，支持8档品质逐块覆盖
  *   2026-05-30 - v1.5.0 - getPlayerLands增加产量预估(min_yield/max_yield/base_yield)和道具效果剩余时间
+ *   2026-06-09 - v1.6.0 - 时间字段统一：update_time → updated_at
+ * 2026-06-10 - v2.9.0 - 🔴 修复 upgradeLandQuality 品质1→2升级全五星统计
+ *             包含未解锁地块导致条件判断错误的问题
  */
 
 const pool = require('../config/db');
 const logger = require('../config/logger');
 const gameActivityService = require('./gameActivityService');
+const { withLock } = require('../utils/distributedLock');
+const {
+  FarmPlotNotFoundError,
+  FarmPlotOccupiedError,
+  UserInsufficientBalanceError,
+  UserLevelInsufficientError,
+  NotFoundError,
+  ConflictError,
+  BadRequestError,
+} = require('../utils/errors');
 
 const getPlayerLands = async function (playerId) {
   try {
@@ -59,6 +73,7 @@ const getPlayerLands = async function (playerId) {
 };
 
 const unlockLand = async function (playerId, landNum) {
+  return withLock(`unlock:${playerId}:${landNum}`, async () => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -67,7 +82,7 @@ const unlockLand = async function (playerId, landNum) {
     const landResult = await client.query(landQuery, [landNum]);
 
     if (landResult.rows.length === 0) {
-      throw new Error('地块不存在');
+      throw new FarmPlotNotFoundError('地块不存在');
     }
 
     const unlockCost = parseInt(landResult.rows[0].unlock_cost);
@@ -77,11 +92,11 @@ const unlockLand = async function (playerId, landNum) {
     const statusResult = await client.query(statusQuery, [playerId, landNum]);
 
     if (statusResult.rows.length === 0) {
-      throw new Error('玩家地块状态不存在');
+      throw new FarmPlotNotFoundError('玩家地块状态不存在');
     }
 
     if (statusResult.rows[0].is_unlocked) {
-      throw new Error('地块已解锁');
+      throw new FarmPlotOccupiedError('地块已解锁');
     }
 
     const currencyQuery =
@@ -89,13 +104,13 @@ const unlockLand = async function (playerId, landNum) {
     const currencyResult = await client.query(currencyQuery, [playerId]);
 
     if (currencyResult.rows.length === 0) {
-      throw new Error('玩家资产数据不存在');
+      throw new FarmPlotNotFoundError('玩家资产数据不存在');
     }
 
     const currentCurrency = parseInt(currencyResult.rows[0].currency_num);
 
     if (currentCurrency < unlockCost) {
-      throw new Error('农场币不足');
+      throw new UserInsufficientBalanceError('农场币不足');
     }
 
     const currencyBefore = currentCurrency;
@@ -156,6 +171,7 @@ const unlockLand = async function (playerId, landNum) {
   } finally {
     client.release();
   }
+  });
 };
 
 const upgradeLandQuality = async function (playerId, landNum, targetQualityId) {
@@ -167,7 +183,7 @@ const upgradeLandQuality = async function (playerId, landNum, targetQualityId) {
     const qualityResult = await client.query(qualityQuery, [targetQualityId]);
 
     if (qualityResult.rows.length === 0) {
-      throw new Error('品质不存在');
+      throw new NotFoundError('品质不存在');
     }
 
     const targetQuality = qualityResult.rows[0];
@@ -185,35 +201,35 @@ const upgradeLandQuality = async function (playerId, landNum, targetQualityId) {
     ]);
 
     if (landStatusResult.rows.length === 0) {
-      throw new Error('地块不存在');
+      throw new FarmPlotNotFoundError('地块不存在');
     }
 
     const currentLand = landStatusResult.rows[0];
 
     if (!currentLand.is_unlocked) {
-      throw new Error('地块未解锁');
+      throw new FarmPlotNotFoundError('地块未解锁');
     }
 
     if (currentLand.current_quality >= targetQualityId) {
-      throw new Error('地块品质已达到或超过目标品质');
+      throw new ConflictError('地块品质已达到或超过目标品质');
     }
 
     if (currentLand.player_level < targetQuality.unlock_player_level) {
-      throw new Error(
+      throw new UserLevelInsufficientError(
         `玩家等级不足，需要${targetQuality.unlock_player_level}级`
       );
     }
     if (currentLand.farm_level < targetQuality.unlock_farm_level) {
-      throw new Error(`农场等级不足，需要${targetQuality.unlock_farm_level}级`);
+      throw new UserLevelInsufficientError(`农场等级不足，需要${targetQuality.unlock_farm_level}级`);
     }
     if (currentLand.world_level < targetQuality.unlock_world_level) {
-      throw new Error(
+      throw new UserLevelInsufficientError(
         `世界等级不足，需要${targetQuality.unlock_world_level}级`
       );
     }
 
     if (currentLand.current_quality + 1 !== targetQualityId) {
-      throw new Error('必须逐品质升级，不能跳级');
+      throw new BadRequestError('必须逐品质升级，不能跳级');
     }
 
     // 从普通品质升级到铜品质：需要所有50块普通品质地块达到5星
@@ -222,19 +238,19 @@ const upgradeLandQuality = async function (playerId, landNum, targetQualityId) {
         `SELECT COUNT(*) as total,
                 COUNT(*) FILTER (WHERE current_quality = 1 AND star_level >= 5) as full_star
          FROM player_land_status
-         WHERE player_id = $1`,
+         WHERE player_id = $1 AND is_unlocked = TRUE`,
         [playerId]
       );
       const { total, full_star } = allLandsResult.rows[0];
       if (parseInt(full_star) < parseInt(total)) {
-        throw new Error(
+        throw new BadRequestError(
           `需要所有普通品质地块达到五星后才能升级为铜品质（当前: ${full_star}/${total}）`
         );
       }
     }
 
     if (targetQuality.cover_cost_type !== 2) {
-      throw new Error('当前品质仅支持农场币覆盖');
+      throw new BadRequestError('当前品质仅支持农场币覆盖');
     }
 
     const coverCost = parseInt(targetQuality.cover_cost_num);
@@ -246,7 +262,7 @@ const upgradeLandQuality = async function (playerId, landNum, targetQualityId) {
     const currentCurrency = parseInt(currencyResult.rows[0].currency_num);
 
     if (currentCurrency < coverCost) {
-      throw new Error('农场币不足');
+      throw new UserInsufficientBalanceError('农场币不足');
     }
 
     const currencyBefore = currentCurrency;
@@ -341,22 +357,23 @@ const upgradeLandStar = async (playerId, landNum) => {
       `SELECT pls.*, pb.player_level
        FROM player_land_status pls
        JOIN player_base pb ON pls.player_id = pb.player_id
-       WHERE pls.player_id = $1 AND pls.land_num = $2`,
+       WHERE pls.player_id = $1 AND pls.land_num = $2
+       FOR UPDATE`,
       [playerId, landNum]
     );
 
     if (landResult.rows.length === 0) {
-      throw new Error('地块不存在');
+      throw new FarmPlotNotFoundError('地块不存在');
     }
 
     const land = landResult.rows[0];
 
     if (!land.is_unlocked) {
-      throw new Error('地块未解锁');
+      throw new FarmPlotNotFoundError('地块未解锁');
     }
 
     if (land.star_level >= 5) {
-      throw new Error('已达到五星，无法继续提升');
+      throw new ConflictError('已达到五星，无法继续提升');
     }
 
     const targetStar = land.star_level + 1;
@@ -368,18 +385,18 @@ const upgradeLandStar = async (playerId, landNum) => {
     );
 
     if (starConfigResult.rows.length === 0) {
-      throw new Error('星级配置不存在');
+      throw new NotFoundError('星级配置不存在');
     }
 
     const starConfig = starConfigResult.rows[0];
 
     if (land.player_level < starConfig.unlock_player_level) {
-      throw new Error(`玩家等级不足，需要${starConfig.unlock_player_level}级`);
+      throw new UserLevelInsufficientError(`玩家等级不足，需要${starConfig.unlock_player_level}级`);
     }
 
     const cost = parseInt(starConfig.upgrade_cost);
     if (cost <= 0) {
-      throw new Error('当前星级无法升级');
+      throw new BadRequestError('当前星级无法升级');
     }
 
     const currencyResult = await client.query(
@@ -388,13 +405,14 @@ const upgradeLandStar = async (playerId, landNum) => {
     );
     const currentCurrency = parseInt(currencyResult.rows[0].currency_num);
     if (currentCurrency < cost) {
-      throw new Error(`金币不足，需要${cost}金币`);
+      throw new UserInsufficientBalanceError(`金币不足，需要${cost}金币`);
     }
 
     await client.query(
       `UPDATE player_currency
        SET currency_num = currency_num - $1,
            total_spend = total_spend + $1,
+           daily_spend = daily_spend + $1,
            last_spend_time = CURRENT_TIMESTAMP
        WHERE player_id = $2`,
       [cost, playerId]
@@ -402,7 +420,7 @@ const upgradeLandStar = async (playerId, landNum) => {
 
     await client.query(
       `UPDATE player_land_status
-       SET star_level = $1, update_time = CURRENT_TIMESTAMP
+       SET star_level = $1, updated_at = CURRENT_TIMESTAMP
        WHERE player_id = $2 AND land_num = $3`,
       [targetStar, playerId, landNum]
     );

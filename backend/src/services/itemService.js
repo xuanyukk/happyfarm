@@ -2,13 +2,16 @@
  * 文件名: itemService.js
  * 作者: Trae AI
  * 日期: 2026-05-13
- * 版本: v2.7.0
+ * 版本: v2.11.0
  * 功能描述: 道具服务 - 完整的30种道具功能实现（含二期扩展）
  * 更新记录:
- *   2026-05-24 - v2.6.0 - 性能优化：useTimeHourglass循环UPDATE改为批量单条SQL；修复useFarmBook/useWorldBook/useStaminaPotion中updated_at字段名
- *   2026-05-31 - v2.7.0 - 修复useStaminaPotion：体力上限改用player.max_stamina，支持等级解锁后的更高上限
- *   2026-05-31 - v2.8.0 - IS-02修复：useHarvestGod设置yield_boost_end_time；IS-03修复：useFarmBook/useWorldBook调用checkAndUpgradeLevel；IS-04修复：useTimeHourglass添加地块状态校验
- *   2026-05-31 - v2.9.0 - 方案B：新增10种道具类型（21-30），含浇水强化/施肥强化/收获强化/皮肤/装饰
+ *   2026-05-24 - v2.6.0 - 性能优化：useTimeHourglass循环UPDATE改为批量单条SQL
+ *   2026-05-31 - v2.7.0 - 修复useStaminaPotion体力上限
+ *   2026-05-31 - v2.8.0 - IS-02:useHarvestGod设置yield_boost_end_time等
+ *   2026-05-31 - v2.9.0 - 方案B：新增10种道具类型（21-30）
+ *   2026-06-09 - v2.10.0 - 时间字段统一：update_time → updated_at
+ *   2026-06-10 - v2.11.0 - useYieldBoost/useSpeedBoost叠加而非覆盖（乘法，上限2.5x/5x）；
+ *             useHarvestGod仅对无独立增产效果地块生效
  */
 
 const pool = require('../config/db');
@@ -75,7 +78,7 @@ const getPlayerInventory = async function (playerId) {
       FROM player_inventory pi
       INNER JOIN item_config ic ON pi.item_obj_id = ic.item_id
       WHERE pi.player_id = $1 AND pi.item_type = 2 AND pi.item_num > 0
-      ORDER BY pi.update_time DESC
+      ORDER BY pi.updated_at DESC
     `,
       [playerId]
     );
@@ -231,7 +234,7 @@ const useItem = async function (playerId, itemId, landNum = null) {
     await client.query(
       `
       UPDATE player_inventory 
-      SET item_num = item_num - 1, total_use = total_use + 1, last_use_time = CURRENT_TIMESTAMP, update_time = CURRENT_TIMESTAMP
+      SET item_num = item_num - 1, total_use = total_use + 1, last_use_time = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
       WHERE player_id = $1 AND item_type = 2 AND item_obj_id = $2
     `,
       [playerId, itemId]
@@ -309,20 +312,30 @@ const useYieldBoost = async function (client, playerId, item, landNum) {
   const durationMinutes = item.effect_duration || 30;
   const endTime = new Date(Date.now() + durationMinutes * 60 * 1000);
 
+  // 叠加逻辑：若旧效果未过期，乘法叠加（上限2.5x）
+  let finalBoost = parseFloat(item.effect_value);
+  const existingBoost = parseFloat(land.yield_boost) || 1.0;
+  const existingEnd = land.yield_boost_end_time ? new Date(land.yield_boost_end_time) : null;
+  if (existingBoost !== 1.0 && existingEnd && existingEnd > new Date()) {
+    finalBoost = Math.min(existingBoost * finalBoost, 2.5);
+  }
+
   // 应用增产效果
   await client.query(
     `
     UPDATE player_land_status 
-    SET yield_boost = $1, yield_boost_end_time = $2, update_time = CURRENT_TIMESTAMP
+    SET yield_boost = $1, yield_boost_end_time = $2, updated_at = CURRENT_TIMESTAMP
     WHERE player_id = $3 AND land_num = $4
   `,
-    [item.effect_value, endTime, playerId, landNum]
+    [finalBoost, endTime, playerId, landNum]
   );
 
   return {
-    message: `成功使用${item.item_name}，产量提升${Math.round((item.effect_value - 1) * 100)}%，持续${durationMinutes}分钟`,
+    message: existingBoost !== 1.0 && existingEnd && existingEnd > new Date()
+      ? `成功使用${item.item_name}，产量提升叠加至${Math.round((finalBoost - 1) * 100)}%，持续${durationMinutes}分钟`
+      : `成功使用${item.item_name}，产量提升${Math.round((finalBoost - 1) * 100)}%，持续${durationMinutes}分钟`,
     landNum,
-    yieldBoost: item.effect_value,
+    yieldBoost: finalBoost,
     endTime,
   };
 };
@@ -352,18 +365,28 @@ const useSpeedBoost = async function (client, playerId, item, landNum) {
   // 计算加速结束时间
   const endTime = new Date(Date.now() + item.effect_duration * 60 * 1000);
 
+  // 叠加逻辑：若旧加速效果未过期，乘法叠加（上限5x）
+  let finalSpeed = parseFloat(item.effect_value);
+  const existingSpeed = parseFloat(land.speed_boost) || 1.0;
+  const existingSpeedEnd = land.speed_boost_end_time ? new Date(land.speed_boost_end_time) : null;
+  if (existingSpeed !== 1.0 && existingSpeedEnd && existingSpeedEnd > new Date()) {
+    finalSpeed = Math.min(existingSpeed * finalSpeed, 5.0);
+  }
+
   // 速度加成: 1.0=正常, 10.0=10倍速, amount > 1.0 时 growthCycle /= speed_boost
   await client.query(
     `
     UPDATE player_land_status 
-    SET speed_boost = $1, speed_boost_end_time = $2, update_time = CURRENT_TIMESTAMP
+    SET speed_boost = $1, speed_boost_end_time = $2, updated_at = CURRENT_TIMESTAMP
     WHERE player_id = $3 AND land_num = $4
   `,
-    [item.effect_value, endTime, playerId, landNum]
+    [finalSpeed, endTime, playerId, landNum]
   );
 
   return {
-    message: `成功使用${item.item_name}，生长速度提升${Math.round((item.effect_value - 1) * 100)}%，持续${item.effect_duration}分钟`,
+    message: existingSpeed !== 1.0 && existingSpeedEnd && existingSpeedEnd > new Date()
+      ? `成功使用${item.item_name}，生长速度叠加至${finalSpeed.toFixed(1)}x，持续${item.effect_duration}分钟`
+      : `成功使用${item.item_name}，生长速度提升至${finalSpeed.toFixed(1)}x，持续${item.effect_duration}分钟`,
     landNum,
     speedBoost: item.effect_value,
     endTime,
@@ -400,7 +423,7 @@ const useLuckySeed = async function (client, playerId, item, landNum) {
   await client.query(
     `
     UPDATE player_land_status 
-    SET lucky_seed_active = TRUE, update_time = CURRENT_TIMESTAMP
+    SET lucky_seed_active = TRUE, updated_at = CURRENT_TIMESTAMP
     WHERE player_id = $1 AND land_num = $2
   `,
     [playerId, landNum]
@@ -448,10 +471,10 @@ const useTimeHourglass = async function (client, playerId, item, landNum) {
     await client.query(
       `UPDATE player_land_status 
        SET status = 'harvestable', 
-           harvest_time = CURRENT_TIMESTAMP,
-           update_time = CURRENT_TIMESTAMP
-       WHERE player_id = $1 AND land_num = $2`,
-      [playerId, landNum]
+          harvest_time = CURRENT_TIMESTAMP,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE player_id = $1 AND land_num = $2`,
+     [playerId, landNum]
     );
 
     return {
@@ -474,11 +497,11 @@ const useTimeHourglass = async function (client, playerId, item, landNum) {
   const result = await client.query(
     `UPDATE player_land_status 
      SET status = 'harvestable', 
-         harvest_time = CURRENT_TIMESTAMP,
-         update_time = CURRENT_TIMESTAMP
-     WHERE player_id = $1 AND status = 'planting' AND crop_id IS NOT NULL
-     RETURNING id`,
-    [playerId]
+        harvest_time = CURRENT_TIMESTAMP,
+        updated_at = CURRENT_TIMESTAMP
+    WHERE player_id = $1 AND status = 'planting' AND crop_id IS NOT NULL
+    RETURNING id`,
+   [playerId]
   );
 
   const updatedCount = result.rowCount;
@@ -506,10 +529,19 @@ const useHarvestGod = async function (client, playerId, item) {
     UPDATE player_land_status 
     SET yield_boost = $1,
         yield_boost_end_time = $2,
-        update_time = CURRENT_TIMESTAMP
+        updated_at = CURRENT_TIMESTAMP
     WHERE player_id = $3 AND is_unlocked = TRUE
+      AND (yield_boost = 1.0 OR yield_boost IS NULL OR yield_boost_end_time <= CURRENT_TIMESTAMP)
   `,
     [yieldBoost, endTime, playerId]
+  );
+
+  // 统计跳过的地块数（已有独立增产效果的）
+  const skippedResult = await client.query(
+    `SELECT COUNT(*) as skipped FROM player_land_status 
+     WHERE player_id = $1 AND is_unlocked = TRUE 
+       AND yield_boost > 1.0 AND yield_boost_end_time > CURRENT_TIMESTAMP`,
+    [playerId]
   );
 
   await client.query(
@@ -528,10 +560,15 @@ const useHarvestGod = async function (client, playerId, item) {
     ]
   );
 
+  const skippedCount = parseInt(skippedResult.rows[0].skipped) || 0;
+
   return {
-    message: `成功使用${item.item_name}，${durationHours}小时内所有作物产量+${Math.round((yieldBoost - 1) * 100)}%`,
+    message: skippedCount > 0
+      ? `成功使用${item.item_name}，${durationHours}小时内所有地块产量+${Math.round((yieldBoost - 1) * 100)}%（${skippedCount}个地块已有独立增产效果，未被覆盖）`
+      : `成功使用${item.item_name}，${durationHours}小时内所有作物产量+${Math.round((yieldBoost - 1) * 100)}%`,
     endTime,
     yieldBoost,
+    skippedCount,
   };
 };
 
@@ -561,7 +598,7 @@ const useLandBlessing = async function (client, playerId, item, landNum) {
   await client.query(
     `
     UPDATE player_land_status 
-    SET current_quality = current_quality + 1, update_time = CURRENT_TIMESTAMP
+    SET current_quality = current_quality + 1, updated_at = CURRENT_TIMESTAMP
     WHERE player_id = $1 AND land_num = $2
   `,
     [playerId, landNum]
@@ -595,7 +632,7 @@ const useExpPotion = async function (client, playerId, item, landNum) {
   await client.query(
     `
     UPDATE player_land_status 
-    SET exp_potion_active = TRUE, update_time = CURRENT_TIMESTAMP
+    SET exp_potion_active = TRUE, updated_at = CURRENT_TIMESTAMP
     WHERE player_id = $1 AND land_num = $2
   `,
     [playerId, landNum]
@@ -630,7 +667,7 @@ const useGoldBag = async function (client, playerId, item) {
   await client.query(
     `
     UPDATE player_currency 
-    SET currency_num = currency_num + $1, total_earn = total_earn + $1, daily_earn = daily_earn + $1, last_earn_time = CURRENT_TIMESTAMP, update_time = CURRENT_TIMESTAMP
+    SET currency_num = currency_num + $1, total_earn = total_earn + $1, daily_earn = daily_earn + $1, last_earn_time = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
     WHERE player_id = $2
   `,
     [goldAmount, playerId]
@@ -710,7 +747,7 @@ const useMysteryBox = async function (client, playerId, item) {
         await client.query(
           `
           UPDATE player_inventory 
-          SET item_num = item_num + $1, total_add = total_add + $1, last_add_time = CURRENT_TIMESTAMP, update_time = CURRENT_TIMESTAMP
+          SET item_num = item_num + $1, total_add = total_add + $1, last_add_time = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
           WHERE player_id = $2 AND item_type = 2 AND item_obj_id = $3
         `,
           [quantity, playerId, reward.itemId]
@@ -718,7 +755,7 @@ const useMysteryBox = async function (client, playerId, item) {
       } else {
         await client.query(
           `
-          INSERT INTO player_inventory (player_id, item_type, item_obj_id, item_num, total_add, last_add_time, create_time, update_time)
+          INSERT INTO player_inventory (player_id, item_type, item_obj_id, item_num, total_add, last_add_time, created_at, updated_at)
           VALUES ($1, 2, $2, $3, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
         `,
           [playerId, reward.itemId, quantity]
@@ -779,7 +816,7 @@ const useFarmBook = async function (client, playerId, item) {
   await client.query(
     `
     UPDATE player_base 
-    SET farm_exp = $1, update_time = CURRENT_TIMESTAMP
+    SET farm_exp = $1, updated_at = CURRENT_TIMESTAMP
     WHERE player_id = $2
   `,
     [newFarmExp, playerId]
@@ -830,7 +867,7 @@ const useWorldBook = async function (client, playerId, item) {
   await client.query(
     `
     UPDATE player_base 
-    SET world_exp = $1, update_time = CURRENT_TIMESTAMP
+    SET world_exp = $1, updated_at = CURRENT_TIMESTAMP
     WHERE player_id = $2
   `,
     [newWorldExp, playerId]
@@ -908,7 +945,7 @@ const useStaminaPotion = async function (client, playerId, item) {
   await client.query(
     `
     UPDATE player_base 
-    SET current_stamina = $1, update_time = CURRENT_TIMESTAMP
+    SET current_stamina = $1, updated_at = CURRENT_TIMESTAMP
     WHERE player_id = $2
   `,
     [newStamina, playerId]
@@ -1401,7 +1438,7 @@ const buyItem = async function (playerId, goodsId, quantity = 1) {
     await client.query(
       `
       UPDATE player_currency 
-      SET currency_num = currency_num - $1, total_spend = total_spend + $1, daily_spend = daily_spend + $1, last_spend_time = CURRENT_TIMESTAMP, update_time = CURRENT_TIMESTAMP
+      SET currency_num = currency_num - $1, total_spend = total_spend + $1, daily_spend = daily_spend + $1, last_spend_time = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
       WHERE player_id = $2
     `,
       [totalPrice, playerId]
@@ -1425,7 +1462,7 @@ const buyItem = async function (playerId, goodsId, quantity = 1) {
       await client.query(
         `
         UPDATE player_inventory 
-        SET item_num = item_num + $1, total_add = total_add + $1, last_add_time = CURRENT_TIMESTAMP, update_time = CURRENT_TIMESTAMP
+        SET item_num = item_num + $1, total_add = total_add + $1, last_add_time = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
         WHERE player_id = $2 AND item_type = 2 AND item_obj_id = $3
       `,
         [quantity, playerId, goods.goods_obj_id]
@@ -1433,7 +1470,7 @@ const buyItem = async function (playerId, goodsId, quantity = 1) {
     } else {
       await client.query(
         `
-        INSERT INTO player_inventory (player_id, item_type, item_obj_id, item_num, total_add, last_add_time, create_time, update_time)
+        INSERT INTO player_inventory (player_id, item_type, item_obj_id, item_num, total_add, last_add_time, created_at, updated_at)
         VALUES ($1, 2, $2, $3, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
       `,
         [playerId, goods.goods_obj_id, quantity]

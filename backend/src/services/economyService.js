@@ -2,13 +2,15 @@
  * 文件名：economyService.js
  * 作者：开发者
  * 日期：2026-03-22
- * 版本：v1.3.0
- * 功能描述：经济系统服务，提供货币流水查询功能
+ * 版本：v1.4.0
+ * 功能描述：经济系统服务，提供货币流水查询 + 统一货币操作入口
  * 更新记录：
  *   2026-03-22 - v1.1.1 - 修复字段名与实际表结构一致
  *   2026-03-22 - v1.1.0 - 初始版本创建
  *   2026-03-22 - v1.2.0 - 添加完整字段查询和物品详情关联
- *   2026-05-24 - v1.3.0 - 性能优化：消除getCurrencyLogs N+1查询，改用LEFT JOIN替代逐行查询
+ *   2026-05-24 - v1.3.0 - 性能优化：消除getCurrencyLogs N+1查询
+ *   2026-06-10 - v1.4.0 - 新增 deductCurrency/addCurrency 统一货币操作入口
+ *             （事务内执行、余额校验、日志自动写入）
  */
 
 const pool = require('../config/db');
@@ -176,8 +178,80 @@ async function getSpendingsStats(playerId, startDate = null, endDate = null) {
   return result.rows[0];
 }
 
+/**
+ * 统一扣减货币（在调用方事务内执行）
+ * @param {Object} client - 数据库事务客户端
+ * @param {string} playerId - 玩家ID
+ * @param {number} amount - 扣减金额（正整数）
+ * @param {string} source - 来源标识
+ * @param {number} relatedId - 关联ID（可选）
+ */
+const deductCurrency = async function (client, playerId, amount, source, relatedId = null) {
+  const currencyResult = await client.query(
+    `UPDATE player_currency
+     SET currency_num = currency_num - $1,
+         total_spend = total_spend + $1,
+         daily_spend = daily_spend + $1,
+         last_spend_time = CURRENT_TIMESTAMP
+     WHERE player_id = $2
+     RETURNING currency_num`,
+    [amount, playerId]
+  );
+
+  if (currencyResult.rows.length === 0) {
+    throw Object.assign(new Error('玩家资产数据不存在'), { statusCode: 404 });
+  }
+
+  if (currencyResult.rows[0].currency_num < 0) {
+    throw Object.assign(new Error('余额不足'), { statusCode: 402 });
+  }
+
+  await client.query(
+    `INSERT INTO player_currency_log (player_id, type, amount, change_type, related_id, details, create_time)
+     VALUES ($1, 2, $2, $3, $4, $5, CURRENT_TIMESTAMP)`,
+    [playerId, amount, 'spend', relatedId, JSON.stringify({ source })]
+  );
+
+  return { newBalance: currencyResult.rows[0].currency_num };
+};
+
+/**
+ * 统一增加货币（在调用方事务内执行）
+ * @param {Object} client - 数据库事务客户端
+ * @param {string} playerId - 玩家ID
+ * @param {number} amount - 增加金额（正整数）
+ * @param {string} source - 来源标识
+ * @param {number} relatedId - 关联ID（可选）
+ */
+const addCurrency = async function (client, playerId, amount, source, relatedId = null) {
+  const currencyResult = await client.query(
+    `UPDATE player_currency
+     SET currency_num = currency_num + $1,
+         total_earn = total_earn + $1,
+         daily_earn = daily_earn + $1,
+         last_earn_time = CURRENT_TIMESTAMP
+     WHERE player_id = $2
+     RETURNING currency_num`,
+    [amount, playerId]
+  );
+
+  if (currencyResult.rows.length === 0) {
+    throw Object.assign(new Error('玩家资产数据不存在'), { statusCode: 404 });
+  }
+
+  await client.query(
+    `INSERT INTO player_currency_log (player_id, type, amount, change_type, related_id, details, create_time)
+     VALUES ($1, 1, $2, $3, $4, $5, CURRENT_TIMESTAMP)`,
+    [playerId, amount, 'earn', relatedId, JSON.stringify({ source })]
+  );
+
+  return { newBalance: currencyResult.rows[0].currency_num };
+};
+
 module.exports = {
   getCurrencyLogs,
   getEarningsStats,
   getSpendingsStats,
+  deductCurrency,
+  addCurrency,
 };

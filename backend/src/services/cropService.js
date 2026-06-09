@@ -2,9 +2,13 @@
  * 文件名：cropService.js
  * 作者：开发者
  * 日期：2026-03-21
- * 版本：v2.6.0
- * 功能描述：作物服务，处理种植、收获、出售、作物解锁等功能
+ * 版本：v2.8.0
+ * 功能描述：作物服务 - 种植、收获、批量收获、出售、枯萎检测、道具掉落
  * 更新记录：
+ * 2026-06-10 - v2.8.0 - 集成分布式锁：plantCrop/harvestCrop 通过 withLock 防止并发冲突
+ * 2026-06-10 - v2.7.0 - 修复 harvestCrop/harvestAllMatured 经验/升级检查
+ *             通过独立连接无法与作物入库事务原子化的问题；传入 client
+ *             参数复用外部事务连接
  *   2026-03-21 - v1.1.0 - 修复数据库字段名映射，添加getUnlockedCrops函数实现作物解锁系统，添加道具效果支持
  *   2026-03-22 - v1.2.0 - 修复数据类型转换问题，添加一键收获功能
  *   2026-03-22 - v1.3.0 - 修复出售作物时余额计算的字符串拼接问题
@@ -24,6 +28,17 @@ const logger = require('../config/logger');
 const playerService = require('./playerService');
 const gameActivityService = require('./gameActivityService');
 const currencyConfigService = require('./currencyConfigService');
+const { withLock } = require('../utils/distributedLock');
+const {
+  FarmPlotNotFoundError,
+  FarmPlotOccupiedError,
+  CropNotFoundError,
+  CropNotReadyError,
+  UserNotFoundError,
+  UserInsufficientBalanceError,
+  UserLevelInsufficientError,
+  BadRequestError,
+} = require('../utils/errors');
 
 const calculateRandomYield = function (minYield, maxYield) {
   const safeMin = Math.max(1, parseInt(minYield) || 1);
@@ -167,6 +182,7 @@ const getUnlockedCrops = async function (playerId, worldLevel) {
 };
 
 const plantCrop = async function (playerId, landNum, cropId) {
+  return withLock(`plant:${playerId}:${landNum}`, async () => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -192,21 +208,21 @@ const plantCrop = async function (playerId, landNum, cropId) {
     ]);
 
     if (landResult.rows.length === 0) {
-      throw new Error('地块不存在');
+      throw new FarmPlotNotFoundError('地块不存在');
     }
 
     const land = landResult.rows[0];
 
     if (!land.is_unlocked) {
-      throw new Error('地块未解锁');
+      throw new FarmPlotNotFoundError('地块未解锁');
     }
 
     if (land.crop_id !== null) {
-      throw new Error('地块已种植作物');
+      throw new FarmPlotOccupiedError('地块已种植作物');
     }
 
     if (cropResult.rows.length === 0) {
-      throw new Error('作物不存在');
+      throw new CropNotFoundError('作物不存在');
     }
 
     const crop = cropResult.rows[0];
@@ -214,19 +230,19 @@ const plantCrop = async function (playerId, landNum, cropId) {
     const playerInfo = playerInfoResult.rows[0];
 
     if (!playerInfo) {
-      throw new Error('玩家信息不存在');
+      throw new UserNotFoundError('玩家信息不存在');
     }
 
     if (playerInfo.world_level < crop.world_id) {
-      throw new Error(`需要世界等级 ${crop.world_id} 才能种植该作物`);
+      throw new UserLevelInsufficientError(`需要世界等级 ${crop.world_id} 才能种植该作物`);
     }
     if (playerInfo.player_level < crop.unlock_player_level) {
-      throw new Error(
+      throw new UserLevelInsufficientError(
         `需要玩家等级 ${crop.unlock_player_level} 才能种植该作物`
       );
     }
     if (playerInfo.farm_level < crop.unlock_farm_level) {
-      throw new Error(`需要农场等级 ${crop.unlock_farm_level} 才能种植该作物`);
+      throw new UserLevelInsufficientError(`需要农场等级 ${crop.unlock_farm_level} 才能种植该作物`);
     }
 
     const inventoryQuery = `
@@ -242,7 +258,7 @@ const plantCrop = async function (playerId, landNum, cropId) {
       inventoryResult.rows.length === 0 ||
       inventoryResult.rows[0].item_num < 1
     ) {
-      throw new Error('种子不足');
+      throw new BadRequestError('种子不足');
     }
 
     await client.query(
@@ -267,8 +283,16 @@ const plantCrop = async function (playerId, landNum, cropId) {
       }
     }
 
+    // C-04 修复：校验 growth_cycle 有效性，防止 Invalid Date
+    const rawGrowthCycle = parseInt(crop.growth_cycle);
+    if (!rawGrowthCycle || rawGrowthCycle <= 0 || isNaN(rawGrowthCycle)) {
+      throw new BadRequestError(
+        `作物 ${crop.crop_name} 的生长周期配置无效`
+      );
+    }
+
     const actualGrowthCycle = Math.floor(
-      parseInt(crop.growth_cycle) / actualGrowthSpeed
+      rawGrowthCycle / actualGrowthSpeed
     );
 
     const harvestTime = new Date(Date.now() + actualGrowthCycle * 60 * 1000);
@@ -315,9 +339,11 @@ const plantCrop = async function (playerId, landNum, cropId) {
   } finally {
     client.release();
   }
+  });
 };
 
 const harvestCrop = async function (playerId, landNum) {
+  return withLock(`harvest:${playerId}:${landNum}`, async () => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -331,17 +357,17 @@ const harvestCrop = async function (playerId, landNum) {
     const landResult = await client.query(landQuery, [playerId, landNum]);
 
     if (landResult.rows.length === 0) {
-      throw new Error('地块不存在');
+      throw new FarmPlotNotFoundError('地块不存在');
     }
 
     const land = landResult.rows[0];
 
     if (land.crop_id === null) {
-      throw new Error('地块未种植作物');
+      throw new FarmPlotNotFoundError('地块未种植作物');
     }
 
     if (new Date(land.harvest_time) > new Date()) {
-      throw new Error('作物尚未成熟');
+      throw new CropNotReadyError('作物尚未成熟');
     }
 
     const now = new Date();
@@ -357,7 +383,7 @@ const harvestCrop = async function (playerId, landNum) {
         [playerId, landNum]
       );
       await client.query('COMMIT');
-      throw new Error('作物已枯萎，超过48小时未收获，地块已重置');
+      throw new BadRequestError('作物已枯萎，超过48小时未收获，地块已重置');
     }
 
     const cropQuery = 'SELECT * FROM crop WHERE crop_id = $1';
@@ -447,8 +473,7 @@ const harvestCrop = async function (playerId, landNum) {
       playerData
     );
 
-    await client.query('COMMIT');
-
+    // 【修复 C-01】经验添加移至事务内确保原子性
     let playerExp = playerService.calculatePlayerExpByCrop(
       crop.player_exp_base,
       actualYield,
@@ -470,8 +495,11 @@ const harvestCrop = async function (playerId, landNum) {
       worldExp = worldExp * 2;
     }
 
-    await playerService.addExp(playerId, playerExp, farmExp, worldExp);
-    const upgradeResult = await playerService.checkAndUpgradeLevel(playerId);
+    // 传入当前事务 client，与作物入库在同一事务中
+    await playerService.addExp(playerId, playerExp, farmExp, worldExp, client);
+    const upgradeResult = await playerService.checkAndUpgradeLevel(playerId, client);
+
+    await client.query('COMMIT');
 
     logger.info('作物收获成功', {
       playerId,
@@ -520,6 +548,7 @@ const harvestCrop = async function (playerId, landNum) {
   } finally {
     client.release();
   }
+  });
 };
 
 const sellCrop = async function (playerId, cropId, quantity) {
@@ -540,7 +569,7 @@ const sellCrop = async function (playerId, cropId, quantity) {
       inventoryResult.rows.length === 0 ||
       inventoryResult.rows[0].item_num < quantity
     ) {
-      throw new Error('作物库存不足');
+      throw new BadRequestError('作物库存不足');
     }
 
     const cropQuery =
@@ -555,7 +584,7 @@ const sellCrop = async function (playerId, cropId, quantity) {
     `;
     const currencyResult = await client.query(currencyQuery, [playerId]);
     if (currencyResult.rows.length === 0) {
-      throw new Error('玩家货币数据不存在');
+      throw new UserNotFoundError('玩家货币数据不存在');
     }
 
     const currencyBefore = parseInt(currencyResult.rows[0].currency_num);
@@ -656,7 +685,7 @@ const sellCrop = async function (playerId, cropId, quantity) {
 
 const sellBatchCrops = async function (playerId, items) {
   if (!Array.isArray(items) || items.length === 0) {
-    throw new Error('出售列表不能为空');
+    throw new BadRequestError('出售列表不能为空');
   }
 
   const client = await pool.connect();
@@ -732,7 +761,7 @@ const sellBatchCrops = async function (playerId, items) {
     `;
     const currencyResult = await client.query(currencyQuery, [playerId]);
     if (currencyResult.rows.length === 0) {
-      throw new Error('玩家货币数据不存在');
+      throw new UserNotFoundError('玩家货币数据不存在');
     }
     const currencyBefore = parseInt(currencyResult.rows[0].currency_num);
 
@@ -840,6 +869,19 @@ const harvestAllMatured = async function (playerId) {
     );
     const cropMap = new Map(cropsResult.rows.map((c) => [c.crop_id, c]));
 
+    // 【性能优化】批量预加载库存，避免循环内逐条查询
+    const inventoryResult = await client.query(
+      `SELECT item_obj_id, item_num FROM player_inventory
+       WHERE player_id = $1 AND item_type = 3 AND item_obj_id = ANY($2::int[])
+       FOR UPDATE`,
+      [playerId, cropIds]
+    );
+    const inventoryMap = new Map(
+      inventoryResult.rows.map((r) => [r.item_obj_id, parseInt(r.item_num)])
+    );
+    // 累积收获量，循环结束后批量更新
+    const inventoryAccumulator = new Map();
+
     const harvested = [];
     const failed = [];
     let totalYield = 0;
@@ -926,29 +968,9 @@ const harvestAllMatured = async function (playerId) {
           worldExp = worldExp * 2;
         }
 
-        const inventoryCheck = await client.query(
-          `SELECT id FROM player_inventory 
-           WHERE player_id = $1 AND item_type = 3 AND item_obj_id = $2`,
-          [playerId, land.crop_id]
-        );
-
-        if (inventoryCheck.rows.length > 0) {
-          await client.query(
-            `UPDATE player_inventory 
-             SET item_num = item_num + $1, 
-                 total_add = total_add + $1,
-                 last_add_time = CURRENT_TIMESTAMP
-             WHERE player_id = $2 AND item_type = 3 AND item_obj_id = $3`,
-            [actualYield, playerId, land.crop_id]
-          );
-        } else {
-          await client.query(
-            `INSERT INTO player_inventory 
-             (player_id, item_type, item_obj_id, item_num, total_add, last_add_time)
-             VALUES ($1, 3, $2, $3, $3, CURRENT_TIMESTAMP)`,
-            [playerId, land.crop_id, actualYield]
-          );
-        }
+        // 累积到库存累加器（循环结束后批量更新）
+        const prevAccum = inventoryAccumulator.get(land.crop_id) || 0;
+        inventoryAccumulator.set(land.crop_id, prevAccum + actualYield);
 
         // 重置道具状态
         await client.query(
@@ -1013,15 +1035,38 @@ const harvestAllMatured = async function (playerId) {
       }
     }
 
-    // 经验添加放入事务内，确保经验与收获操作的原子性
+    // 【性能优化】批量更新库存——一次UPSERT替代循环内N次查询
+    for (const [cropId, totalAdd] of inventoryAccumulator) {
+      const existing = inventoryMap.get(cropId) || 0;
+      if (existing > 0) {
+        await client.query(
+          `UPDATE player_inventory 
+           SET item_num = item_num + $1, 
+               total_add = total_add + $1,
+               last_add_time = CURRENT_TIMESTAMP
+           WHERE player_id = $2 AND item_type = 3 AND item_obj_id = $3`,
+          [totalAdd, playerId, cropId]
+        );
+      } else {
+        await client.query(
+          `INSERT INTO player_inventory 
+           (player_id, item_type, item_obj_id, item_num, total_add, last_add_time)
+           VALUES ($1, 3, $2, $3, $3, CURRENT_TIMESTAMP)`,
+          [playerId, cropId, totalAdd]
+        );
+      }
+    }
+
+    // 经验添加放入事务内，复用外部事务连接确保原子性
     if (totalPlayerExp > 0) {
       await playerService.addExp(
         playerId,
         totalPlayerExp,
         totalFarmExp,
-        totalWorldExp
+        totalWorldExp,
+        client
       );
-      await playerService.checkAndUpgradeLevel(playerId);
+      await playerService.checkAndUpgradeLevel(playerId, client);
     }
 
     await client.query('COMMIT');

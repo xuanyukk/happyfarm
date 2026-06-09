@@ -2,7 +2,7 @@
  * 文件名：shopService.js
  * 作者：开发者
  * 日期：2026-03-21
- * 版本：v2.2.0
+ * 版本：v2.4.0
  * 功能描述：商店服务，处理商品购买、库存查询等功能
  * 更新记录：
  *   2026-03-21 - v1.1.0 - 修复编码问题
@@ -12,6 +12,8 @@
  *   2026-03-25 - v2.0.0 - 商店服务优化：获取商品时返回完整详细信息（产量范围、经验值、道具效果等）
  *   2026-05-24 - v2.1.0 - 性能优化：getPlayerInventory从5表LEFT JOIN改为UNION ALL；buyGoods精确字段
  *   2026-05-31 - v2.2.0 - buyGoods支持price_type=2宝石币扣款；新增getCurrencyByPriceType辅助函数
+ *   2026-06-09 - v2.3.0 - 时间字段统一：update_time → updated_at
+ *   2026-06-10 - v2.4.0 - 🔴 修复 buyGoods 缺少玩家等级/世界等级/农场等级解锁条件校验
  */
 
 const pool = require('../config/db');
@@ -180,8 +182,19 @@ const buyGoods = async function (playerId, goodsId, quantity) {
   try {
     await client.query('BEGIN');
 
+    // 查询玩家等级，用于后续等级校验
+    const playerQuery =
+      'SELECT player_level, world_level, farm_level FROM player_base WHERE player_id = $1';
+    const playerResult = await client.query(playerQuery, [playerId]);
+    if (playerResult.rows.length === 0) {
+      throw new Error('玩家不存在');
+    }
+    const playerLevel = playerResult.rows[0].player_level;
+    const worldLevel = playerResult.rows[0].world_level;
+    const farmLevel = playerResult.rows[0].farm_level;
+
     const goodsQuery =
-      'SELECT goods_id, goods_name, goods_type, goods_obj_id, price_num, price_type, stock_limit, is_on_sale FROM shop_goods WHERE goods_id = $1 AND is_on_sale = TRUE';
+      'SELECT goods_id, goods_name, goods_type, goods_obj_id, price_num, price_type, stock_limit, is_on_sale, unlock_player_level, unlock_world_level, unlock_farm_level FROM shop_goods WHERE goods_id = $1 AND is_on_sale = TRUE';
     const goodsResult = await client.query(goodsQuery, [goodsId]);
 
     if (goodsResult.rows.length === 0) {
@@ -189,6 +202,23 @@ const buyGoods = async function (playerId, goodsId, quantity) {
     }
 
     const goods = goodsResult.rows[0];
+
+    // 🔴 P1 修复：校验玩家等级/世界等级/农场等级是否满足商品解锁条件
+    if (goods.unlock_player_level && playerLevel < goods.unlock_player_level) {
+      throw new Error(
+        `需要玩家等级 ${goods.unlock_player_level} 才能购买此商品（当前: ${playerLevel}）`
+      );
+    }
+    if (goods.unlock_world_level && worldLevel < goods.unlock_world_level) {
+      throw new Error(
+        `需要世界等级 ${goods.unlock_world_level} 才能购买此商品（当前: ${worldLevel}）`
+      );
+    }
+    if (goods.unlock_farm_level && farmLevel < goods.unlock_farm_level) {
+      throw new Error(
+        `需要农场等级 ${goods.unlock_farm_level} 才能购买此商品（当前: ${farmLevel}）`
+      );
+    }
     const priceType = parseInt(goods.price_type) || 1;
     const totalCost = parseInt(goods.price_num) * quantity;
 
@@ -254,7 +284,7 @@ const buyGoods = async function (playerId, goodsId, quantity) {
         `UPDATE player_currency
          SET gem_num = gem_num - $1,
              gem_total_spend = gem_total_spend + $1,
-             update_time = CURRENT_TIMESTAMP
+             updated_at = CURRENT_TIMESTAMP
          WHERE player_id = $2`,
         [totalCost, playerId]
       );
@@ -448,7 +478,7 @@ const sellItem = async function (playerId, itemId, quantity = 1) {
     } else {
       await client.query(
         `UPDATE player_inventory
-         SET item_num = item_num - $1, update_time = CURRENT_TIMESTAMP
+         SET item_num = item_num - $1, updated_at = CURRENT_TIMESTAMP
          WHERE player_id = $2 AND item_type = 2 AND item_obj_id = $3`,
         [quantity, playerId, itemId]
       );

@@ -7,6 +7,164 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [4.76.0] - 2026-06-10
+
+### Fixed
+
+- **🟡 [F-03] upgradeLandStar 遗漏 daily_spend 更新** — `upgradeLandStar` 的货币扣减 SQL 只更新 `total_spend`，遗漏 `daily_spend`。同文件的 `unlockLand` 和 `upgradeLandQuality` 都正确更新了此字段
+  - `farmService.js` v2.10.0→v2.10.1
+
+- **🟡 [F-02] upgradeLandStar 缺少地块 FOR UPDATE 锁** — 查询地块状态时未加行锁，并发升级可能导致副作用重复触发
+  - `farmService.js` v2.10.0→v2.10.1
+
+- **🟡 [C-04] plantCrop growth_cycle=0/null 导致 Invalid Date** — `parseInt(null)` = NaN → `new Date(Date.now() + NaN)` = Invalid Date 写入数据库，后续收获判断不可预测。修复后增加有效性校验，非法值抛出 BadRequestError
+  - `cropService.js` v2.7.0→v2.7.1
+
+- **🟡 增产剂/加速剂直接覆盖而非叠加** — `useYieldBoost`/`useSpeedBoost` 使用 `SET` 直接覆盖旧效果值。修复后改为乘法叠加（上限分别为 2.5x 和 5x），提示消息区分"首次使用"和"已叠加"
+  - `itemService.js` v2.10.0→v2.11.0
+
+- **🟡 丰收之神覆盖独立增产效果** — `useHarvestGod` 对所有已解锁地块无差别设置 `yield_boost`，覆盖地块上独立使用的增产剂效果。修复后仅对 `yield_boost=1.0 OR IS NULL` 的地块生效，返回消息包含跳过的地块数
+  - `itemService.js` v2.10.0→v2.11.0
+
+- **🟡 getOfflineRewards 无事务保护** — 三操作（updated_at 更新、金币更新、经验更新）分散独立执行且不在同一事务中。任意一步失败导致数据不一致。修复后包装在同一事务内，查询加 FOR UPDATE
+  - `playerService.js` v2.13.0→v2.14.0
+
+- **🟡 recoverStamina 无行锁** — SELECT 和 UPDATE 之间无 FOR UPDATE，并发请求可能导致体力恢复量计算错误。修复后开启事务 + 查询加 FOR UPDATE
+  - `playerService.js` v2.13.0→v2.14.0
+
+- **🟡 货币操作分散无统一入口** — 金币扣减/增加散落 4 个服务中，各自编写重复的 UPDATE + INSERT 日志。新增 `deductCurrency`/`addCurrency` 统一方法，接收事务 client 在内完成扣款 + 日志写入 + 余额校验
+  - `economyService.js` v1.3.0→v1.4.0
+
+- **🟡 CT-02/03 unlockLand/upgradeLandStar 缺参数校验** — `unlockLand` 的 validationResult 永远不触发（路由未挂载校验链）、`upgradeLandStar` 完全无参数校验。修复后新增校验导出并在路由挂载
+  - `farmController.js` v1.2.1→v1.3.0
+  - `farmRoutes.js` v1.2.0→v1.3.0
+
+---
+
+## [4.75.0] - 2026-06-10
+
+### Fixed
+
+- **🔴 [C-01/C-02] harvestCrop 经验添加非原子化** — 收获经验计算和 `addExp` 调用原本在事务 COMMIT 之后执行，且 `addExp` 和 `checkAndUpgradeLevel` 使用独立数据库连接。修复后将经验计算移至事务内，`addExp` 和 `checkAndUpgradeLevel` 增加 `externalClient` 可选参数，支持复用外部事务连接，确保作物入库、经验添加、等级升级在同一事务中原子完成
+  - `cropService.js` v2.6.0→v2.7.0：harvestCrop/harvestAllMatured 传入 client 参数
+  - `playerService.js` v2.12.0→v2.13.0：addExp/checkAndUpgradeLevel 增加 externalClient 参数
+
+- **🔴 [F-01] 品质1→2升级全五星统计含未解锁地块** — `upgradeLandQuality` 中 COUNT(*) 统计所有 `player_land_status` 记录（含未解锁），导致已解锁全五星但总记录更多的玩家被错误阻止升级。修复后添加 `AND is_unlocked = TRUE` 过滤
+  - `farmService.js` v1.6.0→v2.9.0
+
+- **🔴 [P1] 商店购买缺少等级解锁条件校验** — `buyGoods` 只检查 `is_on_sale`，不校验 `unlock_player_level`/`unlock_world_level`/`unlock_farm_level`，攻击者可绕过前端直接调用 API 购买未解锁商品。修复后查询玩家等级并在购买前校验
+  - `shopService.js` v2.3.0→v2.4.0
+
+- **🔴 [R1] 限流中间件未挂载** — `rateLimiter.js` 实现了完善的 IP+用户双维度限流（Redis分布式+内存降级），但未在任何路由中挂载，除 `/api/auth` 使用的 `express-rate-limit` 外所有游戏接口裸奔。修复后在 server.js 中全局限流 + 认证路由宽松限流
+  - `server.js` v3.11.0→v2.11.0
+
+- **🔴 [L1] 分布式锁未使用** — `distributedLock.js`（基于 Redis SET NX EX + Lua 原子释放）实现完善但零引用。种植/收获/解锁地块操作无并发保护。修复后在 `plantCrop`/`harvestCrop`/`unlockLand` 中集成 `withLock`
+  - `cropService.js` v2.7.0→v2.8.0：plantCrop/harvestCrop 加锁
+  - `farmService.js` v2.9.0→v2.10.0：unlockLand 加锁
+
+- **🔴 [CT-01] 控制器统一返回400丢失HTTP语义** — 所有 controller catch 块硬编码 `res.status(400)` 或 `status(500)`，Service 层抛出的 404/403/409 等错误码全部丢失。修复后新增 `handleError` 辅助函数，根据 `error.statusCode` 动态返回
+  - `farmController.js` v1.2.0→v1.2.1（5个catch块）
+  - `cropController.js` v1.2.0→v1.2.1（6个catch块）
+  - `shopController.js` v1.1.0→v1.1.1（5个catch块）
+  - `itemController.js` v1.2.0→v1.2.1（2个catch块）
+
+---
+
+## [4.74.0] - 2026-06-10
+
+### Changed
+
+- **🎨 前端界面美化——品牌体验升级**
+  - **style.css v3.2.0** — 新增全局精细化：`::selection` 暖金选中色、`:focus-visible` 焦点环、h1-h6 排版系统（`--font-display` + `clamp()` 响应式字号）、Firefox 细滚动条、`prefers-reduced-motion` 无障碍支持
+  - **LoginPage.vue v2.1.0** — 沉浸式品牌重建：天空层浮动云朵动画（cloudDrift）、金色落叶粒子（particleFall）、品牌图标 emoji→PNG、独立登录按钮金色流光动效、品牌标题渐入动效
+  - **Navbar.vue** — 路由高亮 + tooltip：9 个按钮添加 `title` 提示、`:class="nav-btn--active"` 路由高亮金边+脉冲动画、hover 金色辉光、登出按钮红→暖棕、管理员按钮紫→金
+  - **Home.vue v2.16.0** — 修复 `quick-btn` 缺少 `position:relative` 导致 `::before` 定位异常；header 背景透明度 0.18→0.35 + blur 16→20px；侧边栏接入玻璃容器（`backdrop-filter`+`var(--radius-xl)`）；快速操作按钮颜色统一（收获绿/种植金/道具暖棕）
+  - **DashboardPage.vue v2.1.0** — 玻璃拟态卡片/面板、Ant Design 色系→农场 CSS 变量、表格行 hover 效果
+  - **PlayersPage.vue v2.1.0** — 玻璃拟态筛选栏/表格/分页/模态框、按钮徽章硬编码色→CSS 变量、表格行 hover
+  - **CropsPage.vue v1.1.0** — 全套硬编码蓝色系（#3498db）→农场绿 CSS 变量、玻璃化容器/模态框/表单、表格 hover
+  - **LogsPage.vue v3.1.0** — 玻璃拟态渲染模式选择器/筛选栏/表格/分页、CSS 变量替代灰色系、sticky 表头暖棕色调
+  - **ItemsPage.vue v1.1.0** — 10 种道具类型徽章→农场语义色（boost=绿/speed=绿/super=橙/gold=金等）、玻璃化全面改造
+
+### Fixed
+
+- **Home.vue `.quick-btn::before` 定位异常** — 修复伪元素 `position:absolute` 在父元素缺少 `position:relative` 时溢出容器边界
+
+---
+
+## [4.73.0] - 2026-06-10
+
+- **🎨 前端风格重构——设计系统执行断层修复**
+  - **style.css v3.1.0** — 新增兼容别名（`--border-radius-*`、`--glass-shadow`）修复ShopPage/InventoryPage/Navbar/ActionModal中46处无效CSS变量；新增z-index层级体系（base/dropdown/sticky/modal-backdrop/modal-content/toast/loading/tooltip）
+  - **LandCell.vue v2.2.0** — 样式变量化：450+行硬编码色值→CSS变量（`var(--brown-400)`/`var(--brown-600)`/`var(--gold-500)`/`var(--success-500)`/`var(--success-300)`/`var(--text-primary)`/`var(--text-muted)`/`var(--sky-300)`等），品质色阶（1-8级）保留游戏机制特有色彩
+  - **ToastContainer.vue v1.1.0** — Tailwind gray独立色系→大地色系：半透明玻璃拟态背景 + CSS变量文字色，z-index统一为`var(--z-toast)`
+  - **LoadingOverlay.vue v3.0.0** — 靛蓝渐变→深绿大地渐变（`--primary-700→--primary-800`）、金色旋转器+进度条（`var(--gold-500)`/`var(--gold-400)`）、🌾emoji→PNG图片
+
+### Fixed
+
+- **🪟 模态框体系统一** — ActionModal.vue 修复无效`--glass-shadow`→`var(--shadow-lg)`；ShopPage/InventoryPage自建模态框 z-index统一（3000→`var(--z-modal-backdrop)`）、过渡动画名统一（`scale`→`modal`）、移除硬编码`scaleIn`动画
+
+---
+
+## [4.72.0] - 2026-06-09
+
+### Changed
+
+- **🎨 前端界面全面优化**
+  - **EmptyState.vue** — 新建统一空状态组件，支持类型图片（players/logs/events/items/seeds/crops）、自定义提示和操作按钮
+  - **AdminLayout.vue** — 视觉统一到大地色系：侧边栏深绿渐变（`#2c4d37→#1f3827`）、菜单项暖金悬浮/活跃态（`--gold-500` 左边框）、顶部栏玻璃拟态、退出按钮棕色调
+  - **Admin 子页面主题色** — PlayersPage/LogsPage 中 `#1890ff` 蓝色按钮/控件替换为 `var(--primary-500)`（`#4a7c59`）
+  - **Navbar.vue** — 9 个按钮 emoji（🛒🎒📊🎉🏆📝📋⚙️🚪）替换为真实 PNG 图片（`imagePaths.getUIButtonImage()`）
+  - **CurrencyDisplay.vue** — 金币/宝石 emoji（💰💎）替换为 `ui_icon_gold.png` / `ui_icon_gem.png`
+  - **UserInfo.vue** — 头像/等级/农场/世界 emoji（👤⭐🏠🌍）替换为对应 UI 通用图标
+  - **LandCell.vue** — 残留 emoji 替换：空地🌱→空地图标、锁🔒→锁图标、成熟徽章✨→徽章图标、道具加速指示器（📈⚡🍀🧪）→道具图标、使用道具🎒→背包图标
+  - **Home.vue** — PlantModal/QuickPlantModal 种子选择列表 emoji（🌾🌱）替换为 `getSeedIconImage()` 真实种子图标
+  - **ShopPage.vue** — `getGoodsIcon()` 重写：移除硬编码 emoji 数组，改用 `getSeedIconImage()`/`getItemIconImage()`
+
+### Fixed
+
+- **📋 数据字段同步** — `PlayersPage.vue:224` 将 `selectedPlayer.create_time` 修正为 `selectedPlayer.created_at`
+- **🔐 管理员退出清理** — `admin.js` 的 `logoutAdmin()` 同步清除 `playerStore.playerData.is_admin`；`AdminLayout.vue` 退出时调用 playerStore 清理
+- **📂 菜单组初始折叠** — `AdminLayout.vue` 的 `expandedGroups` 初始值补全 `performance` 和 `communications` 组
+- **📱 响应式表格适配** — `AdminLayout.vue` 添加 `@media (max-width: 768px)` 全局表格横向滚动规则（`:deep(table)`），覆盖所有 22 个 Admin 子页面表格
+
+### Added
+
+- **EmptyState.vue** — 统一空状态组件（props: type/message/actionText/actionRoute）
+
+---
+
+## [4.71.9] - 2026-06-09
+
+### Fixed
+
+- **🔐 Token 刷新竞态修复 (P1-8)**
+  - `request.js`: 新增 `isRefreshing`/`refreshSubscribers` 队列保护机制，防止并发 401 导致重复刷新请求
+  - `adminService.js`: 删除独立 axios 实例，改用统一 `request` 实例（含 Token 刷新队列保护）
+  - 消除前端第 3 个 axios 实例的冗余创建
+
+- **🛡️ AdminRoute 竞态修复 (P2-13)**
+  - `router.js`: AdminRoute 导航守卫添加 `checkingAdmin` 防重入标志位
+  - 快速路由切换时使用 `$subscribe` 轮询等待现有 `checkAdminStatus()` 完成
+
+- **🗄️ 数据库字段完善 (P1-13)**
+  - `23_game_activity_log.sql`: `message` 字段添加 `DEFAULT ''`，防御性设计防止插入失败
+
+- **🔀 路由前缀统一 (P2-3)**
+  - 全局 `game-activity` → `game-activities`（复数），涉及 server.js、businessMetricsRoutes.js、gameService.js、adminService.js
+
+- **📝 文件头注释格式化 (P2-6)**
+  - 71 个 .vue 文件头注释从压缩单行格式批量转换为标准 `/** */` 多行格式
+  - 涉及 components（27个）、pages（8个）、pages/admin（36个）
+
+### Changed
+
+- **📋 优化报告更新**
+  - `优化建议报告_v4.71.8.md` 完成度从 86% 提升至 95%（53/56）
+  - 3 项有意保留（冗余文件、HelloWorld、.env）
+  - 仅余 ESLint 升级和 TypeScript 迁移属工具链长期规划
+
+---
+
 ## [4.71.7] - 2026-06-04
 
 ### Fixed

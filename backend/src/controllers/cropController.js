@@ -2,12 +2,13 @@
  * 文件名：cropController.js
  * 作者：开发者
  * 日期：2026-03-19
- * 版本：v1.2.0
+ * 版本：v1.2.1
  * 功能描述：作物控制器，处理种植、收获、出售等API
  * 更新记录：
  *   2026-03-19 - v1.0.0 - 作物控制器，处理种植、收获、出售等API
  *   2026-03-22 - v1.1.0 - 统一文件头注释格式
  *   2026-03-22 - v1.2.0 - 添加一键收获接口
+ *   2026-06-10 - v1.2.1 - 统一catch块错误处理，使用handleError根据error.statusCode动态返回HTTP状态码
  */
 
 const { body, validationResult } = require('express-validator');
@@ -16,6 +17,21 @@ const playerService = require('../services/playerService');
 const achievementService = require('../services/achievementService');
 const logger = require('../config/logger');
 const wsService = require('../services/websocketService');
+
+/**
+ * 统一错误处理 - 根据 error.statusCode 动态返回 HTTP 状态码
+ * @param {Object} res - Express response 对象
+ * @param {Error} error - 错误对象
+ * @param {string} defaultMsg - 默认错误消息
+ */
+const handleError = (res, error, defaultMsg) => {
+  const statusCode = error.statusCode || 400;
+  return res.status(statusCode).json({
+    success: false,
+    message: error.message || defaultMsg,
+    code: error.code || 'UNKNOWN_ERROR',
+  });
+};
 
 /**
  * 获取已解锁作物列表
@@ -39,7 +55,7 @@ exports.getCrops = async function (req, res) {
     res.status(200).json({ success: true, data: crops });
   } catch (error) {
     logger.error('获取作物列表失败', { error: error.message });
-    res.status(500).json({ success: false, message: error.message });
+    return handleError(res, error);
   }
 };
 
@@ -95,7 +111,7 @@ exports.plantCrop = async function (req, res) {
     res.status(200).json(result);
   } catch (error) {
     logger.error('种植作物失败', { error: error.message });
-    res.status(400).json({ success: false, message: error.message });
+    return handleError(res, error);
   }
 };
 
@@ -151,7 +167,7 @@ exports.harvestCrop = async function (req, res) {
     res.status(200).json(result);
   } catch (error) {
     logger.error('收获作物失败', { error: error.message });
-    res.status(400).json({ success: false, message: error.message });
+    return handleError(res, error);
   }
 };
 
@@ -211,7 +227,7 @@ exports.sellCrop = async function (req, res) {
     res.status(200).json(result);
   } catch (error) {
     logger.error('出售作物失败', { error: error.message });
-    res.status(400).json({ success: false, message: error.message });
+    return handleError(res, error);
   }
 };
 
@@ -287,7 +303,7 @@ exports.sellBatchCrops = async function (req, res) {
     res.status(200).json(result);
   } catch (error) {
     logger.error('批量出售失败', { error: error.message });
-    res.status(400).json({ success: false, message: error.message });
+    return handleError(res, error);
   }
 };
 
@@ -337,6 +353,6 @@ exports.harvestAllMatured = async function (req, res) {
     res.status(200).json(result);
   } catch (error) {
     logger.error('一键收获失败', { error: error.message });
-    res.status(400).json({ success: false, message: error.message });
+    return handleError(res, error);
   }
 };
