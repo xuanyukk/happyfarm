@@ -64,11 +64,19 @@ const sendToUser = (userId, event, data) => {
 
   try {
     io.to(socketId).emit(event, data);
-    logger.debug('向用户推送消息', {
-      userId,
-      event,
-      data: JSON.stringify(data),
-    });
+    try {
+      logger.debug('向用户推送消息', {
+        userId,
+        event,
+        data: JSON.stringify(data),
+      });
+    } catch (serializeError) {
+      logger.debug('向用户推送消息', {
+        userId,
+        event,
+        data: '[无法序列化]',
+      });
+    }
     return true;
   } catch (error) {
     logger.error('推送消息失败', { userId, event, error: error.message });
@@ -91,7 +99,11 @@ const broadcast = (event, data) => {
 
   try {
     io.emit(event, data);
-    logger.debug('广播消息', { event, data: JSON.stringify(data) });
+    try {
+      logger.debug('广播消息', { event, data: JSON.stringify(data) });
+    } catch (serializeError) {
+      logger.debug('广播消息', { event, data: '[无法序列化]' });
+    }
   } catch (error) {
     logger.error('广播消息失败', { event, error: error.message });
   }

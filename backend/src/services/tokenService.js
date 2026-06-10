@@ -76,6 +76,8 @@ function generateAccessToken(payload) {
   return jwt.sign(
     {
       ...payload,
+      // B1-2修复：确保payload中同时存在userId和id，兼容authMiddleware读取decoded.userId
+      userId: payload.userId || payload.id,
       type: 'access',
     },
     JWT_ACCESS_SECRET,
@@ -88,6 +90,8 @@ function generateRefreshToken(payload) {
   return jwt.sign(
     {
       ...payload,
+      // B1-2修复：确保payload中同时存在userId和id，兼容authMiddleware读取decoded.userId
+      userId: payload.userId || payload.id,
       type: 'refresh',
     },
     JWT_REFRESH_SECRET,

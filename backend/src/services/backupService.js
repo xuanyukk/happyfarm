@@ -17,6 +17,27 @@ const logger = require('../config/logger');
 
 const execPromise = util.promisify(exec);
 
+// B7-4修复：解析并校验DATABASE_URL，防止命令注入
+function parseAndValidateDatabaseUrl() {
+  const databaseUrl = process.env.DATABASE_URL;
+  if (!databaseUrl) {
+    throw new Error('DATABASE_URL环境变量未设置');
+  }
+  const pgUrlPattern = /^postgres(?:ql)?:\/\/([^:]+):([^@]+)@([^:/]+):(\d+)\/(.+)$/;
+  const match = databaseUrl.match(pgUrlPattern);
+  if (!match) {
+    throw new Error('DATABASE_URL格式无效，仅支持postgresql://user:password@host:port/dbname');
+  }
+  const [, user, password, host, port, dbname] = match;
+  const safePattern = /^[a-zA-Z0-9._-]+$/;
+  if (!safePattern.test(user) || !safePattern.test(host) || !safePattern.test(dbname) || !safePattern.test(port)) {
+    throw new Error('DATABASE_URL包含非法字符');
+  }
+  const cleanUser = decodeURIComponent(user);
+  const cleanPassword = decodeURIComponent(password);
+  return { user: cleanUser, password: cleanPassword, host, port, dbname, url: databaseUrl };
+}
+
 const backupService = {
   getBackupDir() {
     const backupDir = path.join(__dirname, '../../../backups');
@@ -40,19 +61,16 @@ const backupService = {
 
       logger.info('开始数据库备份', { backupPath });
 
-      const databaseUrl = process.env.DATABASE_URL;
-      if (!databaseUrl) {
-        throw new Error('DATABASE_URL环境变量未设置');
-      }
+      const dbConfig = parseAndValidateDatabaseUrl();
 
       const isWindows = process.platform === 'win32';
 
       if (isWindows) {
         await new Promise((resolve, reject) => {
-          const pgDump = spawn('pg_dump', [databaseUrl], {
-            shell: true,
-            stdio: ['ignore', 'pipe', 'pipe'],
-          });
+          process.env.PGPASSWORD = dbConfig.password;
+          const pgDump = spawn('pg_dump', [
+            '-h', dbConfig.host, '-p', dbConfig.port, '-U', dbConfig.user, '-d', dbConfig.dbname,
+          ], { shell: false, stdio: ['ignore', 'pipe', 'pipe'] });
 
           const writeStream = fs.createWriteStream(backupPath);
           pgDump.stdout.pipe(writeStream);
@@ -77,7 +95,7 @@ const backupService = {
           });
         });
       } else {
-        const command = `pg_dump "${databaseUrl}" > "${backupPath}"`;
+        const command = `pg_dump "${dbConfig.url}" > "${backupPath}"`;
         await execPromise(command);
       }
 
@@ -181,7 +199,7 @@ const backupService = {
     }
   },
 
-  restoreProgress: null,
+  restoreProgressMap: new Map(),
 
   async restoreDatabase(filename) {
     try {
@@ -194,7 +212,8 @@ const backupService = {
 
       logger.info('开始恢复数据库', { filename });
 
-      this.restoreProgress = {
+      const restoreId = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+      const progress = {
         filename,
         status: 'preparing',
         progress: 0,
@@ -203,21 +222,19 @@ const backupService = {
         error: null,
         canRollback: false,
       };
+      this.restoreProgressMap.set(restoreId, progress);
 
-      const databaseUrl = process.env.DATABASE_URL;
-      if (!databaseUrl) {
-        throw new Error('DATABASE_URL环境变量未设置');
-      }
+      const dbConfig = parseAndValidateDatabaseUrl();
 
-      this.restoreProgress.status = 'backing-up-current';
-      this.restoreProgress.progress = 10;
+      progress.status = 'backing-up-current';
+      progress.progress = 10;
 
       // B7-1修复：使用精确时间戳保持文件名一致性
       const preRestoreTimestamp = Date.now();
       const preRestoreFilename = `pre-restore-backup-${preRestoreTimestamp}.sql`;
       const preRestorePath = path.join(backupDir, preRestoreFilename);
       // 将精确文件名存入进度对象，供rollbackRestore使用
-      this.restoreProgress.preRestoreFilename = preRestoreFilename;
+      progress.preRestoreFilename = preRestoreFilename;
 
       logger.info('创建恢复前备份', { preRestoreFilename });
 
@@ -225,10 +242,10 @@ const backupService = {
 
       if (isWindows) {
         await new Promise((resolve, reject) => {
-          const pgDump = spawn('pg_dump', [databaseUrl], {
-            shell: true,
-            stdio: ['ignore', 'pipe', 'pipe'],
-          });
+          process.env.PGPASSWORD = dbConfig.password;
+          const pgDump = spawn('pg_dump', [
+            '-h', dbConfig.host, '-p', dbConfig.port, '-U', dbConfig.user, '-d', dbConfig.dbname,
+          ], { shell: false, stdio: ['ignore', 'pipe', 'pipe'] });
 
           const writeStream = fs.createWriteStream(preRestorePath);
           pgDump.stdout.pipe(writeStream);
@@ -253,22 +270,22 @@ const backupService = {
           });
         });
       } else {
-        const command = `pg_dump "${databaseUrl}" > "${preRestorePath}"`;
+        const command = `pg_dump "${dbConfig.url}" > "${preRestorePath}"`;
         await execPromise(command);
       }
 
-      this.restoreProgress.canRollback = true;
-      this.restoreProgress.status = 'restoring';
-      this.restoreProgress.progress = 40;
+      progress.canRollback = true;
+      progress.status = 'restoring';
+      progress.progress = 40;
 
       logger.info('执行数据库恢复', { filename });
 
       if (isWindows) {
         await new Promise((resolve, reject) => {
-          const psql = spawn('psql', [databaseUrl, '-f', preRestorePath], {
-            shell: true,
-            stdio: ['ignore', 'pipe', 'pipe'],
-          });
+          process.env.PGPASSWORD = dbConfig.password;
+          const psql = spawn('psql', [
+            '-h', dbConfig.host, '-p', dbConfig.port, '-U', dbConfig.user, '-d', dbConfig.dbname, '-f', preRestorePath,
+          ], { shell: false, stdio: ['ignore', 'pipe', 'pipe'] });
 
           let stderr = '';
           psql.stderr.on('data', (data) => {
@@ -288,19 +305,20 @@ const backupService = {
           });
         });
       } else {
-        const command = `psql "${databaseUrl}" -f "${preRestorePath}"`;
+        const command = `psql "${dbConfig.url}" -f "${preRestorePath}"`;
         await execPromise(command);
       }
 
-      this.restoreProgress.status = 'completed';
-      this.restoreProgress.progress = 100;
-      this.restoreProgress.endTime = new Date();
+      progress.status = 'completed';
+      progress.progress = 100;
+      progress.endTime = new Date();
 
       logger.info('数据库恢复成功', { filename });
 
       return {
         success: true,
         filename,
+        restoreId,
         preRestoreBackup: preRestoreFilename,
         canRollback: true,
       };
@@ -311,30 +329,38 @@ const backupService = {
         filename,
       });
 
-      if (this.restoreProgress) {
-        this.restoreProgress.status = 'failed';
-        this.restoreProgress.error = error.message;
-        this.restoreProgress.endTime = new Date();
+      if (progress) {
+        progress.status = 'failed';
+        progress.error = error.message;
+        progress.endTime = new Date();
       }
 
       throw error;
     }
   },
 
-  getRestoreProgress() {
-    return this.restoreProgress;
+  getRestoreProgress(restoreId) {
+    if (restoreId) {
+      return this.restoreProgressMap.get(restoreId) || null;
+    }
+    // 返回最新的一个进度（向后兼容）
+    const entries = [...this.restoreProgressMap.entries()];
+    return entries.length > 0 ? entries[entries.length - 1][1] : null;
   },
 
-  async rollbackRestore() {
+  async rollbackRestore(restoreId) {
     try {
-      if (!this.restoreProgress || !this.restoreProgress.canRollback) {
+      const progress = restoreId
+        ? this.restoreProgressMap.get(restoreId)
+        : null;
+      if (!progress || !progress.canRollback) {
         throw new Error('无法回滚：没有可回滚的恢复操作');
       }
 
       const backupDir = this.getBackupDir();
       // B7-1修复：使用恢复时记录的精确文件名，而非模糊匹配
-      const preRestoreFilename = this.restoreProgress.preRestoreFilename
-        || `pre-restore-backup-${this.restoreProgress.startTime.getTime()}.sql`;
+      const preRestoreFilename = progress.preRestoreFilename
+        || `pre-restore-backup-${progress.startTime.getTime()}.sql`;
       const preRestorePath = path.join(backupDir, preRestoreFilename);
 
       if (!fs.existsSync(preRestorePath)) {
@@ -343,19 +369,16 @@ const backupService = {
 
       logger.info('开始回滚恢复操作', { backupFile: preRestoreFilename });
 
-      const databaseUrl = process.env.DATABASE_URL;
-      if (!databaseUrl) {
-        throw new Error('DATABASE_URL环境变量未设置');
-      }
+      const dbConfig = parseAndValidateDatabaseUrl();
 
       const isWindows = process.platform === 'win32';
 
       if (isWindows) {
         await new Promise((resolve, reject) => {
-          const psql = spawn('psql', [databaseUrl, '-f', filePath], {
-            shell: true,
-            stdio: ['ignore', 'pipe', 'pipe'],
-          });
+          process.env.PGPASSWORD = dbConfig.password;
+          const psql = spawn('psql', [
+            '-h', dbConfig.host, '-p', dbConfig.port, '-U', dbConfig.user, '-d', dbConfig.dbname, '-f', preRestorePath,
+          ], { shell: false, stdio: ['ignore', 'pipe', 'pipe'] });
 
           let stderr = '';
           psql.stderr.on('data', (data) => {
@@ -375,20 +398,20 @@ const backupService = {
           });
         });
       } else {
-        const command = `psql "${databaseUrl}" -f "${filePath}"`;
+        const command = `psql "${dbConfig.url}" -f "${preRestorePath}"`;
         await execPromise(command);
       }
 
-      logger.info('回滚成功', { backupFile: actualFile });
+      logger.info('回滚成功', { backupFile: preRestoreFilename });
 
-      this.restoreProgress = {
+      this.restoreProgressMap.set(restoreId, {
         status: 'rolled-back',
         progress: 100,
         startTime: new Date(),
         endTime: new Date(),
         error: null,
         canRollback: false,
-      };
+      });
 
       return {
         success: true,
@@ -403,8 +426,12 @@ const backupService = {
     }
   },
 
-  clearRestoreProgress() {
-    this.restoreProgress = null;
+  clearRestoreProgress(restoreId) {
+    if (restoreId) {
+      this.restoreProgressMap.delete(restoreId);
+    } else {
+      this.restoreProgressMap.clear();
+    }
   },
 };
 

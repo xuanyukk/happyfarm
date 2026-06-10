@@ -21,8 +21,11 @@ const refreshDailyDiscounts = async function () {
   try {
     await client.query('BEGIN');
 
-    const today = new Date().toISOString().split('T')[0];
-    const todayEnd = new Date(today + 'T23:59:59+08:00').toISOString();
+    // B5-3修复：使用数据库服务器时间避免时区硬编码
+    const dbTimeResult = await client.query('SELECT CURRENT_TIMESTAMP as db_now');
+    const dbNow = new Date(dbTimeResult.rows[0].db_now);
+    const today = dbNow.toISOString().split('T')[0];
+    const todayEnd = new Date(today + 'T23:59:59').toISOString();
 
     // B5-1修复：添加FOR UPDATE行锁防止并发刷新生成超过3个折扣
     const existingResult = await client.query(

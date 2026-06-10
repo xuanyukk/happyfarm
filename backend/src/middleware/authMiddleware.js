@@ -19,6 +19,8 @@ const pool = require('../config/db');
 const dotenv = require('dotenv');
 const logger = require('../config/logger');
 const cacheService = require('../services/cacheService');
+// B1-2修复：引入 tokenService 用于统一令牌验证
+const tokenService = require('../services/tokenService');
 
 // 加载环境变量
 dotenv.config({
@@ -109,7 +111,8 @@ const authMiddleware = async (req, res, next) => {
     const token = authHeader.split(' ')[1];
 
     // 验证Token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    // B1-2修复：使用 tokenService.verifyAccessToken 统一验证（双密钥体系统一）
+    const decoded = tokenService.verifyAccessToken(token);
     // B1-1修复：验证token类型，拒绝refresh_token通过认证中间件
     if (decoded.type && decoded.type !== 'access') {
       logger.warn('JWT认证失败：Token类型错误（非access_token）', {
@@ -122,7 +125,6 @@ const authMiddleware = async (req, res, next) => {
     logger.debug('JWT令牌验证成功', { userId: decoded.userId, ip: req.ip });
 
     // B1-7修复：检查令牌是否在黑名单或被用户撤销（密码重置等）
-    const tokenService = require('../services/tokenService');
     const [blacklisted, userRevoked] = await Promise.all([
       tokenService.isBlacklisted(token, 'access'),
       tokenService.isUserRevoked(decoded.userId, decoded.iat),

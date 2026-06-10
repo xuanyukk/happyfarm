@@ -87,6 +87,66 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [4.79.0] - 2026-06-11
+
+### Added
+
+- **📄 LICENSE 文件** — MIT 许可证正式文件（A1修复）
+  - `LICENSE`
+- **📄 SECURITY.md** — 项目安全策略与漏洞报告指南（A5修复）
+  - `SECURITY.md`
+
+### Fixed — 第三批修复（8项：1高+7中）
+
+#### JWT 双体系统一（B1-2）【高】
+
+- **🔒 签发/验证统一收敛至 tokenService** — authController 内部 JWT 签发/验证函数（`generateAccessToken`、`generateRefreshToken`、`validateJwtSecret`）全部删除，替换为 `tokenService.generateAccessToken` / `tokenService.generateRefreshToken`
+- **🔒 authMiddleware 改用 tokenService.verifyAccessToken** — 从此 access_token 和 refresh_token 使用分离密钥（`JWT_ACCESS_SECRET` / `JWT_REFRESH_SECRET`），防止跨类型令牌混用
+- **🔒 tokenService payload 增加 userId 字段** — 兼容 authMiddleware 读取 `decoded.userId` 的现有逻辑
+- **🔒 refreshToken 整体迁移** — 调用 `tokenService.refreshTokens()` 完成验证+黑名单检查+新令牌签发
+- **🔒 logout 集成 Redis 黑名单** — 增加 `tokenService.logout` 调用，同时更新数据库作为过渡期双保险
+- **涉及文件**：`tokenService.js`、`authController.js`（v1.3.0→v1.4.0）、`authMiddleware.js`（v1.5.0→v1.6.0）
+
+#### 业务/安全修复（7项）
+
+- **🛡️ [B4-4] 每日任务初始化错误消息通用化** — "玩家不存在"改为通用错误消息，防止玩家ID枚举攻击
+  - `dailyTaskService.js`
+
+- **🛡️ [B5-3] 每日折扣时区硬编码修复** — `+08:00` 硬编码改为 `SELECT CURRENT_TIMESTAMP` 获取数据库服务器时间
+  - `dailyDiscountService.js`
+
+- **🛡️ [B6-4] WebSocket 日志序列化异常防护** — `JSON.stringify(data)` 包裹 try-catch，循环引用/BigInt不阻断消息推送
+  - `websocketService.js`（v1.2.0→v1.3.0）
+
+- **🛡️ [B7-2] 恢复进度支持并发会话** — 全局 `restoreProgress` 改为 `restoreProgressMap`（Map），支持多个并发恢复操作互不干扰
+  - `backupService.js`
+
+- **🛡️ [B7-4] 命令注入防护** — 新增 `parseAndValidateDatabaseUrl()` 正则白名单校验，所有 Windows spawn 调用移除 `shell:true`，改用安全参数数组 + PGPASSWORD 环境变量；同时修复 rollbackRestore 中 `filePath` 和 `actualFile` 变量引用错误
+  - `backupService.js`
+
+- **🛡️ [D9] config_version 外键已正确** — 确认 `31_game_config_system.sql` 中 `changed_by` 已正确引用 `sys_user`（非 `admins`），无需修复
+
+### Audit Progress Summary
+
+| 版本 | 修复项数 | 累计修复 | 审计总数 | 完成率 |
+|------|----------|----------|----------|--------|
+| v4.77.0 | 18 | 18 | 103 | 17.5% |
+| v4.78.0 | 40 | 58 | 103 | 56.3% |
+| v4.79.0 | 8 + 2文档 | 68 | 103 | **66.0%** |
+
+### 剩余未修复（低优先级，约25项）
+
+| 维度 | 数量 | 典型项目 |
+|------|------|----------|
+| 文档 | 5 | A2-A7 文档清理/ADR 目录 |
+| 后端低优 | 14 | B1-9/B2-5/B3-5/B4-5/B5-4~B6-6/B7-5~B9 |
+| 前端低优 | 4 | C17-C20 shouldRefresh/formatBoostTime/preload/v-else |
+| 测试 | 2 | E3-E4 测试覆盖率提升 |
+
+这些项目建议在 v5.0.0 正式发布前的代码清理阶段集中处理。
+
+---
+
 ## [4.78.0] - 2026-06-11
 
 ### Fixed — 第二批修复（约35项：安全+业务+前端+数据库）

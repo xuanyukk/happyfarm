@@ -24,34 +24,9 @@ const tokenService = require('../services/tokenService');
 
 // bcrypt 盐轮数，从环境变量读取，默认10轮
 const BCRYPT_SALT_ROUNDS = parseInt(process.env.BCRYPT_SALT_ROUNDS) || 10;
-const validateJwtSecret = () => {
-  if (!process.env.JWT_SECRET) {
-    logger.error('JWT_SECRET 环境变量未设置，应用将无法安全运行');
-    throw new Error(
-      'JWT_SECRET 环境变量未设置，请在 .env 文件中配置 JWT_SECRET'
-    );
-  }
-  if (process.env.JWT_SECRET.length < 32) {
-    logger.warn('JWT_SECRET 长度不足32位，建议使用更长的密钥以增强安全性');
-  }
-};
-
-// 模块加载时验证JWT_SECRET
-validateJwtSecret();
-
-// 生成JWT访问令牌
-const generateAccessToken = (userId) => {
-  return jwt.sign({ userId }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRES_IN || '2h',
-  });
-};
-
-// 生成JWT刷新令牌
-const generateRefreshToken = (userId) => {
-  return jwt.sign({ userId, type: 'refresh' }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '30d',
-  });
-};
+// B1-2修复：JWT密钥校验已由 tokenService 统一处理（支持双密钥体系）
+// B1-2修复：generateAccessToken/generateRefreshToken 已迁移至 tokenService，
+// 本文件通过 tokenService.generateAccessToken / tokenService.generateRefreshToken 调用
 
 // 生成随机令牌
 const generateRandomToken = () => {
@@ -194,9 +169,15 @@ exports.register = async (req, res) => {
       ip: req.ip,
     });
 
-    // 生成访问令牌和刷新令牌
-    const accessToken = generateAccessToken(user.id);
-    const refreshToken = generateRefreshToken(user.id);
+    // B1-2修复：使用 tokenService 统一签发令牌
+    const tokenPayload = {
+      userId: user.id,
+      id: user.id,
+      username: user.username,
+      email: user.email,
+    };
+    const accessToken = tokenService.generateAccessToken(tokenPayload);
+    const refreshToken = tokenService.generateRefreshToken(tokenPayload);
 
     // 保存刷新令牌到数据库
     await saveRefreshToken(user.id, refreshToken, req);
@@ -299,9 +280,15 @@ exports.login = async (req, res) => {
         [user.id]
       );
 
-      // 生成访问令牌和刷新令牌
-      const accessToken = generateAccessToken(user.id);
-      const refreshToken = generateRefreshToken(user.id);
+      // B1-2修复：使用 tokenService 统一签发令牌
+      const tokenPayload = {
+        userId: user.id,
+        id: user.id,
+        username: user.username,
+        email: user.email,
+      };
+      const accessToken = tokenService.generateAccessToken(tokenPayload);
+      const refreshToken = tokenService.generateRefreshToken(tokenPayload);
 
       // 保存刷新令牌到数据库
       await saveRefreshTokenInternal(client, user.id, refreshToken, req);
@@ -353,7 +340,7 @@ exports.login = async (req, res) => {
   }
 };
 
-// 刷新令牌接口
+// B1-2修复：使用 tokenService 统一刷新令牌
 exports.refreshToken = async (req, res) => {
   try {
     const { refreshToken } = req.body;
@@ -365,54 +352,15 @@ exports.refreshToken = async (req, res) => {
 
     logger.debug('刷新令牌请求', { ip: req.ip });
 
-    // 验证刷新令牌
-    let decoded;
-    try {
-      decoded = jwt.verify(refreshToken, process.env.JWT_SECRET);
-    } catch (err) {
-      logger.warn('刷新令牌无效', { error: err.message, ip: req.ip });
-      return res.status(401).json({ message: '无效的刷新令牌' });
-    }
+    // B1-2修复：使用 tokenService 统一刷新令牌（双密钥体系统一）
+    const tokens = await tokenService.refreshTokens(refreshToken);
 
-    if (decoded.type !== 'refresh') {
-      logger.warn('刷新令牌类型错误', { ip: req.ip });
-      return res.status(401).json({ message: '无效的刷新令牌' });
-    }
+    // 从新refresh_token中解码用户信息，用于数据库记录
+    const decoded = jwt.decode(tokens.refreshToken);
+    const userId = decoded.userId || decoded.id;
 
-    // 检查数据库中的刷新令牌
-    const tokenQuery = `
-      SELECT rt.*, u.is_active 
-      FROM refresh_tokens rt
-      JOIN sys_user u ON rt.user_id = u.id
-      WHERE rt.token = $1 AND rt.revoked_at IS NULL AND rt.expires_at > CURRENT_TIMESTAMP
-    `;
-    const tokenResult = await pool.query(tokenQuery, [refreshToken]);
-
-    if (tokenResult.rows.length === 0) {
-      logger.warn('刷新令牌不存在或已失效', {
-        userId: decoded.userId,
-        ip: req.ip,
-      });
-      return res.status(401).json({ message: '刷新令牌已失效' });
-    }
-
-    const tokenData = tokenResult.rows[0];
-
-    if (!tokenData.is_active) {
-      logger.warn('刷新令牌请求失败：账号已被禁用', {
-        userId: tokenData.user_id,
-        ip: req.ip,
-      });
-      return res.status(403).json({ message: '账号已被禁用' });
-    }
-
-    // 撤销当前刷新令牌
-    const revokeQuery = `
-      UPDATE refresh_tokens 
-      SET revoked_at = CURRENT_TIMESTAMP 
-      WHERE id = $1
-    `;
-    await pool.query(revokeQuery, [tokenData.id]);
+    // 保存新的refresh_token到数据库（保持原有数据库记录逻辑）
+    await saveRefreshToken(userId, tokens.refreshToken, req);
 
     // B1-3修复：将旧access_token加入黑名单（防止在过期前被滥用）
     const oldAccessToken = req.headers.authorization?.split(' ')[1];
@@ -420,21 +368,30 @@ exports.refreshToken = async (req, res) => {
       await tokenService.addToBlacklist(oldAccessToken, 'access');
     }
 
-    // 生成新的访问令牌和刷新令牌
-    const newAccessToken = generateAccessToken(tokenData.user_id);
-    const newRefreshToken = generateRefreshToken(tokenData.user_id);
-
-    // 保存新的刷新令牌
-    await saveRefreshToken(tokenData.user_id, newRefreshToken, req);
-
-    logger.info('刷新令牌成功', { userId: tokenData.user_id, ip: req.ip });
+    logger.info('刷新令牌成功', { userId, ip: req.ip });
 
     res.status(200).json({
       message: '刷新令牌成功',
-      accessToken: newAccessToken,
-      refreshToken: newRefreshToken,
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
     });
   } catch (err) {
+    // 区分JWT异常类型，返回合适的HTTP状态码（过渡期兼容旧密钥颁发的令牌）
+    if (err.message === 'Refresh token已失效'
+        || err.name === 'JsonWebTokenError') {
+      logger.warn('刷新令牌无效或已失效', {
+        error: err.message,
+        ip: req.ip,
+      });
+      return res.status(401).json({ message: '刷新令牌已失效' });
+    }
+    if (err.name === 'TokenExpiredError') {
+      logger.warn('刷新令牌已过期', {
+        error: err.message,
+        ip: req.ip,
+      });
+      return res.status(401).json({ message: '刷新令牌已过期' });
+    }
     logger.error('刷新令牌失败', {
       error: err.message,
       stack: err.stack,
@@ -444,11 +401,17 @@ exports.refreshToken = async (req, res) => {
   }
 };
 
-// 退出登录接口
+// B1-2修复：退出登录增加 tokenService.logout 调用
 exports.logout = async (req, res) => {
   try {
     const { refreshToken } = req.body;
     const userId = req.user?.id;
+    const accessToken = req.headers.authorization?.split(' ')[1];
+
+    // B1-2修复：调用 tokenService.logout 将令牌加入Redis黑名单
+    if (accessToken) {
+      await tokenService.logout(userId, accessToken, refreshToken);
+    }
 
     if (refreshToken) {
       // 撤销指定的刷新令牌

@@ -257,7 +257,7 @@ async function initializeDailyTasksClient(client, playerId, date) {
   );
 
   if (playerResult.rows.length === 0) {
-    throw new Error('玩家不存在');
+    throw new Error('任务初始化失败，请稍后重试');
   }
 
   const playerLevel = playerResult.rows[0].player_level;
