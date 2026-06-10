@@ -2,7 +2,7 @@
  * 文件名：farm.js
  * 作者：开发者
  * 日期：2026-03-21
- * 版本：v3.3.0
+ * 版本：v3.3.1
  * 功能描述：农场状态管理
  * 更新记录：
  *   2026-03-21 - v1.3.0 - 农场状态管理
@@ -17,6 +17,7 @@
  *   2026-05-31 - v3.1.0 - 新增upgradeLandStar/getLandStarConfigs函数；收获后重置boost状态(yield/speed/lucky/exp)
  *   2026-05-31 - v3.2.0 - IS-05修复：新增checkBoostExpiration道具过期检测和expiredBoosts状态
  *   2026-06-11 - v3.3.0 - C4修复：upgradeLandStar中star_level NaN风险（find返回undefined时||0+1=NaN）
+ *   2026-06-11 - v3.3.1 - C17修复：shouldRefresh和lastFetchTimes全部改用serverNow()替代Date.now()
  */
 
 import { defineStore } from 'pinia';
@@ -70,11 +71,14 @@ export const useFarmStore = defineStore('farm', () => {
   const totalLands = computed(() => lands.value.length);
   const maturedCount = computed(() => maturedLands.value.length);
 
+  // C17修复：shouldRefresh改用服务器时间替代Date.now()
+  // 确保缓存判断与服务器时钟同步，避免客户端时钟偏移导致缓存异常
   const shouldRefresh = computed(() => {
+    const now = serverNow().getTime();
     return {
-      lands: Date.now() - lastFetchTimes.value.lands > CACHE_DURATION,
-      crops: Date.now() - lastFetchTimes.value.crops > CACHE_DURATION,
-      items: Date.now() - lastFetchTimes.value.items > CACHE_DURATION,
+      lands: now - lastFetchTimes.value.lands > CACHE_DURATION,
+      crops: now - lastFetchTimes.value.crops > CACHE_DURATION,
+      items: now - lastFetchTimes.value.items > CACHE_DURATION,
     };
   });
 
@@ -108,7 +112,7 @@ export const useFarmStore = defineStore('farm', () => {
             notifiedMature: false,
           };
         });
-        lastFetchTimes.value.lands = Date.now();
+        lastFetchTimes.value.lands = serverNow().getTime();
         checkBoostExpiration();
       }
     } catch (err) {
@@ -127,7 +131,7 @@ export const useFarmStore = defineStore('farm', () => {
       const result = await gameService.getCrops();
       if (result.success) {
         crops.value = result.data;
-        lastFetchTimes.value.crops = Date.now();
+        lastFetchTimes.value.crops = serverNow().getTime();
       }
     } catch (err) {
       console.error('获取作物列表失败', err);
@@ -196,7 +200,7 @@ export const useFarmStore = defineStore('farm', () => {
       const result = await gameService.getAvailableItems();
       if (result.success) {
         items.value = result.data;
-        lastFetchTimes.value.items = Date.now();
+        lastFetchTimes.value.items = serverNow().getTime();
       }
     } catch (err) {
       console.error('获取道具列表失败', err);

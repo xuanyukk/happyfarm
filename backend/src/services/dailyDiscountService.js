@@ -6,6 +6,7 @@
  * 功能描述：每日折扣商品服务——刷新折扣、查询折扣、计算折扣价格
  * 更新记录：
  *   2026-05-31 - v1.0.0 - 方案B：初始创建
+ *   2026-06-11 - v1.0.1 - B5-5修复：修正calculateDiscountPrice中discountRate注释（0.50-0.95→0.70-0.90）与实际生成逻辑一致
  */
 
 const pool = require('../config/db');
@@ -206,7 +207,9 @@ const getDiscountByGoodsId = async function (goodsId) {
 /**
  * 计算折扣价格
  * @param {number} originalPrice - 原价
- * @param {number} discountRate - 折扣率(0.50-0.95)
+ * @param {number} discountRate - 折扣率（实际取值范围0.70~0.90，
+ *   即7折到9折，由refreshDailyDiscounts中
+ *   (Math.floor(Math.random()*5)*5+70)/100 生成）
  * @returns {number} 折扣后价格（向下取整，最低1）
  */
 const calculateDiscountPrice = function (originalPrice, discountRate) {

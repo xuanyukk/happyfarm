@@ -2,7 +2,7 @@
  * 文件名：LandCell.vue
  * 作者：开发者
  * 日期：2026-03-28
- * 版本：v2.2.0
+ * 版本：v2.2.1
  * 功能描述：土地格子组件 - 显示单个地块状态和交互
  * 更新记录：
  * 2026-03-28 - v1.0.0 - 初始创建，土地格子功能
@@ -10,6 +10,7 @@
  * 2026-05-28 - v2.0.1 - 修复HTML实体编码问题
  * 2026-06-10 - v2.2.0 - 样式变量化：硬编码色值→CSS变量（brown/gold/success/sky/text等），品质色阶保留
  * 2026-05-30 - v2.1.0 - 添加产量预估显示、道具效果增强、解锁条件标准化
+ * 2026-06-11 - v2.2.1 - C18修复formatBoostTime支持天/小时格式化；C20修复v-else成熟徽章误判（产量v-if添加!isMatured）
  */
 <template>
   <div class="land-cell" :class="cellClass" @click="handleCellClick">
@@ -49,8 +50,10 @@
           ></div>
         </div>
         <div v-if="!isMatured" class="time-left">{{ timeLeft }}</div>
+        <!-- C20修复：添加!isMatured条件，确保成熟时跳过产量显示，走v-else显示成熟徽章
+             避免min_yield/max_yield存在时产量v-if为真，导致成熟v-else被跳过 -->
         <div
-          v-if="land.min_yield !== undefined && land.max_yield !== undefined"
+          v-if="!isMatured && land.min_yield !== undefined && land.max_yield !== undefined"
           class="crop-yield"
         >
           <span
@@ -201,10 +204,27 @@ const boostIcons = {
 /** 使用道具按钮图标 */
 const useItemBtnSrc = getUIButtonImage('bag');
 
+/**
+ * C18修复：格式化道具剩余时间，支持天/小时/分钟/秒多级显示
+ * - seconds <= 0：返回空字符串
+ * - < 60秒：显示"X秒"
+ * - < 3600秒：显示"X分X秒"
+ * - < 86400秒：显示"X小时X分"
+ * - >= 86400秒：显示"X天X小时"，避免显示超大小时数（如48小时→2天0小时）
+ */
 const formatBoostTime = (seconds) => {
   if (!seconds || seconds <= 0) return '';
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
+  const totalSecs = Math.floor(seconds);
+  const days = Math.floor(totalSecs / 86400);
+  const hours = Math.floor((totalSecs % 86400) / 3600);
+  const mins = Math.floor((totalSecs % 3600) / 60);
+  const secs = totalSecs % 60;
+  if (days > 0) {
+    return `${days}天${hours}小时`;
+  }
+  if (hours > 0) {
+    return `${hours}小时${mins}分`;
+  }
   if (mins > 0) {
     return `${mins}分${secs}秒`;
   }

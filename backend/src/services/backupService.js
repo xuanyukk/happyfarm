@@ -7,6 +7,7 @@
  * 更新记录：
  *   2026-03-22 - v1.1.1 - 修复Windows系统备份兼容性问题
  *   2026-05-06 - v2.0.0 - 添加恢复过程监控和回滚功能
+ *   2026-06-11 - v2.1.0 - B7-6/B7-7/B7-8修复：空备份文件检查、mtimeMs注释、restore失败清理pre-restore文件
  */
 
 const { exec, spawn } = require('child_process');
@@ -100,6 +101,23 @@ const backupService = {
       }
 
       const stats = fs.statSync(backupPath);
+
+      // B7-6修复：检查备份文件是否为空，防止静默生成无效备份
+      if (stats.size === 0) {
+        // 删除空备份文件，避免占用存储空间
+        try {
+          fs.unlinkSync(backupPath);
+        } catch (unlinkError) {
+          logger.warn('删除空备份文件失败', {
+            backupPath,
+            error: unlinkError.message,
+          });
+        }
+        throw new Error(
+          `备份文件为空(${backupPath})，请检查数据库连接和pg_dump权限`
+        );
+      }
+
       logger.info('数据库备份成功', {
         filename,
         size: `${(stats.size / 1024).toFixed(2)} KB`,
@@ -144,6 +162,11 @@ const backupService = {
           const filePath = path.join(backupDir, file);
           const stats = fs.statSync(filePath);
 
+          // B7-7说明：使用mtimeMs（修改时间）而非birthtime（创建时间）
+          // 原因：Windows系统上birthtime可能不可靠（部分文件系统不支持），
+          // 且在文件复制/移动后birthtime会变化。mtimeMs在备份文件写入完成后
+          // 不会被后续读取操作修改（只读访问），因此更适合判断文件新旧。
+          // 备选方案：可解析备份文件名中的ISO时间戳来排序，更精确但需额外解析。
           if (stats.mtimeMs < cutoff) {
             fs.unlinkSync(filePath);
             deletedCount++;
@@ -333,6 +356,28 @@ const backupService = {
         progress.status = 'failed';
         progress.error = error.message;
         progress.endTime = new Date();
+      }
+
+      // B7-8修复：恢复失败后清理pre-restore备份文件
+      // 恢复已失败，pre-restore文件无保留价值，清理以节省磁盘空间
+      if (progress && progress.preRestoreFilename) {
+        const preRestoreCleanupPath = path.join(
+          this.getBackupDir(),
+          progress.preRestoreFilename
+        );
+        try {
+          if (fs.existsSync(preRestoreCleanupPath)) {
+            fs.unlinkSync(preRestoreCleanupPath);
+            logger.info('恢复失败后已清理pre-restore备份文件', {
+              file: progress.preRestoreFilename,
+            });
+          }
+        } catch (cleanupError) {
+          logger.warn('清理pre-restore备份文件失败', {
+            file: progress.preRestoreFilename,
+            error: cleanupError.message,
+          });
+        }
       }
 
       throw error;

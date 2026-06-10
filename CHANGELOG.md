@@ -87,6 +87,97 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [4.80.0] - 2026-06-11
+
+### Added
+
+- **📄 CODE_OF_CONDUCT.md** — 贡献者行为准则（A4修复）
+- **📄 ADR 目录** — 架构决策记录模板与README（A6修复）
+  - `docs/adr/README.md`
+- **📄 API_CHANGELOG.md** — API变更独立对照表（A7修复）
+  - `docs/API_CHANGELOG.md`
+- **📋 文档清理清单** — A2/A3文档去重与归档清理方案
+  - `.trae/documents/doc-cleanup-checklist-v4.80.0.md`
+- **📋 测试覆盖建议** — E3/E4 单元/E2E测试方案
+  - `.trae/documents/test-coverage-recommendation-v4.80.0.md`
+
+### Fixed — 第四批修复（13项代码+2文档+1测试方案）
+
+#### 后端低优先级（9项）
+
+- **[B2-5] 成就分类 switch-case 添加 default 分支** — 防止未识别分类穿透导致意外进度更新
+  - `achievementService.js`（v2.8.1）
+
+- **[B4-5] enrichTaskData 添加错误处理** — try-catch 包裹 + JSON.parse 安全降级
+  - `dailyTaskService.js`（v1.2.0→v1.3.0）
+
+- **[B4-6] 任务初始化改用数据库 CURRENT_DATE** — 三个函数消除 `new Date()` 客户端时区依赖
+  - `dailyTaskService.js`（v1.3.0）
+
+- **[B5-5] discountRate 注释修正** — `(0.50-0.95)` → `(0.70-0.90)` 与实际生成逻辑一致
+  - `dailyDiscountService.js`（v1.0.1）
+
+- **[B6-5] sendToMultipleUsers 错误聚合** — fire-and-forget 改为返回 `{ success, failed }` 计数
+  - `websocketService.js`（v1.3.0）
+
+- **[B6-6] getConnectedUserCount JSDoc 增强** — 说明返回值含义及僵尸连接清理机制
+  - `websocketService.js`（v1.3.0）
+
+- **[B7-6] createBackup 空文件检查** — 备份完成后校验文件大小，空文件抛出异常并删除
+  - `backupService.js`（v2.1.0）
+
+- **[B7-7] cleanupOldBackups mtimeMs 注释** — 说明为何用 mtimeMs 而非 birthtime（Windows兼容）
+  - `backupService.js`（v2.1.0）
+
+- **[B7-8] 恢复失败清理 pre-restore 文件** — catch 块自动删除无用备份节省磁盘
+  - `backupService.js`（v2.1.0）
+
+#### 前端低优先级（4项）
+
+- **[C17] shouldRefresh 改用服务器时间** — `Date.now()` → `serverNow().getTime()` 消除客户端时钟依赖
+  - `frontend\src\stores\farm.js`（v3.3.1）
+
+- **[C18] formatBoostTime 大数值友好显示** — 支持天/小时/分/秒层级格式化
+  - `frontend\src\components\LandCell.vue`（v2.2.1）
+
+- **[C19] 预加载 setTimeout 可取消** — 返回值存储至 `window.__preloadTimer`
+  - `frontend\src\main.js`（v1.7.1）
+
+- **[C20] v-else 成熟徽章修复** — 产量条件添加 `!isMatured` 防止成熟标记被跳过
+  - `frontend\src\components\LandCell.vue`（v2.2.1）
+
+### Audit Final Summary
+
+| 版本 | 修复项数 | 累计修复 | 审计总数 | 完成率 |
+|------|----------|----------|----------|--------|
+| v4.77.0 | 18 | 18 | 103 | 17.5% |
+| v4.78.0 | 40 | 58 | 103 | 56.3% |
+| v4.79.0 | 10 | 68 | 103 | 66.0% |
+| v4.80.0 | 16 | **84** | 103 | **81.6%** |
+
+### 剩余可修复项（约10项，极低优先级，延后至 v5.0）
+
+| 维度 | 项目 | 说明 |
+|------|------|------|
+| B1-9 | tokenService expiresIn 计算安全 | 极低风险，硬编码默认值已在B1-5修复中处理 |
+| B1-10 | 两级用户缓存不一致窗口 | 架构级问题，需重新设计缓存层 |
+| B2-6 | item_obj_id 硬编码 | 需要道具系统全局配置化改造 |
+| B3-5 | COALESCE 空字符串覆盖 | 数据流重构，影响面评估后再改 |
+| B3-6 | getEventStats 命名 | 纯语义问题 |
+| B5-4 | 候选商品排除时区偏差 | 与B5-3同类型，B5-3修复后影响已降低 |
+| B5-6 | getDailyDiscounts 新连接 | 连接池问题，已由pool管理 |
+| B6-1 | require延迟加载循环依赖 | 架构重构，需独立规划 |
+| B7-5 | 备份文件内容校验 | 安全增强，优先级低 |
+| B7-9 | 备份文件命名冲突 | 时间戳已有毫秒级精度，概率极低 |
+
+### 文档清理标记
+
+- **A2** 文档重叠 → `.trae/documents/doc-cleanup-checklist-v4.80.0.md`（标注8对重复文档）
+- **A3** archive 清理 → `.trae/documents/doc-cleanup-checklist-v4.80.0.md`（标注约60+可删文件）
+- **E3/E4** 测试覆盖 → `.trae/documents/test-coverage-recommendation-v4.80.0.md`（v5.0前建立）
+
+---
+
 ## [4.79.0] - 2026-06-11
 
 ### Added

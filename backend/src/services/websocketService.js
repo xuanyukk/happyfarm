@@ -8,6 +8,7 @@
  *   2026-03-27 - v1.0.0 - 新建文件，实现WebSocket服务功能
  *   2026-03-29 - v1.1.0 - 添加作物成熟推送功能
  *   2026-06-11 - v1.2.0 - B6-2/B6-3修复：添加僵尸连接清理、Socket验证
+ *   2026-06-11 - v1.3.0 - B6-5/B6-6修复：sendToMultipleUsers添加错误聚合返回；getConnectedUserCount完善JSDoc
  */
 
 const logger = require('../config/logger');
@@ -111,14 +112,44 @@ const broadcast = (event, data) => {
 
 /**
  * 向多个用户推送消息
+ * 逐个用户发送并收集结果，返回成功和失败计数
  * @param {Array<string>} userIds - 用户ID数组
  * @param {string} event - 事件名称
  * @param {any} data - 消息数据
+ * @returns {{ success: number, failed: number }} 推送结果汇总
  */
 const sendToMultipleUsers = (userIds, event, data) => {
-  userIds.forEach((userId) => {
-    sendToUser(userId, event, data);
-  });
+  let success = 0;
+  let failed = 0;
+
+  for (const userId of userIds) {
+    try {
+      const result = sendToUser(userId, event, data);
+      if (result) {
+        success++;
+      } else {
+        failed++;
+      }
+    } catch (error) {
+      logger.warn('向用户推送消息异常', {
+        userId,
+        event,
+        error: error.message,
+      });
+      failed++;
+    }
+  }
+
+  if (failed > 0) {
+    logger.warn('批量推送部分失败', {
+      event,
+      total: userIds.length,
+      success,
+      failed,
+    });
+  }
+
+  return { success, failed };
 };
 
 /**
@@ -168,7 +199,19 @@ const sendNotification = (userId, notification) => {
 
 /**
  * 获取当前连接的用户数量
- * @returns {number} - 连接用户数量
+ *
+ * 返回值说明：
+ * - 返回的是 connectedUsers Map 中记录的条目数（size），即当前维护在
+ *   connectedUsers 映射表中的 socketId 数量。
+ * - 该值表示"曾经建立过 WebSocket 连接并已注册到映射表中的用户数"，
+ *   由于僵尸连接清理机制（startZombieCleanup）每60秒运行一次，因此在
+ *   两次清理间隔内，该值可能包含少量已断开但尚未被清理的条目。
+ * - 如果 io 或 connectedUsers 实例尚未初始化，返回 0。
+ *
+ * 注意：本函数统计的是"注册连接数"而非"实时活跃连接数"，如需精确的
+ * 实时活跃连接数，应结合 Socket.IO 的 io.engine.clientsCount 使用。
+ *
+ * @returns {number} - connectedUsers Map 中的条目数
  */
 const getConnectedUserCount = () => {
   const { connectedUsers } = getIO();

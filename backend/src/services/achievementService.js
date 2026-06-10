@@ -8,6 +8,7 @@
  *   2026-05-31 - v2.6.0 - 新增checkAndUpdateAchievements别名；新增getUnlockedAchievements函数
  *   2026-05-31 - v2.7.0 - 方案B：新增连击追踪+隐藏成就+收藏成就检测逻辑
  *   2026-06-09 - v2.8.0 - 时间字段统一：update_time → updated_at
+ *   2026-06-11 - v2.8.1 - B2-5修复：switch-case添加default分支防止未覆盖成就分类穿透
  */
 
 const pool = require('../config/db');
@@ -107,6 +108,10 @@ const checkAchievements = async function (
           if (achievementType === 'participate_event') {
             newProgress = (achievement.current_progress || 0) + amount;
           }
+          break;
+
+        default:
+          // 未识别的成就分类，不做进度更新，防止穿透到错误逻辑
           break;
       }
 

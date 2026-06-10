@@ -8,6 +8,7 @@
  *   2026-05-31 - v1.0.0 - LG-02修复：初始版本创建
  *   2026-06-09 - v1.1.0 - 时间字段统一：update_time → updated_at
  *   2026-06-11 - v1.2.0 - D3修复：premium_currency改为player_currency.gem_num（字段不存在于player_base）
+ *   2026-06-11 - v1.3.0 - B4-5/B4-6修复：enrichTaskData添加try-catch和JSON安全解析；new Date()改为数据库CURRENT_DATE
  */
 
 const pool = require('../config/db');
@@ -15,7 +16,10 @@ const logger = require('../config/logger');
 
 exports.getPlayerDailyTasks = async function (playerId) {
   try {
-    const today = new Date().toISOString().split('T')[0];
+    // 使用数据库CURRENT_DATE获取服务器日期，确保与数据库task_date字段一致
+    // 避免客户端/服务器时区差异导致任务日期不匹配
+    const dateResult = await pool.query('SELECT CURRENT_DATE as today');
+    const today = dateResult.rows[0].today.toISOString().split('T')[0];
 
     // B4-2修复：直接使用INSERT ON CONFLICT初始化，消除SELECT-then-INSERT竞态
     // initializeDailyTasks内部已使用ON CONFLICT DO NOTHING防止重复插入
@@ -41,7 +45,9 @@ exports.updateTaskProgress = async function (
   try {
     await client.query('BEGIN');
 
-    const today = new Date().toISOString().split('T')[0];
+    // 使用数据库CURRENT_DATE确保与task_date列比较一致，避免时区偏差
+    const dateResult = await client.query('SELECT CURRENT_DATE as today');
+    const today = dateResult.rows[0].today.toISOString().split('T')[0];
 
     const existingTasks = await client.query(
       'SELECT * FROM player_daily_task WHERE player_id = $1 AND task_date = $2',
@@ -104,7 +110,9 @@ exports.claimTaskReward = async function (playerId, taskId) {
   try {
     await client.query('BEGIN');
 
-    const today = new Date().toISOString().split('T')[0];
+    // 使用数据库CURRENT_DATE确保与task_date列比较一致，避免时区偏差
+    const dateResult = await client.query('SELECT CURRENT_DATE as today');
+    const today = dateResult.rows[0].today.toISOString().split('T')[0];
 
     const taskProgress = await client.query(
       `SELECT * FROM player_daily_task
@@ -280,36 +288,73 @@ async function initializeDailyTasksClient(client, playerId, date) {
 }
 
 async function enrichTaskData(tasks) {
-  const taskIds = tasks.map((t) => t.task_id);
-  if (taskIds.length === 0) return [];
+  try {
+    const taskIds = tasks.map((t) => t.task_id);
+    if (taskIds.length === 0) return [];
 
-  const configs = await pool.query(
-    `SELECT * FROM daily_task_config WHERE task_id = ANY($1::int[])`,
-    [taskIds]
-  );
+    const configs = await pool.query(
+      `SELECT * FROM daily_task_config WHERE task_id = ANY($1::int[])`,
+      [taskIds]
+    );
 
-  const configMap = {};
-  configs.rows.forEach((c) => {
-    configMap[c.task_id] = c;
-  });
+    const configMap = {};
+    configs.rows.forEach((c) => {
+      configMap[c.task_id] = c;
+    });
 
-  return tasks.map((t) => {
-    const config = configMap[t.task_id] || {};
-    return {
+    return tasks.map((t) => {
+      const config = configMap[t.task_id] || {};
+      // 安全解析reward_items，防止JSON解析失败导致整个任务列表返回错误
+      let rewardItems = null;
+      if (config.reward_items) {
+        try {
+          rewardItems = typeof config.reward_items === 'string'
+            ? JSON.parse(config.reward_items)
+            : config.reward_items;
+        } catch (parseError) {
+          logger.warn('解析任务奖励物品失败', {
+            taskId: t.task_id,
+            error: parseError.message,
+          });
+          rewardItems = null;
+        }
+      }
+
+      return {
+        id: t.id,
+        taskId: t.task_id,
+        taskName: config.task_name || '',
+        taskDescription: config.task_description || '',
+        taskCategory: config.task_category || '',
+        targetCount: config.target_count || 0,
+        progress: t.progress,
+        isCompleted: t.is_completed,
+        isClaimed: t.is_claimed,
+        rewardExp: config.reward_exp || 0,
+        rewardGold: config.reward_gold || 0,
+        rewardGems: config.reward_gems || 0,
+        rewardItems,
+        sortOrder: config.sort_order || 0,
+      };
+    });
+  } catch (error) {
+    logger.error('丰富任务数据失败', { error: error.message });
+    // 降级返回原始任务数据，至少保证前端能看到基本进度
+    return tasks.map((t) => ({
       id: t.id,
       taskId: t.task_id,
-      taskName: config.task_name || '',
-      taskDescription: config.task_description || '',
-      taskCategory: config.task_category || '',
-      targetCount: config.target_count || 0,
+      taskName: '',
+      taskDescription: '',
+      taskCategory: '',
+      targetCount: 0,
       progress: t.progress,
       isCompleted: t.is_completed,
       isClaimed: t.is_claimed,
-      rewardExp: config.reward_exp || 0,
-      rewardGold: config.reward_gold || 0,
-      rewardGems: config.reward_gems || 0,
-      rewardItems: config.reward_items || null,
-      sortOrder: config.sort_order || 0,
-    };
-  });
+      rewardExp: 0,
+      rewardGold: 0,
+      rewardGems: 0,
+      rewardItems: null,
+      sortOrder: 0,
+    }));
+  }
 }
