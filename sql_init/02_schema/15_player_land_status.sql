@@ -42,7 +42,9 @@ CREATE TABLE IF NOT EXISTS player_land_status (
     CONSTRAINT chk_star_level CHECK (star_level >= 1 AND star_level <= 5),
     CONSTRAINT fk_land_num FOREIGN KEY (land_num) REFERENCES farm_land (land_num),
     CONSTRAINT fk_crop_id FOREIGN KEY (crop_id) REFERENCES crop (crop_id),
-    CONSTRAINT fk_quality_id FOREIGN KEY (current_quality) REFERENCES land_quality (quality_id)
+    CONSTRAINT fk_quality_id FOREIGN KEY (current_quality) REFERENCES land_quality (quality_id),
+    -- D22修复：添加player_id外键约束
+    CONSTRAINT fk_land_player FOREIGN KEY (player_id) REFERENCES player_base(player_id) ON DELETE CASCADE
 );
 
 COMMENT ON TABLE player_land_status IS '开心农场-玩家私有地块状态表(核心)';

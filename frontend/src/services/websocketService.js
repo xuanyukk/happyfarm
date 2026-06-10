@@ -23,6 +23,7 @@ class WebSocketService {
     this.heartbeatInterval = null;
     this.token = null;
     this.baseUrl = import.meta.env.PROD ? '' : 'http://localhost:3001';
+    this.pendingMessages = [];
   }
 
   init(token) {
@@ -82,6 +83,8 @@ class WebSocketService {
       }
       // 重连后恢复所有已注册的事件订阅
       this.restoreHandlers();
+      // 排空重连期间积压的消息
+      this.flushPendingMessages();
     });
 
     // C16修复：监听reconnect_failed事件，提示用户连接已永久断开
@@ -105,7 +108,8 @@ class WebSocketService {
     if (this.isConnected && this.socket) {
       this.socket.emit(event, data);
     } else {
-      console.warn('WebSocket not connected, cannot send message');
+      this.pendingMessages.push({ event, data });
+      console.warn('WebSocket not connected, message queued');
     }
   }
 
@@ -144,6 +148,19 @@ class WebSocketService {
         this.socket.off(event, handler); // 避免重复注册
         this.socket.on(event, handler);
       });
+    });
+  }
+
+  /**
+   * 排空重连期间积压的消息队列
+   */
+  flushPendingMessages() {
+    if (!this.isConnected || !this.socket || this.pendingMessages.length === 0) return;
+    console.log(`Flushing ${this.pendingMessages.length} pending messages`);
+    const messages = [...this.pendingMessages];
+    this.pendingMessages = [];
+    messages.forEach(({ event, data }) => {
+      this.socket.emit(event, data);
     });
   }
 

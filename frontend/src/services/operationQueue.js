@@ -10,7 +10,7 @@
 
 class OperationQueue {
   constructor() {
-    this.queue = [];
+    this.queue = this.loadFromStorage();
     this.isProcessing = false;
     this.maxRetries = 3;
     this.retryDelay = 1000;
@@ -25,6 +25,17 @@ class OperationQueue {
    * @param {Object} operation.localState - 本地状态
    */
   enqueue(operation) {
+    // C12修复：去重检查，跳过相同type+未完成状态的操作
+    const duplicate = this.queue.find(
+      (op) => op.type === operation.type
+        && (op.status === 'pending'
+          || op.status === 'processing'
+          || op.status === 'retrying')
+    );
+    if (duplicate) {
+      return;
+    }
+
     const queueItem = {
       id: Date.now() + Math.random(),
       ...operation,
@@ -32,6 +43,7 @@ class OperationQueue {
       status: 'pending',
     };
     this.queue.push(queueItem);
+    this.saveToStorage();
     this.processQueue();
   }
 
@@ -53,6 +65,7 @@ class OperationQueue {
         await operation.execute();
         operation.status = 'completed';
         this.queue.shift();
+        this.saveToStorage();
       } catch (error) {
         operation.retries++;
 
@@ -67,6 +80,7 @@ class OperationQueue {
           }
           operation.status = 'failed';
           this.queue.shift();
+          this.saveToStorage();
         } else {
           console.warn(
             `操作重试 ${operation.retries}/${this.maxRetries}`,
@@ -90,6 +104,33 @@ class OperationQueue {
   }
 
   /**
+   * 保存队列到localStorage
+   */
+  saveToStorage() {
+    try {
+      // 只持久化可序列化的数据，过滤掉函数引用
+      const serializable = this.queue.map(({ execute, rollback, ...rest }) => rest);
+      localStorage.setItem('operationQueue', JSON.stringify(serializable));
+    } catch (e) {
+      console.warn('保存操作队列到localStorage失败', e);
+    }
+  }
+
+  /**
+   * 从localStorage加载队列
+   * @returns {Array} 恢复的队列数据
+   */
+  loadFromStorage() {
+    try {
+      const data = localStorage.getItem('operationQueue');
+      return data ? JSON.parse(data) : [];
+    } catch (e) {
+      console.warn('从localStorage加载操作队列失败', e);
+      return [];
+    }
+  }
+
+  /**
    * 获取队列状态
    */
   getStatus() {
@@ -109,6 +150,7 @@ class OperationQueue {
   clear() {
     this.queue = [];
     this.isProcessing = false;
+    localStorage.removeItem('operationQueue');
   }
 }
 

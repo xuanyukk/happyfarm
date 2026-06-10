@@ -59,5 +59,7 @@ CREATE INDEX IF NOT EXISTS idx_currency_log_player_id ON player_currency_log (pl
 CREATE INDEX IF NOT EXISTS idx_currency_log_type ON player_currency_log (type);
 CREATE INDEX IF NOT EXISTS idx_currency_log_source ON player_currency_log (source);
 CREATE INDEX IF NOT EXISTS idx_currency_log_create_time ON player_currency_log (create_time DESC);
+-- D10修复：添加复合索引加速按玩家+时间范围查询（常见于历史记录查询）
+CREATE INDEX IF NOT EXISTS idx_currency_log_player_time ON player_currency_log (player_id, create_time DESC);
 
 \echo '玩家货币交易记录表（按月分区）创建成功！'

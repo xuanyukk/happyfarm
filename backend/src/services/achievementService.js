@@ -128,6 +128,37 @@ const checkAchievements = async function (
       }
     }
 
+    // B2-2修复：将连击/隐藏成就检测移至COMMIT之前
+    // 确保检测在事务内完成，保持数据一致性
+    try {
+      if (achievementType === 'login') {
+        await updateComboLogin(playerId);
+      }
+      if (achievementType === 'harvest') {
+        await updateComboHarvest(playerId);
+        await detectNightFarmer(playerId);
+        await detectPerfectOperation(playerId, true);
+        await checkCollectionProgress(playerId);
+      }
+      if (achievementType === 'plant') {
+        await updateComboPlant(playerId);
+        await detectPerfectOperation(playerId, true);
+        await checkCollectionProgress(playerId);
+      }
+      if (achievementType === 'buy' || achievementType === 'wealth') {
+        await detectBigSpender(playerId, amount);
+      }
+      if (achievementType === 'use_item') {
+        await checkItemCollection(playerId);
+      }
+    } catch (comboError) {
+      logger.warn('连击/隐藏成就检测失败', {
+        playerId,
+        achievementType,
+        error: comboError.message,
+      });
+    }
+
     await client.query('COMMIT');
     logger.info('成就检查完成', {
       playerId,
@@ -139,35 +170,6 @@ const checkAchievements = async function (
     throw error;
   } finally {
     client.release();
-  }
-
-  try {
-    if (achievementType === 'login') {
-      await updateComboLogin(playerId);
-    }
-    if (achievementType === 'harvest') {
-      await updateComboHarvest(playerId);
-      await detectNightFarmer(playerId);
-      await detectPerfectOperation(playerId, true);
-      await checkCollectionProgress(playerId);
-    }
-    if (achievementType === 'plant') {
-      await updateComboPlant(playerId);
-      await detectPerfectOperation(playerId, true);
-      await checkCollectionProgress(playerId);
-    }
-    if (achievementType === 'buy' || achievementType === 'wealth') {
-      await detectBigSpender(playerId, amount);
-    }
-    if (achievementType === 'use_item') {
-      await checkItemCollection(playerId);
-    }
-  } catch (comboError) {
-    logger.warn('连击/隐藏成就检测失败', {
-      playerId,
-      achievementType,
-      error: comboError.message,
-    });
   }
 
   return completedAchievements;
@@ -212,6 +214,13 @@ const completeAchievement = async function (client, playerId, achievement) {
 
   // 发放奖励
   if (achievement.reward_type === 'currency') {
+    // B2-4修复：确保player_currency记录存在，避免SELECT返回空行
+    await client.query(
+      `INSERT INTO player_currency (player_id, currency_num) 
+       VALUES ($1, 0) ON CONFLICT (player_id) DO NOTHING`,
+      [playerId]
+    );
+
     const balanceQuery = `
       SELECT currency_num FROM player_currency 
       WHERE player_id = $1 FOR UPDATE
@@ -316,13 +325,16 @@ const getUnlockedAchievements = async function (playerId) {
 const updateComboLogin = async function (playerId) {
   const client = await pool.connect();
   try {
+    // B2-3修复：添加BEGIN事务和FOR UPDATE行锁
+    await client.query('BEGIN');
+
     const today = new Date().toISOString().split('T')[0];
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
     const yesterdayStr = yesterday.toISOString().split('T')[0];
 
     const result = await client.query(
-      'SELECT * FROM player_combo_tracker WHERE player_id = $1',
+      'SELECT * FROM player_combo_tracker WHERE player_id = $1 FOR UPDATE',
       [playerId]
     );
 
@@ -363,8 +375,10 @@ const updateComboLogin = async function (playerId) {
 
     await checkAchievements(playerId, 'daily_login');
 
+    await client.query('COMMIT');
     return { loginComboDays: newComboDays };
   } catch (error) {
+    await client.query('ROLLBACK');
     logger.error('更新登录连击失败', { playerId, error: error.message });
     throw error;
   } finally {

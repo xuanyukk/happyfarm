@@ -2,11 +2,12 @@
  * 文件名：websocketService.js
  * 作者：开发者
  * 日期：2026-03-27
- * 版本：v1.1.0
+ * 版本：v1.2.0
  * 功能描述：WebSocket服务，管理实时通信和数据推送
  * 更新记录：
  *   2026-03-27 - v1.0.0 - 新建文件，实现WebSocket服务功能
  *   2026-03-29 - v1.1.0 - 添加作物成熟推送功能
+ *   2026-06-11 - v1.2.0 - B6-2/B6-3修复：添加僵尸连接清理、Socket验证
  */
 
 const logger = require('../config/logger');
@@ -50,6 +51,14 @@ const sendToUser = (userId, event, data) => {
   const socketId = connectedUsers.get(userId);
   if (!socketId) {
     logger.warn('用户未连接WebSocket', { userId });
+    return false;
+  }
+
+  // B6-3修复：验证Socket是否存在后再推送
+  const socket = io.sockets.sockets.get(socketId);
+  if (!socket || !socket.connected) {
+    logger.warn('Socket连接已断开，清理映射', { userId, socketId });
+    connectedUsers.delete(userId);
     return false;
   }
 
@@ -165,6 +174,42 @@ const isUserConnected = (userId) => {
 };
 
 /**
+ * B6-2修复：启动僵尸连接清理定时器
+ * 每60秒检查一次connectedUsers映射，移除已断开的Socket
+ * @returns {Object} 定时器引用，可供外部停止
+ */
+const startZombieCleanup = () => {
+  const intervalMs = 60 * 1000; // 60秒
+
+  return setInterval(() => {
+    try {
+      const { io, connectedUsers } = getIO();
+      if (!io || !connectedUsers) {
+        return;
+      }
+
+      let cleanedCount = 0;
+      for (const [userId, socketId] of connectedUsers.entries()) {
+        const socket = io.sockets.sockets.get(socketId);
+        if (!socket || !socket.connected) {
+          connectedUsers.delete(userId);
+          cleanedCount++;
+        }
+      }
+
+      if (cleanedCount > 0) {
+        logger.info('僵尸连接清理完成', {
+          cleanedCount,
+          remainingCount: connectedUsers.size,
+        });
+      }
+    } catch (error) {
+      logger.warn('僵尸连接清理异常', { error: error.message });
+    }
+  }, intervalMs);
+};
+
+/**
  * 推送活动日志更新消息
  * @param {string} userId - 用户ID
  * @param {Object} activityLog - 活动日志数据
@@ -205,4 +250,5 @@ module.exports = {
   sendResourceChanged,
   getConnectedUserCount,
   isUserConnected,
+  startZombieCleanup,
 };

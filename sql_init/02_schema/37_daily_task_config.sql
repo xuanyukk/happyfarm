@@ -48,39 +48,8 @@ COMMENT ON COLUMN daily_task_config.unlock_level IS '解锁所需玩家等级';
 COMMENT ON COLUMN daily_task_config.sort_order IS '排序号';
 COMMENT ON COLUMN daily_task_config.is_active IS '是否启用';
 
--- 玩家每日任务进度表
-CREATE TABLE IF NOT EXISTS player_daily_task (
-    id SERIAL PRIMARY KEY,
-    player_id VARCHAR(64) NOT NULL,
-    task_id INTEGER NOT NULL,
-    task_date DATE NOT NULL DEFAULT CURRENT_DATE,
-    current_count INTEGER NOT NULL DEFAULT 0,
-    is_completed BOOLEAN NOT NULL DEFAULT FALSE,
-    is_claimed BOOLEAN NOT NULL DEFAULT FALSE,
-    completed_at TIMESTAMP WITH TIME ZONE DEFAULT NULL,
-    claimed_at TIMESTAMP WITH TIME ZONE DEFAULT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_player_daily_task_player
-        FOREIGN KEY (player_id) REFERENCES player_base(player_id)
-        ON DELETE CASCADE,
-    CONSTRAINT fk_player_daily_task_config
-        FOREIGN KEY (task_id) REFERENCES daily_task_config(task_id)
-        ON DELETE CASCADE,
-    CONSTRAINT uk_player_daily_task_unique
-        UNIQUE (player_id, task_id, task_date)
-);
-
-COMMENT ON TABLE player_daily_task IS '开心农场-玩家每日任务进度表';
-COMMENT ON COLUMN player_daily_task.player_id IS '玩家ID';
-COMMENT ON COLUMN player_daily_task.task_id IS '任务ID';
-COMMENT ON COLUMN player_daily_task.task_date IS '任务日期';
-COMMENT ON COLUMN player_daily_task.current_count IS '当前完成次数';
-COMMENT ON COLUMN player_daily_task.is_completed IS '是否已完成';
-COMMENT ON COLUMN player_daily_task.is_claimed IS '是否已领取奖励';
-
-CREATE INDEX IF NOT EXISTS idx_player_daily_task_player
-    ON player_daily_task (player_id, task_date);
+-- 注：player_daily_task 表由 39_player_daily_task.sql 唯一定义
+-- (D8修复：消除37号文件中的重复定义，避免current_count vs progress字段冲突)
 
 DROP TRIGGER IF EXISTS update_daily_task_config_updated_at ON daily_task_config;
 CREATE TRIGGER update_daily_task_config_updated_at

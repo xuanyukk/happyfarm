@@ -88,7 +88,14 @@ const backupService = {
         backupPath,
       });
 
-      await this.cleanupOldBackups();
+      // B7-3修复：清理失败不应影响备份成功的结果
+      try {
+        await this.cleanupOldBackups();
+      } catch (cleanupError) {
+        logger.warn('清理旧备份文件失败，备份本身已成功', {
+          error: cleanupError.message,
+        });
+      }
 
       return {
         success: true,

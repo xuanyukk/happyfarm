@@ -39,27 +39,42 @@ export const useAlertStore = defineStore('alert', {
     },
 
     async createRule(data) {
-      const response = await request.post('/admin/alerts/rules', data);
-      if (response.success) {
-        await this.fetchRules();
+      try {
+        const response = await request.post('/admin/alerts/rules', data);
+        if (response.success) {
+          await this.fetchRules();
+        }
+        return response;
+      } catch (err) {
+        console.error('创建预警规则失败', err);
+        throw err;
       }
-      return response;
     },
 
     async updateRule(id, data) {
-      const response = await request.put(`/admin/alerts/rules/${id}`, data);
-      if (response.success) {
-        await this.fetchRules();
+      try {
+        const response = await request.put(`/admin/alerts/rules/${id}`, data);
+        if (response.success) {
+          await this.fetchRules();
+        }
+        return response;
+      } catch (err) {
+        console.error('更新预警规则失败', err);
+        throw err;
       }
-      return response;
     },
 
     async deleteRule(id) {
-      const response = await request.delete(`/admin/alerts/rules/${id}`);
-      if (response.success) {
-        await this.fetchRules();
+      try {
+        const response = await request.delete(`/admin/alerts/rules/${id}`);
+        if (response.success) {
+          await this.fetchRules();
+        }
+        return response;
+      } catch (err) {
+        console.error('删除预警规则失败', err);
+        throw err;
       }
-      return response;
     },
 
     async fetchRecords(filters = {}) {
@@ -99,42 +114,62 @@ export const useAlertStore = defineStore('alert', {
     },
 
     async markAsRead(id) {
-      const response = await request.put(`/admin/alerts/records/${id}/read`);
-      if (response.success) {
-        await this.fetchRecords();
-        await this.fetchStats();
+      try {
+        const response = await request.put(`/admin/alerts/records/${id}/read`);
+        if (response.success) {
+          await this.fetchRecords();
+          await this.fetchStats();
+        }
+        return response;
+      } catch (err) {
+        console.error('标记已读失败', err);
+        throw err;
       }
-      return response;
     },
 
     async resolveRecord(id, note) {
-      const response = await request.put(
-        `/admin/alerts/records/${id}/resolve`,
-        { note }
-      );
-      if (response.success) {
-        await this.fetchRecords();
-        await this.fetchStats();
+      try {
+        const response = await request.put(
+          `/admin/alerts/records/${id}/resolve`,
+          { note }
+        );
+        if (response.success) {
+          await this.fetchRecords();
+          await this.fetchStats();
+        }
+        return response;
+      } catch (err) {
+        console.error('解决预警记录失败', err);
+        throw err;
       }
-      return response;
     },
 
     async ignoreRecord(id) {
-      const response = await request.put(`/admin/alerts/records/${id}/ignore`);
-      if (response.success) {
-        await this.fetchRecords();
-        await this.fetchStats();
+      try {
+        const response = await request.put(`/admin/alerts/records/${id}/ignore`);
+        if (response.success) {
+          await this.fetchRecords();
+          await this.fetchStats();
+        }
+        return response;
+      } catch (err) {
+        console.error('忽略预警记录失败', err);
+        throw err;
       }
-      return response;
     },
 
     async triggerDemo() {
-      const response = await request.post('/admin/alerts/trigger');
-      if (response.success) {
-        await this.fetchRecords();
-        await this.fetchStats();
+      try {
+        const response = await request.post('/admin/alerts/trigger');
+        if (response.success) {
+          await this.fetchRecords();
+          await this.fetchStats();
+        }
+        return response;
+      } catch (err) {
+        console.error('触发演示预警失败', err);
+        throw err;
       }
-      return response;
     },
 
     async fetchStats() {

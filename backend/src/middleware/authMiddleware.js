@@ -2,7 +2,7 @@
  * 文件名：authMiddleware.js
  * 作者：开发者
  * 日期：2026-03-18
- * 版本：v1.4.0
+ * 版本：v1.5.0
  * 功能描述：JWT认证中间件，验证用户登录状态，集成 L1 内存缓存 + L2 Redis 缓存
  * 更新记录：
  *   2026-03-18 - v1.0.0 - JWT认证中间件，验证用户登录状态
@@ -10,6 +10,7 @@
  *   2026-05-01 - v1.2.0 - 添加Redis缓存机制，减少数据库查询
  *   2026-06-05 - v1.3.0 - 添加 L1 内存缓存层，减少 Redis 网络开销
  *   2026-06-06 - v1.4.0 - L1缓存使用lru-cache限制内存上限，防止内存泄漏
+ *   2026-06-11 - v1.5.0 - B1-7修复：集成tokenService黑名单和用户撤销检查
  */
 // JWT认证中间件
 const jwt = require('jsonwebtoken');
@@ -119,6 +120,29 @@ const authMiddleware = async (req, res, next) => {
       return res.status(401).json({ message: '无效Token类型：请使用访问令牌' });
     }
     logger.debug('JWT令牌验证成功', { userId: decoded.userId, ip: req.ip });
+
+    // B1-7修复：检查令牌是否在黑名单或被用户撤销（密码重置等）
+    const tokenService = require('../services/tokenService');
+    const [blacklisted, userRevoked] = await Promise.all([
+      tokenService.isBlacklisted(token, 'access'),
+      tokenService.isUserRevoked(decoded.userId, decoded.iat),
+    ]);
+    if (blacklisted) {
+      logger.warn('JWT认证失败：令牌已在黑名单', {
+        userId: decoded.userId,
+        url: req.originalUrl,
+        ip: req.ip,
+      });
+      return res.status(401).json({ message: '令牌已失效' });
+    }
+    if (userRevoked) {
+      logger.warn('JWT认证失败：令牌在密码重置后失效', {
+        userId: decoded.userId,
+        url: req.originalUrl,
+        ip: req.ip,
+      });
+      return res.status(401).json({ message: '密码已变更，请重新登录' });
+    }
 
     const userId = decoded.userId;
     const cacheKey = `user:info:${userId}`;

@@ -148,6 +148,8 @@ CREATE INDEX IF NOT EXISTS idx_game_events_active ON game_events(is_active);
 CREATE INDEX IF NOT EXISTS idx_game_event_tasks_event ON game_event_tasks(event_id);
 CREATE INDEX IF NOT EXISTS idx_player_event_progress_player ON player_event_progress(player_id);
 CREATE INDEX IF NOT EXISTS idx_player_event_progress_event ON player_event_progress(event_id);
+-- D14修复：添加(player_id, event_id)复合索引加速活动进度查询
+CREATE INDEX IF NOT EXISTS idx_player_event_progress_player_event ON player_event_progress(player_id, event_id);
 CREATE INDEX IF NOT EXISTS idx_game_event_rewards_player ON game_event_rewards(player_id);
 
 -- 为表创建更新时间触发器

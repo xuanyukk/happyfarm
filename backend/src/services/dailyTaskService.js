@@ -17,21 +17,15 @@ exports.getPlayerDailyTasks = async function (playerId) {
   try {
     const today = new Date().toISOString().split('T')[0];
 
-    const existingTasks = await pool.query(
+    // B4-2修复：直接使用INSERT ON CONFLICT初始化，消除SELECT-then-INSERT竞态
+    // initializeDailyTasks内部已使用ON CONFLICT DO NOTHING防止重复插入
+    await initializeDailyTasks(playerId, today);
+
+    const result = await pool.query(
       'SELECT * FROM player_daily_task WHERE player_id = $1 AND task_date = $2',
       [playerId, today]
     );
-
-    if (existingTasks.rows.length === 0) {
-      await initializeDailyTasks(playerId, today);
-      const result = await pool.query(
-        'SELECT * FROM player_daily_task WHERE player_id = $1 AND task_date = $2',
-        [playerId, today]
-      );
-      return await enrichTaskData(result.rows);
-    }
-
-    return await enrichTaskData(existingTasks.rows);
+    return await enrichTaskData(result.rows);
   } catch (error) {
     logger.error('获取每日任务失败', { playerId, error: error.message });
     throw error;
@@ -156,33 +150,36 @@ exports.claimTaskReward = async function (playerId, taskId) {
       [config.reward_exp, playerId]
     );
 
-    const balanceResult = await client.query(
-      'SELECT currency_num FROM player_currency WHERE player_id = $1 FOR UPDATE',
-      [playerId]
-    );
-    const balanceBefore = parseInt(balanceResult.rows[0].currency_num);
+    // B4-3修复：仅在有金币奖励时才更新并记录
+    if (config.reward_gold > 0) {
+      const balanceResult = await client.query(
+        'SELECT currency_num FROM player_currency WHERE player_id = $1 FOR UPDATE',
+        [playerId]
+      );
+      const balanceBefore = parseInt(balanceResult.rows[0]?.currency_num || 0);
 
-    await client.query(
-      `UPDATE player_currency
-       SET currency_num = currency_num + $1,
-           total_earn = total_earn + $1,
-           last_earn_time = CURRENT_TIMESTAMP
-       WHERE player_id = $2`,
-      [config.reward_gold, playerId]
-    );
+      await client.query(
+        `UPDATE player_currency
+         SET currency_num = currency_num + $1,
+             total_earn = total_earn + $1,
+             last_earn_time = CURRENT_TIMESTAMP
+         WHERE player_id = $2`,
+        [config.reward_gold, playerId]
+      );
 
-    await client.query(
-      `INSERT INTO player_currency_log
-       (player_id, type, amount, source, related_id, balance_before, balance_after)
-       VALUES ($1, 1, $2, 'daily_task_reward', $3, $4, $5)`,
-      [
-        playerId,
-        config.reward_gold,
-        taskId,
-        balanceBefore,
-        balanceBefore + config.reward_gold,
-      ]
-    );
+      await client.query(
+        `INSERT INTO player_currency_log
+         (player_id, type, amount, source, related_id, balance_before, balance_after)
+         VALUES ($1, 1, $2, 'daily_task_reward', $3, $4, $5)`,
+        [
+          playerId,
+          config.reward_gold,
+          taskId,
+          balanceBefore,
+          balanceBefore + config.reward_gold,
+        ]
+      );
+    }
 
     const receivedItems = [];
     if (config.reward_items && Array.isArray(config.reward_items)) {

@@ -8,6 +8,7 @@
 
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
+import { useRouter } from 'vue-router';
 import {
   logout as logoutService,
   getLocalUser,
@@ -31,6 +32,8 @@ export const useAuthStore = defineStore('auth', () => {
     } finally {
       user.value = null;
       isLoggedIn.value = false;
+      const router = useRouter();
+      router.push('/login');
     }
   };
 

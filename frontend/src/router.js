@@ -28,7 +28,7 @@ import { isLoggedIn } from './services/authService';
 import { useAdminStore } from './stores/admin';
 
 // AdminRoute 竞态保护标志：防止快速路由切换导致重复checkAdminStatus
-let checkingAdmin = false;
+const checkingAdmin = { value: false };
 
 const Home = () => import(/* webpackChunkName: "pages" */ './pages/Home.vue');
 const ShopPage = () => import(/* webpackChunkName: "pages" */ './pages/ShopPage.vue');
@@ -104,7 +104,7 @@ const AdminRoute = async (to, from, next) => {
 
   // 防重入：如果已在验证中，等待现有检查完成
   if (!adminStore.isAdminAuthenticated) {
-    if (checkingAdmin) {
+    if (checkingAdmin.value) {
       // 已有检查在进行中，用watch轮询等待结果
       // C1修复：添加超时兜底（10秒）+ 认证失败分支处理
       let resolved = false;
@@ -128,11 +128,11 @@ const AdminRoute = async (to, from, next) => {
       return;
     }
 
-    checkingAdmin = true;
+    checkingAdmin.value = true;
     try {
       await adminStore.checkAdminStatus();
     } finally {
-      checkingAdmin = false;
+      checkingAdmin.value = false;
     }
   }
 

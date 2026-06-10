@@ -50,103 +50,168 @@ export const useGameEventStore = defineStore('gameEvent', () => {
   }
 
   async function createEvent(data) {
-    const response = await request.post('/admin/game-events', data);
-    if (response.data.success) {
-      await fetchEvents();
+    try {
+      const response = await request.post('/admin/game-events', data);
+      if (response.data.success) {
+        await fetchEvents();
+      }
+      return response;
+    } catch (err) {
+      console.error('创建活动失败', err);
+      throw err;
     }
-    return response;
   }
 
   async function updateEvent(id, data) {
-    const response = await request.put(`/admin/game-events/${id}`, data);
-    if (response.data.success) {
-      await fetchEvents();
+    try {
+      const response = await request.put(`/admin/game-events/${id}`, data);
+      if (response.data.success) {
+        await fetchEvents();
+      }
+      return response;
+    } catch (err) {
+      console.error('更新活动失败', err);
+      throw err;
     }
-    return response;
   }
 
   async function deleteEvent(id) {
-    const response = await request.delete(`/admin/game-events/${id}`);
-    if (response.data.success) {
-      await fetchEvents();
+    try {
+      const response = await request.delete(`/admin/game-events/${id}`);
+      if (response.data.success) {
+        await fetchEvents();
+      }
+      return response;
+    } catch (err) {
+      console.error('删除活动失败', err);
+      throw err;
     }
-    return response;
   }
 
   async function startEvent(id) {
-    const response = await request.post(`/admin/game-events/${id}/start`);
-    if (response.data.success) {
-      await fetchEvents();
+    try {
+      const response = await request.post(`/admin/game-events/${id}/start`);
+      if (response.data.success) {
+        await fetchEvents();
+      }
+      return response;
+    } catch (err) {
+      console.error('开启活动失败', err);
+      throw err;
     }
-    return response;
   }
 
   async function endEvent(id) {
-    const response = await request.post(`/admin/game-events/${id}/end`);
-    if (response.data.success) {
-      await fetchEvents();
+    try {
+      const response = await request.post(`/admin/game-events/${id}/end`);
+      if (response.data.success) {
+        await fetchEvents();
+      }
+      return response;
+    } catch (err) {
+      console.error('结束活动失败', err);
+      throw err;
     }
-    return response;
   }
 
   async function pauseEvent(id) {
-    const response = await request.post(`/admin/game-events/${id}/pause`);
-    if (response.data.success) {
-      await fetchEvents();
+    try {
+      const response = await request.post(`/admin/game-events/${id}/pause`);
+      if (response.data.success) {
+        await fetchEvents();
+      }
+      return response;
+    } catch (err) {
+      console.error('暂停活动失败', err);
+      throw err;
     }
-    return response;
   }
 
   async function resumeEvent(id) {
-    const response = await request.post(`/admin/game-events/${id}/resume`);
-    if (response.data.success) {
-      await fetchEvents();
+    try {
+      const response = await request.post(`/admin/game-events/${id}/resume`);
+      if (response.data.success) {
+        await fetchEvents();
+      }
+      return response;
+    } catch (err) {
+      console.error('恢复活动失败', err);
+      throw err;
     }
-    return response;
   }
 
   async function fetchEventStatistics(id) {
-    const response = await request.get(`/admin/game-events/${id}/statistics`);
-    if (response.data.success) {
-      statistics.value = response.data.data;
+    try {
+      const response = await request.get(`/admin/game-events/${id}/statistics`);
+      if (response.data.success) {
+        statistics.value = response.data.data;
+      }
+      return response;
+    } catch (err) {
+      console.error('获取活动统计失败', err);
+      throw err;
     }
-    return response;
   }
 
   async function fetchEventTasks(eventId) {
-    const response = await request.get(`/admin/game-events/${eventId}/tasks`);
-    return response;
+    try {
+      const response = await request.get(`/admin/game-events/${eventId}/tasks`);
+      return response;
+    } catch (err) {
+      console.error('获取活动任务失败', err);
+      throw err;
+    }
   }
 
   async function createEventTask(eventId, data) {
-    const response = await request.post(
-      `/admin/game-events/${eventId}/tasks`,
-      data
-    );
-    return response;
+    try {
+      const response = await request.post(
+        `/admin/game-events/${eventId}/tasks`,
+        data
+      );
+      return response;
+    } catch (err) {
+      console.error('创建活动任务失败', err);
+      throw err;
+    }
   }
 
   async function updateEventTask(eventId, taskId, data) {
-    const response = await request.put(
-      `/admin/game-events/${eventId}/tasks/${taskId}`,
-      data
-    );
-    return response;
+    try {
+      const response = await request.put(
+        `/admin/game-events/${eventId}/tasks/${taskId}`,
+        data
+      );
+      return response;
+    } catch (err) {
+      console.error('更新活动任务失败', err);
+      throw err;
+    }
   }
 
   async function deleteEventTask(eventId, taskId) {
-    const response = await request.delete(
-      `/admin/game-events/${eventId}/tasks/${taskId}`
-    );
-    return response;
+    try {
+      const response = await request.delete(
+        `/admin/game-events/${eventId}/tasks/${taskId}`
+      );
+      return response;
+    } catch (err) {
+      console.error('删除活动任务失败', err);
+      throw err;
+    }
   }
 
   async function fetchPlayerProgress(eventId, params = {}) {
-    const response = await request.get(
-      `/admin/game-events/${eventId}/progress`,
-      { params }
-    );
-    return response;
+    try {
+      const response = await request.get(
+        `/admin/game-events/${eventId}/progress`,
+        { params }
+      );
+      return response;
+    } catch (err) {
+      console.error('获取玩家进度失败', err);
+      throw err;
+    }
   }
 
   return {

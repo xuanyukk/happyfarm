@@ -66,6 +66,12 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
+/** 不带拦截器的axios实例，用于Token刷新请求避免死循环 */
+const refreshApi = axios.create({
+  baseURL: API_URL,
+  headers: { 'Content-Type': 'application/json' },
+});
+
 // --------------- Token 管理 ---------------
 
 const subscribeTokenRefresh = (cb) => {
@@ -155,7 +161,7 @@ api.interceptors.response.use(
         if (!currentRefreshToken) {
           throw new Error('没有刷新令牌');
         }
-        const res = await axios.post(`${API_URL}/auth/refresh`, {
+        const res = await refreshApi.post('/auth/refresh', {
           refreshToken: currentRefreshToken,
         });
         const { accessToken, refreshToken } = res.data;
@@ -254,7 +260,7 @@ export const manualRefreshToken = async () => {
     if (!currentRefreshToken) {
       throw new Error('没有刷新令牌');
     }
-    const res = await axios.post(`${API_URL}/auth/refresh`, {
+    const res = await refreshApi.post('/auth/refresh', {
       refreshToken: currentRefreshToken,
     });
     const { accessToken, refreshToken } = res.data;

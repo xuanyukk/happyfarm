@@ -1229,7 +1229,7 @@ const handleVisibilityChange = () => {
   if (isPageVisible.value) {
     updateActivity();
     restartGrowthTimer();
-    triggerDataSync();
+    triggerDataSync().catch((err) => console.error('[数据同步] 同步失败:', err));
   } else {
     if (growthTimer) {
       clearInterval(growthTimer);
@@ -1762,45 +1762,45 @@ const handleLogout = async () => {
 // WebSocket消息处理函数
 const wsHandlers = {
   landUnlocked: (data) => {
-    showMessage(`🎉 地块 ${data.landNum} 解锁成功！`, 'success');
-    farmStore.fetchLands();
+    showMessage(`地块 ${data.landNum} 解锁成功！`, 'success');
+    farmStore.fetchLands().catch((err) => console.error('[土地解锁] 刷新失败:', err));
   },
   qualityUpgraded: (data) => {
     showMessage(
-      `✨ 地块 ${data.landNum} 品质提升到 ${data.qualityName}！`,
+      `地块 ${data.landNum} 品质提升到 ${data.qualityName}！`,
       'success'
     );
-    farmStore.fetchLands();
+    farmStore.fetchLands().catch((err) => console.error('[品质提升] 刷新失败:', err));
   },
   cropPlanted: (data) => {
-    showMessage(`🌱 种植 ${data.cropName} 成功！`, 'success');
-    farmStore.fetchLands();
+    showMessage(`种植 ${data.cropName} 成功！`, 'success');
+    farmStore.fetchLands().catch((err) => console.error('[种植] 刷新失败:', err));
   },
   cropHarvested: (data) => {
-    let messageText = `🌾 收获 ${data.cropName} x${data.yield}！`;
+    let messageText = `收获 ${data.cropName} x${data.yield}！`;
     if (data.exp) {
       messageText += ` | 获得经验：玩家+${data.exp.playerExp} 农场+${data.exp.farmExp} 世界+${data.exp.worldExp}`;
     }
     showMessage(messageText, 'success');
-    farmStore.fetchLands();
-    playerStore.fetchPlayerData();
-    playerStore.fetchLevelProgress();
-    shopStore.fetchInventory();
+    farmStore.fetchLands().catch((err) => console.error('[收获] 刷新土地失败:', err));
+    playerStore.fetchPlayerData().catch((err) => console.error('[收获] 刷新玩家数据失败:', err));
+    playerStore.fetchLevelProgress().catch((err) => console.error('[收获] 刷新等级进度失败:', err));
+    shopStore.fetchInventory().catch((err) => console.error('[收获] 刷新背包失败:', err));
   },
   cropSold: (data) => {
-    showMessage(`💰 出售作物获得 ${data.totalAmount} 农场币！`, 'success');
-    playerStore.fetchPlayerData();
+    showMessage(`出售作物获得 ${data.totalAmount} 农场币！`, 'success');
+    playerStore.fetchPlayerData().catch((err) => console.error('[出售] 刷新玩家数据失败:', err));
   },
   harvestAllCompleted: (data) => {
-    let messageText = `🌾 ${data.message} 总产量：${data.totalYield}`;
+    let messageText = `${data.message} 总产量：${data.totalYield}`;
     if (data.totalExp) {
       messageText += ` | 获得经验：玩家+${data.totalExp.playerExp} 农场+${data.totalExp.farmExp} 世界+${data.totalExp.worldExp}`;
     }
     showMessage(messageText, 'success');
-    farmStore.fetchLands();
-    playerStore.fetchPlayerData();
-    playerStore.fetchLevelProgress();
-    shopStore.fetchInventory();
+    farmStore.fetchLands().catch((err) => console.error('[一键收获] 刷新土地失败:', err));
+    playerStore.fetchPlayerData().catch((err) => console.error('[一键收获] 刷新玩家数据失败:', err));
+    playerStore.fetchLevelProgress().catch((err) => console.error('[一键收获] 刷新等级进度失败:', err));
+    shopStore.fetchInventory().catch((err) => console.error('[一键收获] 刷新背包失败:', err));
   },
   achievementUnlocked: (data) => {
     if (data.achievements && data.achievements.length > 0) {

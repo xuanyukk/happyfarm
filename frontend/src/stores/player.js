@@ -82,29 +82,44 @@ export const usePlayerStore = defineStore('player', () => {
   };
 
   const checkAndUpgrade = async () => {
-    const result = await gameService.checkAndUpgrade();
-    if (result.success) {
-      await fetchPlayerData(true);
-      await fetchLevelProgress(true);
+    try {
+      const result = await gameService.checkAndUpgrade();
+      if (result.success) {
+        await fetchPlayerData(true);
+        await fetchLevelProgress(true);
+      }
+      return result;
+    } catch (err) {
+      console.error('检查升级失败', err);
+      throw err;
     }
-    return result;
   };
 
   const unlockWorldLevel = async (targetWorldLevel) => {
-    const result = await gameService.unlockWorldLevel(targetWorldLevel);
-    if (result.success) {
-      await fetchPlayerData(true);
-      await fetchLevelProgress(true);
+    try {
+      const result = await gameService.unlockWorldLevel(targetWorldLevel);
+      if (result.success) {
+        await fetchPlayerData(true);
+        await fetchLevelProgress(true);
+      }
+      return result;
+    } catch (err) {
+      console.error('解锁世界等级失败', err);
+      throw err;
     }
-    return result;
   };
 
   const updateAvatar = async (avatar) => {
-    const result = await gameService.updateAvatar(avatar);
-    if (result.success) {
-      await fetchPlayerData(true);
+    try {
+      const result = await gameService.updateAvatar(avatar);
+      if (result.success) {
+        await fetchPlayerData(true);
+      }
+      return result;
+    } catch (err) {
+      console.error('更新头像失败', err);
+      throw err;
     }
-    return result;
   };
 
   const updateGold = (amount) => {

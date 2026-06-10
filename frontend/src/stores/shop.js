@@ -53,20 +53,30 @@ export const useShopStore = defineStore('shop', () => {
   };
 
   const buyGoods = async (goodsId, quantity) => {
-    const result = await gameService.buyGoods(goodsId, quantity);
-    if (result.success) {
-      await fetchInventory();
-      await fetchGoods();
+    try {
+      const result = await gameService.buyGoods(goodsId, quantity);
+      if (result.success) {
+        await fetchInventory();
+        await fetchGoods();
+      }
+      return result;
+    } catch (err) {
+      console.error('购买商品失败', err);
+      throw err;
     }
-    return result;
   };
 
   const sellCrop = async (itemId, quantity) => {
-    const result = await gameService.sellCrop(itemId, quantity);
-    if (result.success) {
-      await fetchInventory();
+    try {
+      const result = await gameService.sellCrop(itemId, quantity);
+      if (result.success) {
+        await fetchInventory();
+      }
+      return result;
+    } catch (err) {
+      console.error('出售作物失败', err);
+      throw err;
     }
-    return result;
   };
 
   return {

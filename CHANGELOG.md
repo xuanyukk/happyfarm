@@ -87,6 +87,135 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [4.78.0] - 2026-06-11
+
+### Fixed — 第二批修复（约35项：安全+业务+前端+数据库）
+
+#### Auth 安全修复（5项）
+
+- **🔒 [B1-3] refreshToken 未将旧 access_token 加入黑名单** — 签发新 token 时旧令牌仍可继续使用直到自然过期。修复在 refreshToken 处理中提取旧 access_token 并调用 `tokenService.addToBlacklist()`
+  - `authController.js` v1.2.2→v1.3.0
+
+- **🔒 [B1-4] 登录流程无事务保护** — login 中 `revokeAllUserTokens` + `UPDATE last_login_at` + `saveRefreshToken` 不在同一事务中，部分失败导致数据不一致。修复耦合为 `pool.connect()` → `BEGIN` → 三操作 → `COMMIT`，全部使用 transaction-safe 内部辅助函数
+  - `authController.js` v1.2.2→v1.3.0
+
+- **🔒 [B1-5] tokenService 无密钥校验** — 未设置 `JWT_ACCESS_SECRET`/`JWT_REFRESH_SECRET` 时使用弱默认值，生产环境不安全。修复在模块加载时调用 `validateSecrets()`，生产模式下抛出 Error
+  - `tokenService.js` v1.0.0→v1.1.0
+
+- **🔒 [B1-6] 密码重置未撤销活跃 access_token** — 密码被他人修改后，已签发的 access_token 继续有效。修复添加 `tokenService.revokeAllUserAccessTokens(userId)`，存储 Redis 时间戳供中间件比对 `iat`
+  - `authController.js` v1.2.2→v1.3.0
+
+- **🔒 [B1-7] authMiddleware 无黑名单/用户撤销检测** — JWT 验证通过后未检查 Redis 黑名单或用户级 token 撤销状态。修复添加并行 `isBlacklisted()` + `isUserRevoked()` 检查
+  - `authMiddleware.js` v1.4.0→v1.5.0
+
+#### 业务逻辑修复（8项）
+
+- **🛡️ [B2-2] 连击/隐藏成就检测在 COMMIT 之后执行** — 如果后续检测失败则成就已提交但连击未记录。修复将 combo 检测块移至 `COMMIT` 之前事务内，rollback 时自动回滚
+  - `achievementService.js`
+
+- **🛡️ [B2-3] updateComboLogin 无事务/无行锁** — 并发登录连击更新可能产生脏读。修复添加 `BEGIN` 事务 + `FOR UPDATE` 行锁
+  - `achievementService.js`
+
+- **🛡️ [B2-4] completeAchievement 奖励发放无 player_currency 存在性检查** — 新玩家首次获得货币奖励时 `SELECT ... FOR UPDATE` 返回空行导致 `balanceBefore` 为 0 但无 INSERT 兜底。修复添加 `INSERT ... ON CONFLICT DO NOTHING` 确保行存在
+  - `achievementService.js`
+
+- **🛡️ [B3-2] updatePlayerProgress 未检查活动时间有效性** — 更新玩家进度时未验证活动是否在 `start_time` 到 `end_time` 范围内。修复任务查询添加 JOIN + 时间范围条件
+  - `gameEventService.js`
+
+- **🛡️ [B3-3] claimTaskReward 未检查活动状态** — 领取前未验证活动的 is_active、start_time、end_time。修复添加 `SELECT game_events FOR UPDATE` 活动状态检查
+  - `gameEventService.js`
+
+- **🛡️ [B3-4] _grantCurrencyReward 无 player_currency 插入兜底** — 与 B2-4 同理。修复添加 `INSERT ... ON CONFLICT DO NOTHING`
+  - `gameEventService.js`
+
+- **🛡️ [B4-2] getPlayerDailyTasks SELECT-then-INSERT 竞态** — 先 SELECT 判断再 INSERT 的两步操作存在并发重复插入风险。修复直接调用 `initializeDailyTasks()`（内部已用 `ON CONFLICT DO NOTHING`）
+  - `dailyTaskService.js` v1.2.0
+
+- **🛡️ [B4-3] claimTaskReward 无奖励金币时仍执行空 UPDATE+INSERT** — `reward_gold=0` 时仍写入货币日志（amount=0 的无意义记录）。修复添加 `if (config.reward_gold > 0)` 条件
+  - `dailyTaskService.js`
+
+#### 折扣/备份/WebSocket 修复（5项）
+
+- **🛡️ [B5-2] getDiscountByGoodsId 静默吞掉数据库错误** — catch 块中 `return null` 让调用方误以为"无此折扣"，实际可能是 DB 宕机。修复改为 `throw error`
+  - `dailyDiscountService.js`
+
+- **🛡️ [B6-2] WebSocket 僵尸连接无清理机制** — `connectedUsers` Map 中的 Socket 断开后映射残留。修复添加 `startZombieCleanup()` 每 60 秒自动检测并清理
+  - `websocketService.js` v1.1.0→v1.2.0
+
+- **🛡️ [B6-3] sendToUser 未验证 Socket 存活** — `io.to(socketId).emit()` 前未检查 Socket 是否仍连接。修复添加 `io.sockets.sockets.get(socketId)` 存活检查 + 自动清理
+  - `websocketService.js` v1.1.0→v1.2.0
+
+- **🛡️ [B7-3] createBackup 中 cleanupOldBackups 失败导致备份返回失败** — 清理旧备份的异常传播到 backup 函数顶部，即使 pg_dump 本身成功。修复 `cleanupOldBackups()` 包裹为独立 try-catch
+  - `backupService.js`
+
+#### 前端修复（15项）
+
+- **[C6] WebSocket 断线消息队列** — 断线期间 send() 消息直接丢弃。修复添加 `pendingMessages[]` 队列 + reconnect 时 `flushPendingMessages()` 排空
+  - `frontend\src\services\websocketService.js`
+
+- **[C9] 双 axios 实例问题** — 拦截器和 manualRefreshToken 中直接用 `axios.post` 绕过拦截器。修复新增不带拦截器的 `refreshApi` 实例
+  - `frontend\src\services\authService.js`
+
+- **[C10] 退出登录未导航** — `logout` 清除状态但未跳转到 `/login`。修复 finally 块中添加 `router.push('/login')`
+  - `frontend\src\stores\auth.js`
+
+- **[C11] operationQueue 无持久化** — 页面刷新队列丢失。修复添加 localStorage 读写（saveToStorage/loadFromStorage）
+  - `frontend\src\services\operationQueue.js`
+
+- **[C12] operationQueue 无去重** — 快速操作可能重复入队。修复 enqueue 时按 type+status 去重
+  - `frontend\src\services\operationQueue.js`
+
+- **[C13] 5 个 Store 缺少 error 处理** — farm.js/player.js/shop.js/alert.js/gameEvent.js 共 27 个 action 无 try-catch。修复全部添加错误日志+重抛
+  - `frontend\src\stores\farm.js`、`player.js`、`shop.js`、`alert.js`、`gameEvent.js`
+
+- **[C14] Home.vue fire-and-forget 无 catch** — wsHandlers 中 12 处异步调用无错误处理。修复全部添加 `.catch((err) => console.error(...))`
+  - `frontend\src\pages\Home.vue`
+
+- **[C15] router.js checkingAdmin 裸变量** — 模块级 `let checkingAdmin` 语义不清晰。修复改为 `const checkingAdmin = { value: false }` ref-like 对象
+  - `frontend\src\router.js`
+
+- **[C16] LandCell 未使用的 qualityColors** — 删除 10 行未引用的常量对象
+  - `frontend\src\components\LandCell.vue`
+
+- **[C17-C20] LandCell CSS 硬编码色值** — progress-bar / locked-overlay / wilted / star-5 中硬编码颜色改为 CSS 变量
+  - `frontend\src\components\LandCell.vue`
+
+#### 数据库/配置修复（7项）
+
+- **[D7] 迁移文件 message TEXT 缺少 DEFAULT ''** — `20260606000001_log_tables_partitioning.sql` 中 `message TEXT NOT NULL` 与 Schema 文件不一致
+  - `sql_init\migrations\20260606000001_log_tables_partitioning.sql`
+
+- **[D8] player_daily_task 表重复定义** — `37_daily_task_config.sql` (current_count) 与 `39_player_daily_task.sql` (progress) 字段名冲突。修复删除 37 号文件中的重复表定义
+  - `sql_init\02_schema\37_daily_task_config.sql`
+
+- **[D10] player_currency_log 缺少复合索引** — 新增 `idx_currency_log_player_time ON (player_id, create_time DESC)`
+  - `sql_init\02_schema\13_player_currency_log.sql`
+
+- **[D12] player_achievement 缺少复合索引** — 新增 `idx_player_achievement_player_completed ON (player_id, is_completed)`
+  - `sql_init\02_schema\28_achievement_system.sql`
+
+- **[D14] player_event_progress 缺少复合索引** — 新增 `idx_player_event_progress_player_event ON (player_id, event_id)`
+  - `sql_init\02_schema\33_game_event_system.sql`
+
+- **[D22] player_land_status 缺少 player_id 外键** — 新增 `CONSTRAINT fk_land_player FOREIGN KEY (player_id) REFERENCES player_base(player_id) ON DELETE CASCADE`
+  - `sql_init\02_schema\15_player_land_status.sql`
+
+- **[E2] clean 脚本不兼容 Windows** — `rm -rf ... && rm -rf ... && rm -rf ...` 在 PowerShell 不可用。修复改为 `rimraf backend/node_modules frontend/node_modules node_modules`
+  - `package.json`
+
+### Audit Summary v4.78.0
+
+| 维度 | 修复项数 | 修改文件数 |
+|------|----------|------------|
+| Auth 安全 | 5 | 3 |
+| 业务逻辑 | 8 | 3 |
+| 折扣/备份/WebSocket | 5 | 3 |
+| 前端 | 15 | 12 |
+| 数据库/配置 | 7 | 6 |
+| **合计** | **40** | **27+** |
+
+---
+
 ## [4.76.0] - 2026-06-10
 
 ### Fixed

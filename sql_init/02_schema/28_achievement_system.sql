@@ -49,6 +49,8 @@ CREATE TABLE IF NOT EXISTS achievement_unlock_log (
 -- 添加索引
 CREATE INDEX IF NOT EXISTS idx_player_achievement_player_id ON player_achievement(player_id);
 CREATE INDEX IF NOT EXISTS idx_player_achievement_achievement_id ON player_achievement(achievement_id);
+-- D12修复：添加复合索引加速按玩家+完成状态查询
+CREATE INDEX IF NOT EXISTS idx_player_achievement_player_completed ON player_achievement(player_id, is_completed);
 CREATE INDEX IF NOT EXISTS idx_achievement_unlock_log_player_id ON achievement_unlock_log(player_id);
 CREATE INDEX IF NOT EXISTS idx_achievement_definition_category ON achievement_definition(category);
 CREATE INDEX IF NOT EXISTS idx_achievement_definition_rarity ON achievement_definition(rarity);

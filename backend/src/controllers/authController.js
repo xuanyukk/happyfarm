@@ -2,11 +2,12 @@
  * 文件名：authController.js
  * 作者：开发者
  * 日期：2026-03-18
- * 版本：v1.2.2
+ * 版本：v1.3.0
  * 功能描述：认证控制器，处理用户注册、登录、JWT刷新、密码重置等功能
  * 更新记录：
  *   2026-03-22 - v1.2.1 - 添加玩家初始化失败容错处理
  *   2026-03-22 - v1.2.2 - 优化Token有效期配置，提升游戏用户体验
+ *   2026-06-11 - v1.3.0 - B1-3/B1-4/B1-6修复：登录事务保护、刷新时撤销旧access_token、密码重置撤销access_token
  */
 
 const pool = require('../config/db');
@@ -19,6 +20,7 @@ const logger = require('../config/logger');
 const { sendPasswordResetEmail } = require('../services/emailService');
 const { ensurePlayerInitialized } = require('../services/initService');
 const { validatePasswordStrength } = require('../utils/security');
+const tokenService = require('../services/tokenService');
 
 // bcrypt 盐轮数，从环境变量读取，默认10轮
 const BCRYPT_SALT_ROUNDS = parseInt(process.env.BCRYPT_SALT_ROUNDS) || 10;
@@ -111,6 +113,31 @@ const revokeAllUserTokens = async (userId) => {
     WHERE user_id = $1 AND revoked_at IS NULL
   `;
   await pool.query(query, [userId]);
+};
+
+// B1-4修复：事务内版本 — 撤销用户的所有刷新令牌
+const revokeAllUserTokensInternal = async (client, userId) => {
+  const query = `
+    UPDATE refresh_tokens 
+    SET revoked_at = CURRENT_TIMESTAMP 
+    WHERE user_id = $1 AND revoked_at IS NULL
+  `;
+  await client.query(query, [userId]);
+};
+
+// B1-4修复：事务内版本 — 保存刷新令牌
+const saveRefreshTokenInternal = async (client, userId, token, req) => {
+  const expiresAt = calculateExpiresAt(
+    process.env.JWT_REFRESH_EXPIRES_IN || '30d'
+  );
+  const ipAddress = req.ip;
+  const userAgent = req.get('user-agent');
+  const query = `
+    INSERT INTO refresh_tokens (user_id, token, expires_at, ip_address, user_agent)
+    VALUES ($1, $2, $3, $4, $5)
+    RETURNING id
+  `;
+  await client.query(query, [userId, token, expiresAt, ipAddress, userAgent]);
 };
 
 // 注册接口
@@ -258,28 +285,41 @@ exports.login = async (req, res) => {
       return res.status(401).json({ message: '用户名/邮箱或密码错误' });
     }
 
-    // 撤销用户之前的所有刷新令牌
-    await revokeAllUserTokens(user.id);
+    // B1-4修复：登录流程使用事务保护
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
 
-    // 更新最后登录时间
-    await pool.query(
-      'UPDATE sys_user SET last_login_at = CURRENT_TIMESTAMP WHERE id = $1',
-      [user.id]
-    );
+      // 撤销用户之前的所有刷新令牌
+      await revokeAllUserTokensInternal(client, user.id);
 
-    logger.info('用户登录成功', {
-      userId: user.id,
-      username: user.username,
-      email: user.email,
-      ip: req.ip,
-    });
+      // 更新最后登录时间
+      await client.query(
+        'UPDATE sys_user SET last_login_at = CURRENT_TIMESTAMP WHERE id = $1',
+        [user.id]
+      );
 
-    // 生成访问令牌和刷新令牌
-    const accessToken = generateAccessToken(user.id);
-    const refreshToken = generateRefreshToken(user.id);
+      // 生成访问令牌和刷新令牌
+      const accessToken = generateAccessToken(user.id);
+      const refreshToken = generateRefreshToken(user.id);
 
-    // 保存刷新令牌到数据库
-    await saveRefreshToken(user.id, refreshToken, req);
+      // 保存刷新令牌到数据库
+      await saveRefreshTokenInternal(client, user.id, refreshToken, req);
+
+      await client.query('COMMIT');
+
+      logger.info('用户登录成功', {
+        userId: user.id,
+        username: user.username,
+        email: user.email,
+        ip: req.ip,
+      });
+      } catch (txErr) {
+        await client.query('ROLLBACK');
+        throw txErr;
+      } finally {
+        client.release();
+      }
 
     // 初始化玩家数据（如果尚未初始化）（容错处理，失败不影响登录）
     try {
@@ -373,6 +413,12 @@ exports.refreshToken = async (req, res) => {
       WHERE id = $1
     `;
     await pool.query(revokeQuery, [tokenData.id]);
+
+    // B1-3修复：将旧access_token加入黑名单（防止在过期前被滥用）
+    const oldAccessToken = req.headers.authorization?.split(' ')[1];
+    if (oldAccessToken) {
+      await tokenService.addToBlacklist(oldAccessToken, 'access');
+    }
 
     // 生成新的访问令牌和刷新令牌
     const newAccessToken = generateAccessToken(tokenData.user_id);
@@ -649,6 +695,9 @@ exports.resetPassword = async (req, res) => {
 
     // 撤销用户的所有刷新令牌
     await revokeAllUserTokens(tokenData.user_id);
+
+    // B1-6修复：撤销该用户所有尚未过期的access_token
+    await tokenService.revokeAllUserAccessTokens(tokenData.user_id);
 
     logger.info('重置密码成功', { userId: tokenData.user_id, ip: req.ip });
 

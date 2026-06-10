@@ -92,7 +92,7 @@ CREATE TABLE game_activity_log (
     player_id VARCHAR(64) NOT NULL,
     activity_type VARCHAR(50) NOT NULL,
     activity_category VARCHAR(30) NOT NULL,
-    message TEXT NOT NULL,
+    message TEXT NOT NULL DEFAULT '',
     metadata JSONB,
     create_time TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_activity_player FOREIGN KEY (player_id)

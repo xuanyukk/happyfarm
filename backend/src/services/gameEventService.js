@@ -454,9 +454,16 @@ const gameEventService = {
       await client.query('BEGIN');
 
       // 获取该活动的相关任务
+      // B3-2修复：添加活动时间有效性检查
       const tasksQuery = `
-        SELECT * FROM game_event_tasks
-        WHERE event_id = $1 AND task_type = $2 AND is_active = true
+        SELECT t.* FROM game_event_tasks t
+        JOIN game_events e ON t.event_id = e.id
+        WHERE t.event_id = $1 
+          AND t.task_type = $2 
+          AND t.is_active = true
+          AND e.is_active = true
+          AND e.start_time <= CURRENT_TIMESTAMP 
+          AND e.end_time >= CURRENT_TIMESTAMP
       `;
       const tasksResult = await client.query(tasksQuery, [eventId, taskType]);
 
@@ -551,6 +558,13 @@ const gameEventService = {
     if (!currencyReward || !currencyReward.amount) {
       return;
     }
+
+    // B3-4修复：确保player_currency记录存在
+    await client.query(
+      `INSERT INTO player_currency (player_id, currency_num) 
+       VALUES ($1, 0) ON CONFLICT (player_id) DO NOTHING`,
+      [playerId]
+    );
 
     // 获取当前余额（修正字段名：balance → currency_num）
     const balResult = await client.query(
@@ -685,6 +699,28 @@ const gameEventService = {
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
+
+      // B3-3修复：添加活动状态检查
+      const eventQuery = `
+        SELECT id, is_active, start_time, end_time 
+        FROM game_events 
+        WHERE id = $1 FOR UPDATE
+      `;
+      const eventResult = await client.query(eventQuery, [eventId]);
+      if (eventResult.rows.length === 0) {
+        throw new Error('活动不存在');
+      }
+      const event = eventResult.rows[0];
+      if (!event.is_active) {
+        throw new Error('活动已结束');
+      }
+      const now = new Date();
+      if (new Date(event.start_time) > now) {
+        throw new Error('活动尚未开始');
+      }
+      if (new Date(event.end_time) < now) {
+        throw new Error('活动已结束');
+      }
 
       // 获取进度和任务信息
       const progressQuery = `

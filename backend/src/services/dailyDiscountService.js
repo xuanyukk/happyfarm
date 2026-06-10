@@ -192,8 +192,9 @@ const getDiscountByGoodsId = async function (goodsId) {
     );
     return result.rows.length > 0 ? result.rows[0] : null;
   } catch (error) {
+    // B5-2修复：数据库错误应向上抛出，而非静默返回null
     logger.error('获取商品折扣失败', { goodsId, error: error.message });
-    return null;
+    throw error;
   } finally {
     client.release();
   }

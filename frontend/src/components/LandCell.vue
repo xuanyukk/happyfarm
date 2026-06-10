@@ -248,17 +248,6 @@ const speedBoostTooltip = computed(() => {
   return tip;
 });
 
-const qualityColors = {
-  1: '#9E9E9E',
-  2: '#CD7F32',
-  3: '#71797E',
-  4: '#FFD700',
-  5: '#50C878',
-  6: '#B9F2FF',
-  7: '#8B0000',
-  8: '#9400D3',
-};
-
 const qualityClass = computed(
   () => `quality-${props.land.current_quality || 1}`
 );
@@ -417,7 +406,7 @@ const starDisplayText = computed(() => {
 
 .land-cell.wilted {
   border-color: var(--error-600);
-  background: #4a1a1a;
+  background: var(--error-900, #4a1a1a);
   box-shadow: 0 0 6px rgba(220, 38, 38, 0.6);
   opacity: 0.7;
   cursor: not-allowed;
@@ -465,7 +454,7 @@ const starDisplayText = computed(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.7);
+  background: var(--overlay-bg, rgba(0, 0, 0, 0.7));
   border-radius: 9px;
 }
 
@@ -531,7 +520,7 @@ const starDisplayText = computed(() => {
 .progress-bar {
   width: 100%;
   height: 8px;
-  background: var(--text-primary);
+  background: rgba(255, 255, 255, 0.15);
   border-radius: 4px;
   overflow: hidden;
   margin-bottom: 4px;
@@ -678,7 +667,7 @@ const starDisplayText = computed(() => {
 }
 
 .star-badge.star-5 {
-  color: #ff6b00;
+  color: var(--gold-600, #ff6b00);
   text-shadow: 0 0 4px rgba(255, 107, 0, 0.6);
 }
 

@@ -310,29 +310,34 @@ export const useFarmStore = defineStore('farm', () => {
   };
 
   const harvestAllMatured = async () => {
-    const result = await gameService.harvestAllMatured();
-    if (result.success) {
-      lands.value.forEach((land) => {
-        if (land.crop_id && isMatured(land)) {
-          updateLandLocally(land.land_num, {
-            crop_id: null,
-            crop_name: null,
-            planted_time: null,
-            harvest_time: null,
-            growthProgress: 0,
-            isMatured: false,
-            notifiedMature: false,
-            yield_boost: null,
-            yield_boost_end_time: null,
-            speed_boost: null,
-            speed_boost_end_time: null,
-            lucky_seed_active: false,
-            exp_potion_active: false,
-          });
-        }
-      });
+    try {
+      const result = await gameService.harvestAllMatured();
+      if (result.success) {
+        lands.value.forEach((land) => {
+          if (land.crop_id && isMatured(land)) {
+            updateLandLocally(land.land_num, {
+              crop_id: null,
+              crop_name: null,
+              planted_time: null,
+              harvest_time: null,
+              growthProgress: 0,
+              isMatured: false,
+              notifiedMature: false,
+              yield_boost: null,
+              yield_boost_end_time: null,
+              speed_boost: null,
+              speed_boost_end_time: null,
+              lucky_seed_active: false,
+              exp_potion_active: false,
+            });
+          }
+        });
+      }
+      return result;
+    } catch (err) {
+      console.error('一键收获失败', err);
+      throw err;
     }
-    return result;
   };
 
   const upgradeLandStar = async (landNum) => {
@@ -357,8 +362,13 @@ export const useFarmStore = defineStore('farm', () => {
   };
 
   const getLandStarConfigs = async (qualityId) => {
-    const result = await gameService.getLandStarConfigs(qualityId);
-    return result;
+    try {
+      const result = await gameService.getLandStarConfigs(qualityId);
+      return result;
+    } catch (err) {
+      console.error('获取地块星级配置失败', err);
+      throw err;
+    }
   };
 
   /**
