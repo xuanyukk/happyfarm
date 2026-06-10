@@ -1,12 +1,25 @@
-/** * 文件名：LandCell.vue * 作者：开发者 * 日期：2026-03-28 * 版本：v2.1.0 *
-功能描述：土地格子组件 - 显示单个地块状态和交互 * 更新记录： * 2026-03-28 -
-v1.0.0 - 初始创建，土地格子功能 * 2026-05-28 - v2.0.0 - 添加资源管理和视觉优化 *
-2026-05-28 - v2.0.1 - 修复HTML实体编码问题 * 2026-05-30 - v2.1.0 -
-添加产量预估显示、道具效果增强、解锁条件标准化 */
+/**
+ * 文件名：LandCell.vue
+ * 作者：开发者
+ * 日期：2026-03-28
+ * 版本：v2.2.0
+ * 功能描述：土地格子组件 - 显示单个地块状态和交互
+ * 更新记录：
+ * 2026-03-28 - v1.0.0 - 初始创建，土地格子功能
+ * 2026-05-28 - v2.0.0 - 添加资源管理和视觉优化
+ * 2026-05-28 - v2.0.1 - 修复HTML实体编码问题
+ * 2026-06-10 - v2.2.0 - 样式变量化：硬编码色值→CSS变量（brown/gold/success/sky/text等），品质色阶保留
+ * 2026-05-30 - v2.1.0 - 添加产量预估显示、道具效果增强、解锁条件标准化
+ */
 <template>
   <div class="land-cell" :class="cellClass" @click="handleCellClick">
     <div v-if="!land.is_unlocked" class="locked-overlay">
-      <span class="lock-icon">🔒</span>
+      <img
+        class="lock-icon-img"
+        :src="lockIconSrc"
+        alt="锁定"
+        @error="onUIImgError"
+      />
       <span class="unlock-condition">{{ unlockConditionText }}</span>
     </div>
     <div v-else class="land-content">
@@ -47,10 +60,23 @@ v1.0.0 - 初始创建，土地格子功能 * 2026-05-28 - v2.0.0 - 添加资源�
             {{ land.min_yield || 0 }}-{{ land.max_yield || 0 }}个
           </span>
         </div>
-        <div v-else class="matured-badge">✨ 可收获! ✨</div>
+        <div v-else class="matured-badge">
+          <img
+            class="matured-badge-img"
+            :src="ripeBadgeSrc"
+            alt="成熟"
+            @error="onUIImgError"
+          />
+          可收获!
+        </div>
       </div>
       <div v-else class="empty-land">
-        <span class="empty-icon">🌱</span>
+        <img
+          class="empty-land-img"
+          :src="emptyLandSrc"
+          alt="空地"
+          @error="onUIImgError"
+        />
         <span>空地</span>
       </div>
     </div>
@@ -78,7 +104,8 @@ v1.0.0 - 初始创建，土地格子功能 * 2026-05-28 - v2.0.0 - 添加资源�
         class="boost-icon boost-yield"
         :title="yieldBoostTooltip"
       >
-        📈{{ Math.round((land.yield_boost - 1) * 100) }}%
+        <img class="boost-icon-img" :src="boostIcons.yield" @error="onUIImgError" alt="产量" />
+        {{ Math.round((land.yield_boost - 1) * 100) }}%
         <span v-if="land.yield_boost_remaining" class="boost-time">
           {{ formatBoostTime(land.yield_boost_remaining) }}</span
         >
@@ -88,7 +115,8 @@ v1.0.0 - 初始创建，土地格子功能 * 2026-05-28 - v2.0.0 - 添加资源�
         class="boost-icon boost-speed"
         :title="speedBoostTooltip"
       >
-        ⚡{{ Math.round((land.speed_boost - 1) * 100) }}%
+        <img class="boost-icon-img" :src="boostIcons.speed" @error="onUIImgError" alt="速度" />
+        {{ Math.round((land.speed_boost - 1) * 100) }}%
         <span v-if="land.speed_boost_remaining" class="boost-time">
           {{ formatBoostTime(land.speed_boost_remaining) }}</span
         >
@@ -97,13 +125,13 @@ v1.0.0 - 初始创建，土地格子功能 * 2026-05-28 - v2.0.0 - 添加资源�
         v-if="land.lucky_seed_active"
         class="boost-icon boost-lucky"
         title="幸运种子：收获时50%几率双倍"
-        >🍀</span
+        ><img class="boost-icon-img" :src="boostIcons.lucky" @error="onUIImgError" alt="幸运" /></span
       >
       <span
         v-if="land.exp_potion_active"
         class="boost-icon boost-exp"
         title="经验药水：收获时双倍经验"
-        >🧪</span
+        ><img class="boost-icon-img" :src="boostIcons.exp" @error="onUIImgError" alt="经验" /></span
       >
     </div>
     <button
@@ -112,15 +140,18 @@ v1.0.0 - 初始创建，土地格子功能 * 2026-05-28 - v2.0.0 - 添加资源�
       title="使用道具"
       @click.stop="handleUseItem"
     >
-      🎒
+      <img class="use-item-btn-img" :src="useItemBtnSrc" @error="onUIImgError" alt="道具" />
     </button>
   </div>
 </template>
 
 <script setup>
+defineOptions({ name: 'LandCell' });
+
 import { computed } from 'vue';
 import { getCropStageDisplay } from '../utils/resourceManager';
-import { getCropStageImage, getFallbackImage } from '../utils/imagePaths';
+import { getCropStageImage, getFallbackImage, getUICommonImage, getUIButtonImage } from '../utils/imagePaths';
+import { timeSyncService } from '../services/timeSync';
 
 const props = defineProps({
   land: { type: Object, required: true },
@@ -144,6 +175,31 @@ const cropStageDisplay = computed(() => {
 const onCropImageError = (event) => {
   event.target.src = getFallbackImage('crop');
 };
+
+/** UI图片加载失败时隐藏图片 */
+function onUIImgError(event) {
+  event.target.style.display = 'none';
+}
+
+/** 锁图标路径 */
+const lockIconSrc = getUICommonImage('icon_lock');
+
+/** 成熟徽章路径 */
+const ripeBadgeSrc = getUICommonImage('icon_ripe_badge');
+
+/** 空地图标路径 */
+const emptyLandSrc = getUICommonImage('icon_empty_land');
+
+/** 道具加速图标路径 */
+const boostIcons = {
+  yield: getUICommonImage('icon_yield_boost'),
+  speed: getUICommonImage('icon_speed_boost'),
+  lucky: getUICommonImage('icon_lucky'),
+  exp: getUICommonImage('icon_exp_potion'),
+};
+
+/** 使用道具按钮图标 */
+const useItemBtnSrc = getUIButtonImage('bag');
 
 const formatBoostTime = (seconds) => {
   if (!seconds || seconds <= 0) return '';
@@ -227,7 +283,7 @@ const hasItemBoost = computed(() => {
 
 const timeLeft = computed(() => {
   if (!props.land.harvest_time) return '';
-  const now = new Date();
+  const now = new Date(timeSyncService.now());
   const harvestTime = new Date(props.land.harvest_time);
   const diff = harvestTime - now;
   if (diff <= 0) {
@@ -257,14 +313,14 @@ const timeLeft = computed(() => {
 
 const isOverdue = computed(() => {
   if (!props.land.harvest_time) return false;
-  const now = new Date();
+  const now = new Date(timeSyncService.now());
   const harvestTime = new Date(props.land.harvest_time);
   return now > harvestTime;
 });
 
 const isWilted = computed(() => {
   if (!props.land.harvest_time) return false;
-  const now = new Date();
+  const now = new Date(timeSyncService.now());
   const harvestTime = new Date(props.land.harvest_time);
   const overdueHours = (now - harvestTime) / 3600000;
   return overdueHours >= 48;
@@ -272,7 +328,7 @@ const isWilted = computed(() => {
 
 const isWiltWarning = computed(() => {
   if (!props.land.harvest_time) return false;
-  const now = new Date();
+  const now = new Date(timeSyncService.now());
   const harvestTime = new Date(props.land.harvest_time);
   const overdueHours = (now - harvestTime) / 3600000;
   return overdueHours >= 24 && overdueHours < 48;
@@ -304,11 +360,11 @@ const starDisplayText = computed(() => {
 .land-cell {
   width: 90px;
   height: 90px;
-  border: 2px solid #8b4513;
+  border: 2px solid var(--brown-400);
   border-radius: 12px;
   position: relative;
   cursor: pointer;
-  background: #8b4513;
+  background: var(--brown-400);
   transition: all 0.2s;
 }
 
@@ -327,7 +383,7 @@ const starDisplayText = computed(() => {
   width: 24px;
   height: 24px;
   border: 3px solid rgba(255, 255, 255, 0.3);
-  border-top-color: #ffd700;
+  border-top-color: var(--gold-500);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -344,25 +400,25 @@ const starDisplayText = computed(() => {
 }
 
 .land-cell.locked {
-  background: #555;
+  background: var(--text-muted);
   cursor: not-allowed;
 }
 
 .land-cell.matured {
-  border-color: #ffd700;
-  box-shadow: 0 0 10px #ffd700;
+  border-color: var(--gold-500);
+  box-shadow: 0 0 10px var(--gold-500);
 }
 
 .land-cell.wilt-warning {
-  border-color: #ff4444;
-  box-shadow: 0 0 8px rgba(255, 68, 68, 0.5);
+  border-color: var(--error-500);
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
   animation: wilt-pulse 1s infinite;
 }
 
 .land-cell.wilted {
-  border-color: #8b0000;
+  border-color: var(--error-600);
   background: #4a1a1a;
-  box-shadow: 0 0 6px rgba(139, 0, 0, 0.6);
+  box-shadow: 0 0 6px rgba(220, 38, 38, 0.6);
   opacity: 0.7;
   cursor: not-allowed;
 }
@@ -370,10 +426,10 @@ const starDisplayText = computed(() => {
 @keyframes wilt-pulse {
   0%,
   100% {
-    box-shadow: 0 0 8px rgba(255, 68, 68, 0.3);
+    box-shadow: 0 0 8px rgba(239, 68, 68, 0.3);
   }
   50% {
-    box-shadow: 0 0 16px rgba(255, 68, 68, 0.7);
+    box-shadow: 0 0 16px rgba(239, 68, 68, 0.7);
   }
 }
 
@@ -387,7 +443,7 @@ const starDisplayText = computed(() => {
   border-color: #71797e;
 }
 .land-cell.quality-4 {
-  border-color: #ffd700;
+  border-color: var(--gold-500);
 }
 .land-cell.quality-5 {
   border-color: #50c878;
@@ -413,13 +469,15 @@ const starDisplayText = computed(() => {
   border-radius: 9px;
 }
 
-.lock-icon {
-  font-size: 30px;
+.lock-icon-img {
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
 }
 
 .unlock-condition {
   font-size: 11px;
-  color: #ffd700;
+  color: var(--gold-500);
   margin-top: 3px;
   text-align: center;
   line-height: 1.3;
@@ -428,7 +486,7 @@ const starDisplayText = computed(() => {
 
 .unlock-cost {
   font-size: 15px;
-  color: #ffd700;
+  color: var(--gold-500);
   margin-top: 3px;
 }
 
@@ -438,7 +496,7 @@ const starDisplayText = computed(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #654321;
+  background: var(--brown-600);
   border-radius: 6px;
 }
 
@@ -460,20 +518,20 @@ const starDisplayText = computed(() => {
 
 .stage-name {
   font-size: 11px;
-  color: #ddd;
+  color: var(--text-muted);
   margin-bottom: 4px;
 }
 
 .crop-name {
   font-size: 13px;
-  color: #90ee90;
+  color: var(--success-300);
   margin-bottom: 4px;
 }
 
 .progress-bar {
   width: 100%;
   height: 8px;
-  background: #333;
+  background: var(--text-primary);
   border-radius: 4px;
   overflow: hidden;
   margin-bottom: 4px;
@@ -481,31 +539,31 @@ const starDisplayText = computed(() => {
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #32cd32, #90ee90);
+  background: linear-gradient(90deg, var(--success-500), var(--success-300));
   transition: width 0.3s;
 }
 
 .time-left {
   font-size: 12px;
-  color: #ffd700;
+  color: var(--gold-500);
 }
 
 .matured-badge {
   font-size: 14px;
-  color: #ffd700;
+  color: var(--gold-500);
   font-weight: bold;
   animation: pulse 1s infinite;
 }
 
 .crop-yield {
   font-size: 11px;
-  color: #87ceeb;
+  color: var(--sky-300);
   margin-top: 2px;
 }
 
 .yield-text {
   cursor: help;
-  border-bottom: 1px dotted #87ceeb;
+  border-bottom: 1px dotted var(--sky-300);
 }
 
 @keyframes pulse {
@@ -520,15 +578,37 @@ const starDisplayText = computed(() => {
 
 .empty-land {
   font-size: 13px;
-  color: #a0522d;
+  color: var(--brown-400);
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 4px;
 }
 
-.empty-icon {
-  font-size: 20px;
+.empty-land-img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+.matured-badge-img {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  vertical-align: middle;
+}
+
+.boost-icon-img {
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.use-item-btn-img {
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
 }
 
 .quality-badge {
@@ -537,8 +617,8 @@ const starDisplayText = computed(() => {
   right: -6px;
   font-size: 11px;
   padding: 1.5px 6px;
-  background: #4caf50;
-  color: white;
+  background: var(--success-500);
+  color: var(--text-on-dark);
   border-radius: 12px;
   font-weight: bold;
   cursor: pointer;
@@ -559,15 +639,15 @@ const starDisplayText = computed(() => {
   background: #71797e;
 }
 .quality-badge.quality-4 {
-  background: #ffd700;
-  color: #333;
+  background: var(--gold-500);
+  color: var(--text-primary);
 }
 .quality-badge.quality-5 {
   background: #50c878;
 }
 .quality-badge.quality-6 {
   background: #b9f2ff;
-  color: #333;
+  color: var(--text-primary);
 }
 .quality-badge.quality-7 {
   background: #8b0000;
@@ -584,7 +664,7 @@ const starDisplayText = computed(() => {
   font-size: 10px;
   padding: 1px 4px;
   background: rgba(0, 0, 0, 0.6);
-  color: #ffd700;
+  color: var(--gold-500);
   border-radius: 8px;
   cursor: pointer;
   z-index: 10;
@@ -614,7 +694,7 @@ const starDisplayText = computed(() => {
 .boost-icon {
   font-size: 12px;
   padding: 1px 4px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   animation: sparkle 1s infinite;
   display: inline-flex;
   align-items: center;
@@ -679,8 +759,8 @@ const starDisplayText = computed(() => {
 }
 
 .use-item-quick-btn:hover {
-  background: rgba(255, 215, 0, 0.3);
-  border-color: rgba(255, 215, 0, 0.5);
+  background: rgba(212, 160, 23, 0.3);
+  border-color: rgba(212, 160, 23, 0.5);
   transform: scale(1.15);
 }
 </style>

@@ -1,12 +1,14 @@
--- ============================================
--- 文件名: 11_player_base.sql
--- 作者: Trae AI
--- 日期: 2026-05-01
--- 版本: v2.5.0
--- 功能描述: 玩家基础表(上线后生成)，含体力值字段
--- 执行顺序: 02-11
--- 依赖关系: 02-10_shop_goods.sql
--- ============================================
+/**
+ * 文件名: 11_player_base.sql
+ * 作者: Trae AI
+ * 日期: 2026-05-01
+ * 版本: v2.6.0
+ * 功能描述: 玩家基础表(上线后生成)，含体力值字段
+ * 执行顺序: 02-11
+ * 依赖关系: 02-10_shop_goods.sql
+ * 更新记录:
+ *   2026-06-09 - v2.6.0 - 时间字段命名统一：create_time→created_at, update_time→updated_at
+ */
 
 CREATE TABLE IF NOT EXISTS player_base (
     player_id VARCHAR(64) NOT NULL,
@@ -25,8 +27,8 @@ CREATE TABLE IF NOT EXISTS player_base (
     current_stamina INTEGER NOT NULL DEFAULT 100,
     max_stamina INTEGER NOT NULL DEFAULT 200,
     last_stamina_recover_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    update_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (player_id)
 );
 
@@ -47,8 +49,8 @@ COMMENT ON COLUMN player_base.avatar IS '玩家头像';
 COMMENT ON COLUMN player_base.current_stamina IS '当前体力值(每分钟恢复1点)';
 COMMENT ON COLUMN player_base.max_stamina IS '最大体力值';
 COMMENT ON COLUMN player_base.last_stamina_recover_time IS '上次体力恢复时间';
-COMMENT ON COLUMN player_base.create_time IS '创建时间';
-COMMENT ON COLUMN player_base.update_time IS '更新时间';
+COMMENT ON COLUMN player_base.created_at IS '创建时间';
+COMMENT ON COLUMN player_base.updated_at IS '更新时间';
 
 -- 索引优化
 CREATE INDEX IF NOT EXISTS idx_player_level ON player_base (player_level);

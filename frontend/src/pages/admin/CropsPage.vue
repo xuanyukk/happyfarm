@@ -1,6 +1,14 @@
-/** * 文件名：CropsPage.vue * 作者：开发者 * 日期：2026-05-23 * 版本：v1.0.0 *
-功能描述：作物配置管理页面，提供作物列表查询、新增、编辑和删除功能 * 更新记录：
-* 2026-05-23 - v1.0.0 - 初始版本创建 */
+/**
+ * 文件名：CropsPage.vue
+ * 作者：开发者
+ * 日期：2026-05-23
+ * 版本：v1.1.0
+ * 功能描述：作物配置管理页面，提供作物列表查询、新增、编辑和删除功能
+ * 更新记录：
+ * 2026-05-23 - v1.0.0 - 初始版本创建
+ * 2026-06-10 - v1.1.0 - 美化：玻璃拟态容器/表格/模态框、CSS变量替代硬编码色、
+ *             表格行hover效果、统一农场主题色系
+ */
 <template>
   <div class="crops-page">
     <div class="page-header">
@@ -521,7 +529,7 @@ onMounted(() => {
 
 <style scoped>
 .crops-page {
-  padding: 24px;
+  padding: 0;
 }
 
 .page-header {
@@ -533,18 +541,20 @@ onMounted(() => {
 
 .page-header h2 {
   margin: 0;
-  color: #2c3e50;
+  color: var(--text-primary);
 }
 
 .filter-bar {
-  background: #fff;
+  background: var(--glass-bg);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--glass-border);
   padding: 16px;
-  border-radius: 8px;
+  border-radius: var(--radius-xl);
   margin-bottom: 24px;
   display: flex;
   gap: 16px;
   align-items: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
 .filter-group {
@@ -554,22 +564,26 @@ onMounted(() => {
 
 .filter-input {
   padding: 8px 12px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
   outline: none;
   width: 200px;
+  background: rgba(255,252,245,.6);
+  color: var(--text-primary);
 }
 
 .filter-input:focus {
-  border-color: #3498db;
+  border-color: var(--primary-500);
 }
 
 .filter-select {
   padding: 8px 12px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
   outline: none;
   min-width: 150px;
+  background: rgba(255,252,245,.6);
+  color: var(--text-primary);
 }
 
 .filter-actions {
@@ -579,10 +593,12 @@ onMounted(() => {
 }
 
 .crops-table-container {
-  background: #fff;
-  border-radius: 8px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
 .crops-table {
@@ -594,17 +610,17 @@ onMounted(() => {
 .crops-table td {
   padding: 14px 16px;
   text-align: left;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .crops-table th {
-  background: #f8f9fa;
+  background: rgba(139,105,20,.06);
   font-weight: 600;
-  color: #2c3e50;
+  color: var(--text-primary);
 }
 
 .crops-table tbody tr:hover {
-  background: #f8f9fa;
+  background: rgba(255,252,245,.18);
 }
 
 .crop-type-badge {
@@ -615,23 +631,23 @@ onMounted(() => {
 }
 
 .crop-type-badge.basic {
-  background: #e3f2fd;
-  color: #1976d2;
+  background: var(--primary-100);
+  color: var(--primary-700);
 }
 
 .crop-type-badge.economic {
-  background: #fff3e0;
-  color: #f57c00;
+  background: rgba(212,160,23,.15);
+  color: var(--gold-700);
 }
 
 .crop-type-badge.rare {
-  background: #f3e5f5;
+  background: rgba(147,51,234,.12);
   color: #7b1fa2;
 }
 
 .crop-type-badge.top {
-  background: #ffebee;
-  color: #d32f2f;
+  background: rgba(220,38,38,.1);
+  color: var(--error-600);
 }
 
 .action-buttons {
@@ -642,7 +658,7 @@ onMounted(() => {
 .btn {
   padding: 8px 16px;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   cursor: pointer;
   font-size: 14px;
   font-weight: 500;
@@ -650,39 +666,41 @@ onMounted(() => {
 }
 
 .btn-primary {
-  background: #3498db;
-  color: #fff;
+  background: var(--primary-500);
+  color: white;
 }
 
 .btn-primary:hover {
-  background: #2980b9;
+  background: var(--primary-400);
 }
 
 .btn-default {
-  background: #e0e0e0;
-  color: #333;
+  background: rgba(139,105,20,.06);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
 }
 
 .btn-default:hover {
-  background: #bdbdbd;
+  background: rgba(139,105,20,.14);
 }
 
 .btn-info {
-  background: #17a2b8;
-  color: #fff;
+  background: var(--primary-100);
+  color: var(--primary-700);
 }
 
 .btn-info:hover {
-  background: #138496;
+  background: var(--primary-200);
 }
 
 .btn-danger {
-  background: #e74c3c;
-  color: #fff;
+  background: rgba(220,38,38,.1);
+  color: var(--error-600);
 }
 
 .btn-danger:hover {
-  background: #c0392b;
+  background: rgba(220,38,38,.2);
+  color: white;
 }
 
 .btn-small {
@@ -695,12 +713,12 @@ onMounted(() => {
   border: none;
   font-size: 24px;
   cursor: pointer;
-  color: #999;
+  color: var(--text-secondary);
   padding: 0 8px;
 }
 
 .btn-close:hover {
-  color: #333;
+  color: var(--text-primary);
 }
 
 .btn:disabled {
@@ -710,7 +728,7 @@ onMounted(() => {
 
 .no-data {
   text-align: center;
-  color: #999;
+  color: var(--text-secondary);
   padding: 48px !important;
 }
 
@@ -728,12 +746,14 @@ onMounted(() => {
 }
 
 .modal-content {
-  background: #fff;
-  border-radius: 12px;
+  background: var(--bg-primary);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--glass-border);
   width: 90%;
   max-width: 700px;
   max-height: 90vh;
   overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0,0,0,.25);
 }
 
 .modal-small {
@@ -745,12 +765,12 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 20px 24px;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .modal-header h3 {
   margin: 0;
-  color: #2c3e50;
+  color: var(--text-primary);
 }
 
 .modal-body {
@@ -762,7 +782,7 @@ onMounted(() => {
   justify-content: flex-end;
   gap: 12px;
   padding: 16px 24px;
-  border-top: 1px solid #eee;
+  border-top: 1px solid var(--border-color);
 }
 
 .form-group {
@@ -773,7 +793,7 @@ onMounted(() => {
   display: block;
   margin-bottom: 6px;
   font-weight: 500;
-  color: #2c3e50;
+  color: var(--text-primary);
 }
 
 .form-input,
@@ -781,17 +801,19 @@ onMounted(() => {
 .form-textarea {
   width: 100%;
   padding: 10px 12px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
   outline: none;
   font-size: 14px;
   box-sizing: border-box;
+  background: rgba(255,252,245,.6);
+  color: var(--text-primary);
 }
 
 .form-input:focus,
 .form-select:focus,
 .form-textarea:focus {
-  border-color: #3498db;
+  border-color: var(--primary-500);
 }
 
 .form-textarea {

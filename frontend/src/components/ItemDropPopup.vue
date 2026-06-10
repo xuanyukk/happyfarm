@@ -1,6 +1,12 @@
-/** * 文件名：ItemDropPopup.vue * 作者：SOLO * 日期：2026-05-31 * 版本：v1.0.0 *
-功能描述：道具掉落弹窗组件 - 收获时显示掉落道具的弹出通知 * 更新记录： *
-2026-05-31 - v1.0.0 - 初始创建 */
+/**
+ * 文件名：ItemDropPopup.vue
+ * 作者：SOLO
+ * 日期：2026-05-31
+ * 版本：v1.0.0
+ * 功能描述：道具掉落弹窗组件 - 收获时显示掉落道具的弹出通知
+ * 更新记录：
+ * 2026-05-31 - v1.0.0 - 初始创建
+ */
 
 <template>
   <transition-group name="drop-popup" tag="div" class="drop-popup-container">

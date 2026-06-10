@@ -2,10 +2,11 @@
  * 文件名：dataWarehouseService.js
  * 作者：Trae AI
  * 日期：2026-05-09
- * 版本：v1.0.0
+ * 版本：v1.1.0
  * 功能描述：数据仓库服务 - 提供数据分析和BI报表功能
  * 更新记录：
  *   2026-05-09 - v1.0.0 - 初始版本创建
+ *   2026-06-09 - v1.1.0 - 时间字段统一：dim_player表update_time → updated_at, create_time → created_at
  */
 
 const db = require('../config/db');
@@ -81,7 +82,7 @@ class DataWarehouseService {
       await client.query(`
         INSERT INTO dim_player (
           player_id, username, registration_date, player_level, 
-          farm_level, is_vip, vip_level, last_login_date, create_time, update_time
+          farm_level, is_vip, vip_level, last_login_date, created_at, updated_at
         )
         SELECT 
           p.player_id,
@@ -92,15 +93,15 @@ class DataWarehouseService {
           FALSE AS is_vip,
           0 AS vip_level,
           p.last_login::DATE AS last_login_date,
-          CURRENT_TIMESTAMP AS create_time,
-          CURRENT_TIMESTAMP AS update_time
+          CURRENT_TIMESTAMP AS created_at,
+          CURRENT_TIMESTAMP AS updated_at
         FROM player_base p
         ON CONFLICT (player_id) DO UPDATE SET
           username = EXCLUDED.username,
           player_level = EXCLUDED.player_level,
           farm_level = EXCLUDED.farm_level,
           last_login_date = EXCLUDED.last_login_date,
-          update_time = CURRENT_TIMESTAMP
+          updated_at = CURRENT_TIMESTAMP
       `);
 
       await client.query('COMMIT');

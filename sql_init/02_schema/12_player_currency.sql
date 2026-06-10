@@ -2,12 +2,13 @@
 -- 文件名: 12_player_currency.sql
 -- 作者: Trae AI
 -- 日期: 2026-05-01
--- 版本: v2.5.0
+-- 版本: v2.6.0
 -- 功能描述: 玩家货币表(农场币 + 农场宝石币)
 -- 执行顺序: 02-12
 -- 依赖关系: 02-11_player_base.sql
 -- 更新记录：
 --   2026-05-25 - v2.5.0 - 新增农场宝石币 gem_num 及相关字段
+--   2026-06-09 - v2.6.0 - 时间字段命名统一：create_time→created_at, update_time→updated_at
 -- ============================================
 
 CREATE TABLE IF NOT EXISTS player_currency (
@@ -23,8 +24,8 @@ CREATE TABLE IF NOT EXISTS player_currency (
     gem_total_spend BIGINT NOT NULL DEFAULT 0,
     last_earn_time TIMESTAMP DEFAULT NULL,
     last_spend_time TIMESTAMP DEFAULT NULL,
-    create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    update_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE (player_id),
     CONSTRAINT fk_currency_player FOREIGN KEY (player_id) REFERENCES player_base (player_id)
 );
@@ -42,8 +43,8 @@ COMMENT ON COLUMN player_currency.gem_total_earn IS '累计获得农场宝石币
 COMMENT ON COLUMN player_currency.gem_total_spend IS '累计消耗农场宝石币';
 COMMENT ON COLUMN player_currency.last_earn_time IS '上次获得时间';
 COMMENT ON COLUMN player_currency.last_spend_time IS '上次消耗时间';
-COMMENT ON COLUMN player_currency.create_time IS '创建时间';
-COMMENT ON COLUMN player_currency.update_time IS '更新时间';
+COMMENT ON COLUMN player_currency.created_at IS '创建时间';
+COMMENT ON COLUMN player_currency.updated_at IS '更新时间';
 
 -- 索引优化
 CREATE INDEX IF NOT EXISTS idx_currency_num ON player_currency (currency_num);

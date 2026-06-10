@@ -2,13 +2,14 @@
  * 文件名：player.js
  * 作者：开发者
  * 日期：2026-03-21
- * 版本：v2.1.0
+ * 版本：v2.2.0
  * 功能描述：玩家状态管理
  * 更新记录：
  *   2026-03-21 - v1.3.0 - 玩家状态管理
  *   2026-03-22 - v1.3.1 - 统一文件头注释格式
  *   2026-04-30 - v2.0.0 - 优化状态管理，添加缓存和类型安全
  *   2026-05-31 - v2.1.0 - 修复字段名：level→player_level, exp→player_exp，与后端返回一致
+ *   2026-06-11 - v2.2.0 - C2修复：updateExp中exp字段名改为player_exp（之前写错导致经验值永不更新）
  */
 
 import { defineStore } from 'pinia';
@@ -115,7 +116,8 @@ export const usePlayerStore = defineStore('player', () => {
 
   const updateExp = (amount) => {
     if (playerData.value) {
-      playerData.value.exp = (playerData.value.exp || 0) + amount;
+      // C2修复：字段名应与后端一致为player_exp，而非exp
+      playerData.value.player_exp = (playerData.value.player_exp || 0) + amount;
     }
   };
 

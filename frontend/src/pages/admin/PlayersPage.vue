@@ -1,7 +1,15 @@
-/** * 文件名：PlayersPage.vue * 作者：开发者 * 日期：2025-01-01 * 版本：v2.0.0 *
-功能描述：玩家数据管理页面，提供玩家列表查询、筛选、详情查看和状态管理功能 *
-更新记录： * 2025-01-01 - v1.1.0 - 初始版本创建 * 2026-03-28 - v2.0.0 -
-【阶段四完成】接入adminService，玩家管理功能完整实现 */
+/**
+ * 文件名：PlayersPage.vue
+ * 作者：开发者
+ * 日期：2025-01-01
+ * 版本：v2.1.0
+ * 功能描述：玩家数据管理页面，提供玩家列表查询、筛选、详情查看和状态管理功能
+ * 更新记录：
+ * 2025-01-01 - v1.1.0 - 初始版本创建
+ * 2026-03-28 - v2.0.0 - 【阶段四完成】接入adminService，玩家管理功能完整实现
+ * 2026-06-10 - v2.1.0 - 美化：玻璃拟态容器/表格/模态框、CSS变量替代硬编码色、
+ *             表格行hover效果、统一农场主题色系
+ */
 <template>
   <div class="players-page">
     <div class="filter-bar">
@@ -215,7 +223,7 @@
               <div class="detail-row">
                 <span class="label">注册时间:</span>
                 <span class="value">{{
-                  formatTime(selectedPlayer.create_time)
+                  formatTime(selectedPlayer.created_at)
                 }}</span>
               </div>
               <div class="detail-row">
@@ -381,9 +389,12 @@ onMounted(() => {
 }
 
 .filter-bar {
-  background: white;
+  background: var(--glass-bg);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--glass-border);
   padding: 16px 20px;
-  border-radius: 8px;
+  border-radius: var(--radius-xl);
   margin-bottom: 20px;
   display: flex;
   align-items: center;
@@ -401,16 +412,18 @@ onMounted(() => {
 .filter-input,
 .filter-select {
   padding: 8px 12px;
-  border: 1px solid #d9d9d9;
-  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
   font-size: 14px;
   outline: none;
+  background: rgba(255,252,245,.6);
+  color: var(--text-primary);
   transition: border-color 0.3s;
 }
 
 .filter-input:focus,
 .filter-select:focus {
-  border-color: #1890ff;
+  border-color: var(--primary-500);
 }
 
 .filter-actions {
@@ -421,29 +434,29 @@ onMounted(() => {
 .btn {
   padding: 8px 16px;
   border: none;
-  border-radius: 4px;
+  border-radius: var(--radius-md);
   font-size: 14px;
   cursor: pointer;
   transition: all 0.3s;
 }
 
 .btn-primary {
-  background: #1890ff;
+  background: var(--primary-500);
   color: white;
 }
 
 .btn-primary:hover {
-  background: #40a9ff;
+  background: var(--primary-400);
 }
 
 .btn-default {
-  background: #fafafa;
-  color: #262626;
-  border: 1px solid #d9d9d9;
+  background: rgba(139,105,20,.06);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
 }
 
 .btn-default:hover {
-  background: #f5f5f5;
+  background: rgba(139,105,20,.14);
 }
 
 .btn-small {
@@ -452,35 +465,38 @@ onMounted(() => {
 }
 
 .btn-info {
-  background: #e6f7ff;
-  color: #1890ff;
+  background: var(--primary-100);
+  color: var(--primary-700);
 }
 
 .btn-info:hover {
-  background: #bae7ff;
+  background: var(--primary-200);
 }
 
 .btn-success {
-  background: #f6ffed;
-  color: #52c41a;
+  background: rgba(74,124,89,.12);
+  color: var(--primary-600);
 }
 
 .btn-success:hover {
-  background: #d9f7be;
+  background: rgba(74,124,89,.22);
 }
 
 .btn-danger {
-  background: #fff1f0;
-  color: #ff4d4f;
+  background: rgba(220,38,38,.1);
+  color: var(--error-600);
 }
 
 .btn-danger:hover {
-  background: #ffa39e;
+  background: rgba(220,38,38,.2);
 }
 
 .players-table-container {
-  background: white;
-  border-radius: 8px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
   overflow: hidden;
 }
 
@@ -493,35 +509,39 @@ onMounted(() => {
 .players-table td {
   padding: 12px 16px;
   text-align: left;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .players-table th {
-  background: #fafafa;
+  background: rgba(139,105,20,.06);
   font-weight: 600;
-  color: #595959;
+  color: var(--text-primary);
   font-size: 14px;
 }
 
 .players-table td {
-  color: #262626;
+  color: var(--text-primary);
   font-size: 14px;
+}
+
+.players-table tbody tr:hover {
+  background: rgba(255,252,245,.18);
 }
 
 .status-badge {
   padding: 4px 12px;
-  border-radius: 4px;
+  border-radius: var(--radius-md);
   font-size: 12px;
 }
 
 .status-badge.active {
-  background: #f6ffed;
-  color: #52c41a;
+  background: rgba(74,124,89,.12);
+  color: var(--primary-600);
 }
 
 .status-badge.inactive {
-  background: #fff1f0;
-  color: #ff4d4f;
+  background: rgba(220,38,38,.1);
+  color: var(--error-600);
 }
 
 .action-buttons {
@@ -536,18 +556,21 @@ onMounted(() => {
   gap: 16px;
   margin-top: 20px;
   padding: 16px;
-  background: white;
-  border-radius: 8px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
 }
 
 .page-info {
-  color: #595959;
+  color: var(--text-secondary);
   font-size: 14px;
 }
 
 .empty-state {
   text-align: center;
-  color: #8c8c8c;
+  color: var(--text-secondary);
   padding: 60px;
 }
 
@@ -565,12 +588,14 @@ onMounted(() => {
 }
 
 .modal {
-  background: white;
-  border-radius: 8px;
+  background: var(--bg-primary);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--glass-border);
   width: 90%;
   max-width: 600px;
   max-height: 80vh;
   overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0,0,0,.25);
 }
 
 .modal-header {
@@ -578,25 +603,25 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: 16px 20px;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .modal-header h3 {
   margin: 0;
   font-size: 18px;
-  color: #262626;
+  color: var(--text-primary);
 }
 
 .close-btn {
   background: none;
   border: none;
   font-size: 24px;
-  color: #8c8c8c;
+  color: var(--text-secondary);
   cursor: pointer;
 }
 
 .close-btn:hover {
-  color: #262626;
+  color: var(--text-primary);
 }
 
 .modal-body {
@@ -605,7 +630,7 @@ onMounted(() => {
 
 .modal-footer {
   padding: 16px 20px;
-  border-top: 1px solid #f0f0f0;
+  border-top: 1px solid var(--border-color);
   display: flex;
   justify-content: flex-end;
 }
@@ -619,9 +644,9 @@ onMounted(() => {
 .detail-section h4 {
   margin: 0 0 12px 0;
   font-size: 16px;
-  color: #262626;
+  color: var(--text-primary);
   padding-bottom: 8px;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .detail-row {
@@ -631,12 +656,12 @@ onMounted(() => {
 
 .detail-row .label {
   width: 120px;
-  color: #8c8c8c;
+  color: var(--text-secondary);
   flex-shrink: 0;
 }
 
 .detail-row .value {
-  color: #262626;
+  color: var(--text-primary);
   flex: 1;
 }
 </style>

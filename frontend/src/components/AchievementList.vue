@@ -1,7 +1,12 @@
-/** * 文件名：AchievementList.vue * 作者：开发者 * 日期：2026-03-28 *
-版本：v2.0.0 * 功能描述：成就列表组件 - 展示所有成就，支持分类筛选和进度查看 *
-更新记录： * 2026-04-30 - v2.0.0 - 重构组件，使用统一的 Pinia Store 和
-gameService */
+/**
+ * 文件名：AchievementList.vue
+ * 作者：开发者
+ * 日期：2026-03-28
+ * 版本：v2.0.0
+ * 功能描述：成就列表组件 - 展示所有成就，支持分类筛选和进度查看
+ * 更新记录：
+ * 2026-04-30 - v2.0.0 - 重构组件，使用统一的 Pinia Store 和 gameService
+ */
 
 <template>
   <div class="achievement-container">

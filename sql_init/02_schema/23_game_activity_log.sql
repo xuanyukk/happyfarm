@@ -8,6 +8,7 @@
 -- 依赖关系: 02-22_audit_logs.sql
 -- 更新记录:
 --   2026-06-06 - v4.72.0 - 从普通表改为按月分区表，预建当前+未来3个月分区
+--   2026-06-09 - v4.72.1 - message字段添加DEFAULT ''（防御性设计，防止插入失败）
 -- ============================================
 
 CREATE TABLE IF NOT EXISTS game_activity_log (
@@ -15,7 +16,7 @@ CREATE TABLE IF NOT EXISTS game_activity_log (
     player_id VARCHAR(64) NOT NULL,
     activity_type VARCHAR(50) NOT NULL,
     activity_category VARCHAR(30) NOT NULL,
-    message TEXT NOT NULL,
+    message TEXT NOT NULL DEFAULT '',
     metadata JSONB,
     create_time TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_activity_player FOREIGN KEY (player_id) REFERENCES player_base(player_id) ON DELETE CASCADE,

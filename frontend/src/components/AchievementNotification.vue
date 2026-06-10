@@ -1,6 +1,12 @@
-/** * 文件名：AchievementNotification.vue * 作者：开发者 * 日期：2026-03-28 *
-版本：v1.0.0 * 功能描述：成就通知组件 - 解锁成就时显示右上角通知 * 更新记录： *
-2026-03-28 - v1.0.0 - 初始创建，成就通知功能 */
+/**
+ * 文件名：AchievementNotification.vue
+ * 作者：开发者
+ * 日期：2026-03-28
+ * 版本：v1.0.0
+ * 功能描述：成就通知组件 - 解锁成就时显示右上角通知
+ * 更新记录：
+ * 2026-03-28 - v1.0.0 - 初始创建，成就通知功能
+ */
 
 <template>
   <div v-if="visible" class="achievement-notification">

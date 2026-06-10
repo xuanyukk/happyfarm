@@ -2,10 +2,12 @@
 -- 文件名: 32_data_warehouse.sql
 -- 作者: Trae AI
 -- 日期: 2026-05-09
--- 版本: v1.0.0
+-- 版本: v1.1.0
 -- 功能描述: 数据仓库表结构 - 用于数据分析和BI报表
 -- 执行顺序: 02-32
 -- 依赖关系: 02-24_monitoring_tables.sql
+-- 更新记录:
+--   2026-06-09 - v1.1.0 - dim_player时间字段命名统一：create_time→created_at, update_time→updated_at
 -- ============================================
 
 -- 维度表：日期维度
@@ -59,8 +61,8 @@ CREATE TABLE IF NOT EXISTS dim_player (
     registration_source VARCHAR(50),
     is_active BOOLEAN DEFAULT TRUE,
     last_login_date DATE,
-    create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    update_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 COMMENT ON TABLE dim_player IS '开心农场-玩家维度表';
@@ -75,8 +77,8 @@ COMMENT ON COLUMN dim_player.country IS '国家';
 COMMENT ON COLUMN dim_player.registration_source IS '注册来源';
 COMMENT ON COLUMN dim_player.is_active IS '是否活跃';
 COMMENT ON COLUMN dim_player.last_login_date IS '最后登录日期';
-COMMENT ON COLUMN dim_player.create_time IS '创建时间';
-COMMENT ON COLUMN dim_player.update_time IS '更新时间';
+COMMENT ON COLUMN dim_player.created_at IS '创建时间';
+COMMENT ON COLUMN dim_player.updated_at IS '更新时间';
 
 -- 索引优化
 CREATE INDEX IF NOT EXISTS idx_dim_player_level ON dim_player (player_level);

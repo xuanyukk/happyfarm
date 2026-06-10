@@ -2,11 +2,12 @@
  * 文件名: adminAnalyticsService.js
  * 作者: Trae AI
  * 日期: 2026-05-31
- * 版本: v1.1.0
+ * 版本: v1.2.0
  * 功能描述: 管理后台数据分析服务，提供经济分析和玩家分析的数据查询
  * 更新记录:
  *   2026-05-31 - v1.0.0 - 初始版本创建
  *   2026-06-01 - v1.1.0 - 深度修复：getTransactionList从details JSON解析真实金额、JOIN获取真实用户名；getShopStats新增复购率和新用户购买查询；新增calculateTrend函数为经济/玩家分析添加趋势数据
+ *   2026-06-09 - v1.2.0 - 时间字段统一：update_time → updated_at
  */
 
 const pool = require('../config/db');
@@ -51,7 +52,7 @@ async function getEconomyStats() {
       SELECT COUNT(*) AS total_harvests
       FROM player_farm
       WHERE crop_status = 'matured'
-        AND update_time >= CURRENT_DATE
+        AND updated_at >= CURRENT_DATE
     `;
     const harvestResult = await pool.query(harvestQuery);
 
@@ -131,7 +132,7 @@ async function getPlayerAnalytics() {
     const activeQuery = `
       SELECT COUNT(*) AS daily_active
       FROM player
-      WHERE update_time >= CURRENT_DATE
+      WHERE updated_at >= CURRENT_DATE
     `;
     const activeResult = await pool.query(activeQuery);
 
@@ -143,7 +144,7 @@ async function getPlayerAnalytics() {
       returning_players AS (
         SELECT DISTINCT p.player_id FROM player p
         INNER JOIN week_players w ON p.player_id = w.player_id
-        WHERE p.update_time >= CURRENT_DATE
+        WHERE p.updated_at >= CURRENT_DATE
       )
       SELECT
         (SELECT COUNT(*) FROM week_players) AS week_ago_players,

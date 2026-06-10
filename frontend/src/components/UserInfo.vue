@@ -1,11 +1,22 @@
-/** * 文件名：UserInfo.vue * 作者：开发者 * 日期：2026-05-22 * 版本：v2.11.0 *
-功能描述：用户信息组件，显示用户头像、用户名、等级信息等 * 更新记录： *
-2026-05-22 - v2.11.0 - 从Home.vue中拆分出独立组件 */
+/**
+ * 文件名：UserInfo.vue
+ * 作者：开发者
+ * 日期：2026-05-22
+ * 版本：v2.11.0
+ * 功能描述：用户信息组件，显示用户头像、用户名、等级信息等
+ * 更新记录：
+ * 2026-05-22 - v2.11.0 - 从Home.vue中拆分出独立组件
+ */
 
 <template>
   <div class="user-info">
     <div class="avatar" @click="handleAvatarClick">
-      <span class="avatar-icon">{{ playerAvatar }}</span>
+      <img
+        class="avatar-icon-img"
+        :src="avatarSrc"
+        alt="头像"
+        @error="onImgError"
+      />
     </div>
     <div class="user-details">
       <span class="username">{{
@@ -16,7 +27,7 @@
       <div class="levels-vertical">
         <div class="level-row">
           <div class="level-info">
-            <span class="level-icon">⭐</span>
+            <img class="level-icon-img" :src="iconSrcs.level" @error="onImgError" alt="等级" />
             <span class="level-label">玩家</span>
             <span class="level-value">{{
               playerStore.playerData?.player_level || 1
@@ -25,7 +36,7 @@
         </div>
         <div class="level-row">
           <div class="level-info">
-            <span class="level-icon">🏠</span>
+            <img class="level-icon-img" :src="iconSrcs.farm" @error="onImgError" alt="农场" />
             <span class="level-label">农场</span>
             <span class="level-value">{{
               playerStore.playerData?.farm_level || 1
@@ -34,7 +45,7 @@
         </div>
         <div class="level-row">
           <div class="level-info">
-            <span class="level-icon">🌍</span>
+            <img class="level-icon-img" :src="iconSrcs.globe" @error="onImgError" alt="世界" />
             <span class="level-label">世界</span>
             <span class="level-value">{{
               playerStore.playerData?.world_level || 1
@@ -49,6 +60,7 @@
 <script setup>
 import { computed } from 'vue';
 import { usePlayerStore } from '../stores/player';
+import { getUICommonImage } from '../utils/imagePaths';
 
 const props = defineProps({
   onClickAvatar: {
@@ -59,9 +71,22 @@ const props = defineProps({
 
 const playerStore = usePlayerStore();
 
-const playerAvatar = computed(() => {
-  return playerStore.playerData?.avatar || '👤';
+/** 头像图片路径 */
+const avatarSrc = computed(() => {
+  return getUICommonImage('icon_avatar');
 });
+
+/** 等级图标路径集合 */
+const iconSrcs = computed(() => ({
+  level: getUICommonImage('icon_level'),
+  farm: getUICommonImage('icon_farm'),
+  globe: getUICommonImage('icon_globe'),
+}));
+
+/** 图片加载失败时隐藏图片 */
+function onImgError(event) {
+  event.target.style.display = 'none';
+}
 
 const handleAvatarClick = () => {
   if (props.onClickAvatar) {
@@ -95,8 +120,17 @@ const handleAvatarClick = () => {
   transform: scale(1.1);
 }
 
-.avatar-icon {
-  font-size: 28px;
+.avatar-icon-img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+
+.level-icon-img {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  flex-shrink: 0;
 }
 
 .user-details {
@@ -138,10 +172,6 @@ const handleAvatarClick = () => {
   gap: 4px;
   flex: 1;
   min-width: 200px;
-}
-
-.level-icon {
-  font-size: 16px;
 }
 
 .level-label {

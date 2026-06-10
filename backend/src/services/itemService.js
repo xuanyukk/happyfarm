@@ -2,12 +2,16 @@
  * 文件名: itemService.js
  * 作者: Trae AI
  * 日期: 2026-05-13
- * 版本: v2.11.0
+ * 版本: v2.12.0
  * 功能描述: 道具服务 - 完整的30种道具功能实现（含二期扩展）
  * 更新记录:
  *   2026-05-24 - v2.6.0 - 性能优化：useTimeHourglass循环UPDATE改为批量单条SQL
  *   2026-05-31 - v2.7.0 - 修复useStaminaPotion体力上限
  *   2026-05-31 - v2.8.0 - IS-02:useHarvestGod设置yield_boost_end_time等
+ *   2026-06-10 - v2.9.0 - IS-06:useHarvestGod添加地块状态完整性校验
+ *   2026-06-10 - v2.10.0 - 增产剂/加速剂改为叠加模式
+ *   2026-06-10 - v2.11.0 - 丰收之神仅对未增产地块生效
+ *   2026-06-11 - v2.12.0 - D4/D5/D6/D7修复：land_id→land_num、shop_goods主键、game_activity_log字段、fertilizer_multiplier字段
  *   2026-05-31 - v2.9.0 - 方案B：新增10种道具类型（21-30）
  *   2026-06-09 - v2.10.0 - 时间字段统一：update_time → updated_at
  *   2026-06-10 - v2.11.0 - useYieldBoost/useSpeedBoost叠加而非覆盖（乘法，上限2.5x/5x）；
@@ -546,12 +550,14 @@ const useHarvestGod = async function (client, playerId, item) {
 
   await client.query(
     `
-    INSERT INTO game_activity_log (activity_type, player_id, details, created_at)
-    VALUES ($1, $2, $3, CURRENT_TIMESTAMP)
+    INSERT INTO game_activity_log (activity_type, player_id, activity_category, message, metadata, create_time)
+    VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)
   `,
     [
       'harvest_god_activated',
       playerId,
+      'item',
+      '使用丰收之神道具',
       JSON.stringify({
         endTime,
         yieldBoost: 1.5,
@@ -1028,7 +1034,7 @@ const useFertilizeBoost = async function (client, playerId, item, landNum) {
     `
     SELECT pls.*, fl.unlock_world_level, fl.unlock_farm_level
     FROM player_land_status pls
-    INNER JOIN farm_land fl ON pls.land_id = fl.id
+    INNER JOIN farm_land fl ON pls.land_num = fl.land_num
     WHERE pls.player_id = $1 AND pls.land_num = $2
   `,
     [playerId, landNum]
@@ -1037,7 +1043,8 @@ const useFertilizeBoost = async function (client, playerId, item, landNum) {
     throw new Error('地块不存在');
   }
   const land = landResult.rows[0];
-  const landQuality = land.land_quality_level || 1;
+  // D5修复：字段名应为current_quality，非land_quality_level
+  const landQuality = land.current_quality || 1;
 
   // 检查地块品质是否满足要求（品质≥4金才能使用）
   if (landQuality < 4) {
@@ -1401,7 +1408,8 @@ const buyItem = async function (playerId, goodsId, quantity = 1) {
 
     // 获取商品信息
     const goodsResult = await client.query(
-      'SELECT * FROM shop_goods WHERE id = $1 AND goods_type = 2', // goods_type=2是道具
+      // D6修复：shop_goods主键为goods_id，非id
+      'SELECT * FROM shop_goods WHERE goods_id = $1 AND goods_type = 2', // goods_type=2是道具
       [goodsId]
     );
     if (goodsResult.rows.length === 0) {

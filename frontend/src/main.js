@@ -2,11 +2,12 @@
  * 文件名：main.js
  * 作者：开发者
  * 日期：2026-03-19
- * 版本：v1.6.0
+ * 版本：v1.7.0
  * 功能描述：Vue应用入口，注册路由和自定义指令，支持Pinia状态持久化和性能优化
  * 更新记录：
  *   2026-05-07 - v1.5.0 - 添加手势指令支持
  *   2026-05-12 - v1.6.0 - 添加预加载策略集成
+ *   2026-06-11 - v1.7.0 - C8修复：添加Vue全局错误处理器（app.config.errorHandler）
  */
 
 import { createApp } from 'vue';
@@ -30,6 +31,18 @@ errorHandler.initErrorHandler();
 
 const app = createApp(App);
 const pinia = createPinia();
+
+// C8修复：添加Vue全局错误处理器，捕获组件渲染/生命周期钩子错误
+app.config.errorHandler = (err, vm, info) => {
+  logger.error('Vue全局错误', {
+    error: err.message,
+    stack: err.stack,
+    component: vm?.$options?.name || '匿名组件',
+    info,
+  });
+  errorHandler.handleError(err, { source: 'vue', info });
+  // 不阻止默认行为，让ErrorBoundary组件接管UI展示
+};
 
 pinia.use(
   createPersistedState({

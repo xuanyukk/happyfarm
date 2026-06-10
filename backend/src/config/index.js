@@ -2,10 +2,11 @@
  * 文件名：backend/src/config/index.js
  * 作者：AI助手
  * 日期：2026-04-26
- * 版本：v2.0.0
+ * 版本：v2.1.0
  * 功能描述：集中配置管理
  * 更新记录：
  *   2026-04-26 - v2.0.0 - 创建集中配置管理
+ *   2026-06-11 - v2.1.0 - E1修复：邮件配置同时兼容EMAIL_*和SMTP_*命名
  */
 
 const dotenv = require('dotenv');
@@ -30,7 +31,7 @@ const config = {
     },
   },
   jwt: {
-    secret: process.env.JWT_SECRET || 'your-secret-key-change-in-production',
+    secret: process.env.JWT_SECRET, // 必须在环境变量中配置，无默认值
     accessTokenExpiry: process.env.JWT_EXPIRES_IN || '1h',
     refreshTokenExpiry: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
   },
@@ -51,11 +52,12 @@ const config = {
     csrfEnabled: process.env.CSRF_ENABLED === 'true',
   },
   email: {
-    host: process.env.EMAIL_HOST,
-    port: parseInt(process.env.EMAIL_PORT) || 587,
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-    from: process.env.EMAIL_FROM,
+    // E1修复：同时兼容EMAIL_*和SMTP_*两种命名约定
+    host: process.env.EMAIL_HOST || process.env.SMTP_HOST,
+    port: parseInt(process.env.EMAIL_PORT || process.env.SMTP_PORT) || 587,
+    user: process.env.EMAIL_USER || process.env.SMTP_USER,
+    pass: process.env.EMAIL_PASS || process.env.SMTP_PASS,
+    from: process.env.EMAIL_FROM || process.env.SMTP_FROM,
   },
   backup: {
     enabled: process.env.BACKUP_ENABLED === 'true',

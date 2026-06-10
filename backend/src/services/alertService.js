@@ -16,8 +16,8 @@ class AlertService {
   async getRuleList(filters = {}) {
     let query = `SELECT ar.*, au.username as created_by_name, au2.username as updated_by_name 
                      FROM alert_rule ar 
-                     LEFT JOIN admins au ON ar.created_by = au.id 
-                     LEFT JOIN admins au2 ON ar.updated_by = au2.id WHERE 1=1`;
+                     LEFT JOIN sys_user au ON ar.created_by = au.id 
+                     LEFT JOIN sys_user au2 ON ar.updated_by = au2.id WHERE 1=1`;
     const params = [];
     let paramIndex = 1;
 
@@ -113,7 +113,7 @@ class AlertService {
     const offset = (page - 1) * pageSize;
     let query = `SELECT ar.*, au.username as resolved_by_name 
                      FROM alert_record ar 
-                     LEFT JOIN admins au ON ar.resolved_by = au.id WHERE 1=1`;
+                     LEFT JOIN sys_user au ON ar.resolved_by = au.id WHERE 1=1`;
     const params = [];
     let paramIndex = 1;
 
@@ -160,7 +160,7 @@ class AlertService {
     const result = await pool.query(
       `SELECT ar.*, au.username as resolved_by_name 
              FROM alert_record ar 
-             LEFT JOIN admins au ON ar.resolved_by = au.id WHERE ar.id = $1`,
+             LEFT JOIN sys_user au ON ar.resolved_by = au.id WHERE ar.id = $1`,
       [id]
     );
     if (result.rows.length === 0) throw new Error('预警记录不存在');

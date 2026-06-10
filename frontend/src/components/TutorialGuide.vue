@@ -1,6 +1,12 @@
-/** * 文件名：TutorialGuide.vue * 作者：开发者 * 日期：2026-03-29 * 版本：v1.0.0
-* 功能描述：新手引导组件 - 提供完整的新手教程流程 * 更新记录： * 2026-03-29 -
-v1.0.0 - 初始创建，新手引导功能 */
+/**
+ * 文件名：TutorialGuide.vue
+ * 作者：开发者
+ * 日期：2026-03-29
+ * 版本：v1.0.0
+ * 功能描述：新手引导组件 - 提供完整的新手教程流程
+ * 更新记录：
+ * 2026-03-29 - v1.0.0 - 初始创建，新手引导功能
+ */
 
 <template>
   <Teleport to="body">
@@ -79,6 +85,8 @@ v1.0.0 - 初始创建，新手引导功能 */
 </template>
 
 <script setup>
+defineOptions({ name: 'TutorialGuide' });
+
 import { ref, computed, onMounted, watch } from 'vue';
 
 const STORAGE_KEY = 'happyFarm_tutorialCompleted';

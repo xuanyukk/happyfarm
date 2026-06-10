@@ -2,13 +2,14 @@
  * 文件名：gameEventService.js
  * 作者：开发者
  * 日期：2026-05-22
- * 版本：v2.2.0
+ * 版本：v2.3.0
  * 功能描述：游戏活动管理服务 - 活动创建、任务管理、进度追踪、管理后台进度概览
  * 更新记录：
  *   2026-05-06 - v1.0.0 - 初始版本
  *   2026-05-22 - v2.0.0 - 修复数据库引用、添加状态计算、完善奖励发放逻辑
  *   2026-05-24 - v2.1.0 - 修复奖励发放字段名Bug(balance→currency_num等)、消除双重子查询、修正物品奖励字段名
  *   2026-05-31 - v2.2.0 - 新增 getAdminEventProgress 管理后台活动进度概览方法
+ *   2026-06-09 - v2.3.0 - 时间字段统一：update_time → updated_at
  */
 
 const pool = require('../config/db');
@@ -559,10 +560,10 @@ const gameEventService = {
     const beforeBalance = parseInt(balResult.rows[0]?.currency_num || 0);
     const afterBalance = beforeBalance + currencyReward.amount;
 
-    // 更新余额（修正字段名：updated_at → update_time）
+    // 更新余额（修正字段名：update_time → updated_at）
     await client.query(
       `UPDATE player_currency
-       SET currency_num = $1, update_time = CURRENT_TIMESTAMP
+       SET currency_num = $1, updated_at = CURRENT_TIMESTAMP
        WHERE player_id = $2`,
       [afterBalance, playerId]
     );
@@ -612,13 +613,13 @@ const gameEventService = {
     ]);
 
     if (checkResult.rows.length > 0) {
-      // 更新现有物品数量（修正字段名：quantity → item_num, updated_at → update_time）
+      // 更新现有物品数量（修正字段名：quantity → item_num, update_time → updated_at）
       const updateQuery = `
         UPDATE player_inventory
         SET item_num = item_num + $1,
             total_add = total_add + $1,
             last_add_time = CURRENT_TIMESTAMP,
-            update_time = CURRENT_TIMESTAMP
+            updated_at = CURRENT_TIMESTAMP
         WHERE id = $2
       `;
       await client.query(updateQuery, [
@@ -659,10 +660,10 @@ const gameEventService = {
       return;
     }
 
-    // 修正字段名：exp → player_exp, updated_at → update_time
+    // 修正字段名：exp → player_exp, update_time → updated_at
     await client.query(
       `UPDATE player_base
-       SET player_exp = player_exp + $1, update_time = CURRENT_TIMESTAMP
+       SET player_exp = player_exp + $1, updated_at = CURRENT_TIMESTAMP
        WHERE player_id = $2`,
       [expReward.amount, playerId]
     );
@@ -714,7 +715,11 @@ const gameEventService = {
       }
 
       // 发放奖励
-      const rewards = progress.task_rewards;
+      // B3-1修复：task_rewards可能是JSON字符串，需显式parse
+      const rawRewards = progress.task_rewards;
+      const rewards = typeof rawRewards === 'string'
+        ? JSON.parse(rawRewards)
+        : rawRewards;
       const grantedRewards = [];
 
       // 发放货币奖励

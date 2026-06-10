@@ -1,6 +1,13 @@
-/** * 文件名：ActionModal.vue * 作者：开发者 * 日期：2026-03-28 * 版本：v1.0.0 *
-功能描述：通用弹窗组件 - 可自定义标题和内容的模态框 * 更新记录： * 2026-03-28 -
-v1.0.0 - 初始创建，通用弹窗功能 */
+/**
+ * 文件名：ActionModal.vue
+ * 作者：开发者
+ * 日期：2026-03-28
+ * 版本：v1.1.0
+ * 功能描述：通用弹窗组件 - 可自定义标题和内容的模态框
+ * 更新记录：
+ * 2026-03-28 - v1.0.0 - 初始创建，通用弹窗功能
+ * 2026-06-10 - v1.1.0 - 修复CSS变量引用(--glass-shadow→--shadow-lg)、添加overlay模糊效果、z-index体系化
+ */
 
 <template>
   <Transition name="modal">
@@ -82,21 +89,25 @@ onUnmounted(() => {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: var(--z-modal-backdrop);
 }
 
 .modal-content {
   background: var(--bg-primary);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   min-width: 300px;
   max-width: 500px;
   max-height: 80vh;
   overflow: auto;
-  box-shadow: var(--glass-shadow);
+  box-shadow: var(--shadow-lg);
   border: 1px solid var(--glass-border);
+  position: relative;
+  z-index: var(--z-modal-content);
 }
 
 .modal-header {

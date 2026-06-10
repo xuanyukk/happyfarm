@@ -24,8 +24,9 @@ const refreshDailyDiscounts = async function () {
     const today = new Date().toISOString().split('T')[0];
     const todayEnd = new Date(today + 'T23:59:59+08:00').toISOString();
 
+    // B5-1修复：添加FOR UPDATE行锁防止并发刷新生成超过3个折扣
     const existingResult = await client.query(
-      'SELECT COUNT(*) as cnt FROM daily_discount_goods WHERE start_time::date = $1::date AND is_active = TRUE',
+      'SELECT COUNT(*) as cnt FROM daily_discount_goods WHERE start_time::date = $1::date AND is_active = TRUE FOR UPDATE',
       [today]
     );
     if (parseInt(existingResult.rows[0].cnt) >= 3) {

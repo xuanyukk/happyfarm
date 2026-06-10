@@ -2,7 +2,7 @@
  * 文件名：farm.js
  * 作者：开发者
  * 日期：2026-03-21
- * 版本：v3.1.0
+ * 版本：v3.3.0
  * 功能描述：农场状态管理
  * 更新记录：
  *   2026-03-21 - v1.3.0 - 农场状态管理
@@ -16,6 +16,7 @@
  *   2026-04-30 - v3.0.0 - 优化状态管理，添加缓存、计算属性和类型安全
  *   2026-05-31 - v3.1.0 - 新增upgradeLandStar/getLandStarConfigs函数；收获后重置boost状态(yield/speed/lucky/exp)
  *   2026-05-31 - v3.2.0 - IS-05修复：新增checkBoostExpiration道具过期检测和expiredBoosts状态
+ *   2026-06-11 - v3.3.0 - C4修复：upgradeLandStar中star_level NaN风险（find返回undefined时||0+1=NaN）
  */
 
 import { defineStore } from 'pinia';
@@ -339,11 +340,12 @@ export const useFarmStore = defineStore('farm', () => {
     try {
       const result = await gameService.upgradeLandStar(landNum);
       if (result.success) {
+        // C4修复：使用??链避免find返回undefined时||0+1=NaN
+        const currentLand = lands.value.find((l) => l.land_num === landNum);
+        const currentStar = currentLand?.star_level ?? 0;
         updateLandLocally(landNum, {
           star_level:
-            result.data?.starLevel ??
-            (lands.value.find((l) => l.land_num === landNum)?.star_level || 0) +
-              1,
+            result.data?.starLevel ?? (currentStar + 1),
         });
         const playerStore = usePlayerStore();
         await playerStore.fetchPlayerData(true);

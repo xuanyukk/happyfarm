@@ -1,7 +1,15 @@
-/** * 文件名：DashboardPage.vue * 作者：开发者 * 日期：2025-01-01 * 版本：v2.0.0
-* 功能描述：后台管理系统仪表板页面，展示核心统计数据和最近活动 * 更新记录： *
-2025-01-01 - v1.1.0 - 初始版本创建 * 2026-03-28 - v2.0.0 -
-【阶段四完成】接入adminService，仪表板功能完整实现 */
+/**
+ * 文件名：DashboardPage.vue
+ * 作者：开发者
+ * 日期：2025-01-01
+ * 版本：v2.1.0
+ * 功能描述：后台管理系统仪表板页面，展示核心统计数据和最近活动
+ * 更新记录：
+ * 2025-01-01 - v1.1.0 - 初始版本创建
+ * 2026-03-28 - v2.0.0 - 【阶段四完成】接入adminService，仪表板功能完整实现
+ * 2026-06-10 - v2.1.0 - 美化：玻璃拟态卡片/面板、CSS变量替代硬编码色、
+ *             表格行hover效果、统一农场主题色系
+ */
 <template>
   <div class="dashboard-page">
     <div class="stats-cards">
@@ -229,13 +237,22 @@ onMounted(() => {
 }
 
 .stat-card {
-  background: white;
-  border-radius: 8px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
   padding: 24px;
   display: flex;
   align-items: center;
   gap: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  box-shadow: var(--glass-shadow);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
 }
 
 .stat-icon {
@@ -255,13 +272,13 @@ onMounted(() => {
 .stat-value {
   font-size: 28px;
   font-weight: 600;
-  color: #262626;
+  color: var(--text-primary);
   margin-bottom: 4px;
 }
 
 .stat-label {
   font-size: 14px;
-  color: #8c8c8c;
+  color: var(--text-secondary);
 }
 
 .dashboard-grid {
@@ -272,9 +289,12 @@ onMounted(() => {
 }
 
 .dashboard-panel {
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  background: var(--glass-bg);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--glass-shadow);
 }
 
 .dashboard-panel.full-width {
@@ -283,14 +303,14 @@ onMounted(() => {
 
 .panel-header {
   padding: 16px 20px;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .panel-header h3 {
   margin: 0;
   font-size: 16px;
   font-weight: 600;
-  color: #262626;
+  color: var(--text-primary);
 }
 
 .panel-content {
@@ -312,8 +332,15 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: 12px 16px;
-  background: #fafafa;
-  border-radius: 6px;
+  background: rgba(255,252,245,.15);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--glass-border);
+  transition: background 0.2s ease;
+}
+
+.player-item:hover,
+.alert-item:hover {
+  background: rgba(255,252,245,.28);
 }
 
 .player-info,
@@ -325,13 +352,13 @@ onMounted(() => {
 
 .player-name {
   font-weight: 500;
-  color: #262626;
+  color: var(--text-primary);
 }
 
 .player-level {
   font-size: 12px;
-  color: #8c8c8c;
-  background: #f0f0f0;
+  color: var(--text-secondary);
+  background: rgba(139,105,20,.12);
   padding: 2px 8px;
   border-radius: 4px;
 }
@@ -353,25 +380,25 @@ onMounted(() => {
 }
 
 .alert-item.warning {
-  border-left: 3px solid #faad14;
+  border-left: 3px solid var(--gold-500);
 }
 
 .alert-item.error {
-  border-left: 3px solid #ff4d4f;
+  border-left: 3px solid var(--error-500);
 }
 
 .alert-item.critical {
-  border-left: 3px solid #cf1322;
+  border-left: 3px solid var(--error-700);
 }
 
 .alert-title {
   font-weight: 500;
-  color: #262626;
+  color: var(--text-primary);
 }
 
 .alert-time {
   font-size: 12px;
-  color: #8c8c8c;
+  color: var(--text-secondary);
 }
 
 .alert-level-badge {
@@ -381,23 +408,23 @@ onMounted(() => {
 }
 
 .alert-level-badge.info {
-  background: #e6f7ff;
-  color: #1890ff;
+  background: rgba(74,124,89,.12);
+  color: var(--primary-600);
 }
 
 .alert-level-badge.warning {
-  background: #fffbe6;
-  color: #faad14;
+  background: rgba(212,160,23,.15);
+  color: var(--gold-700);
 }
 
 .alert-level-badge.error {
-  background: #fff2f0;
-  color: #ff4d4f;
+  background: rgba(220,38,38,.1);
+  color: var(--error-600);
 }
 
 .alert-level-badge.critical {
-  background: #fff1f0;
-  color: #cf1322;
+  background: rgba(220,38,38,.15);
+  color: var(--error-700);
 }
 
 .log-table {
@@ -409,13 +436,24 @@ onMounted(() => {
 .log-table td {
   padding: 12px 16px;
   text-align: left;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .log-table th {
-  background: #fafafa;
+  background: rgba(139,105,20,.06);
   font-weight: 600;
-  color: #595959;
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.log-table td {
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.log-table tbody tr:hover {
+  background: rgba(255,252,245,.18);
+}
   font-size: 14px;
 }
 

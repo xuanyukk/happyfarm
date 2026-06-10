@@ -1,7 +1,13 @@
-/** * 文件名：InventoryPage.vue * 作者：开发者 * 日期：2026-03-22 * 版本：v2.0.0
-* 功能描述：背包页面 - 作物、种子、工具展示与管理 * 更新记录： * 2026-03-22 -
-v1.0.0 - 初始创建，背包功能实现 * 2026-05-02 - v2.0.0 -
-添加虚拟滚动支持，优化大量物品时的性能 */
+/**
+ * 文件名：InventoryPage.vue
+ * 作者：开发者
+ * 日期：2026-03-22
+ * 版本：v2.0.0
+ * 功能描述：背包页面 - 作物、种子、工具展示与管理
+ * 更新记录：
+ * 2026-03-22 - v1.0.0 - 初始创建，背包功能实现
+ * 2026-05-02 - v2.0.0 - 添加虚拟滚动支持，优化大量物品时的性能
+ */
 
 <template>
   <div class="inventory-page">
@@ -488,7 +494,7 @@ v1.0.0 - 初始创建，背包功能实现 * 2026-05-02 - v2.0.0 -
         </div>
       </div>
 
-      <Transition name="scale">
+      <Transition name="modal">
         <div
           v-if="showItemModal"
           class="modal-overlay"
@@ -618,7 +624,7 @@ v1.0.0 - 初始创建，背包功能实现 * 2026-05-02 - v2.0.0 -
         </div>
       </Transition>
 
-      <Transition name="scale">
+      <Transition name="modal">
         <div
           v-if="showSellModalFlag"
           class="modal-overlay"
@@ -1666,7 +1672,7 @@ const confirmBatchSell = async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 3000;
+  z-index: var(--z-modal-backdrop);
   padding: 20px;
 }
 
@@ -1676,7 +1682,8 @@ const confirmBatchSell = async () => {
   border-radius: var(--border-radius-xl);
   max-height: 90vh;
   overflow-y: auto;
-  animation: scaleIn 0.3s ease;
+  position: relative;
+  z-index: var(--z-modal-content);
 }
 
 .modal-header {

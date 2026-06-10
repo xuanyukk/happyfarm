@@ -2,10 +2,14 @@
  * 文件名：serviceProvider.js
  * 作者：开发者
  * 日期：2026-05-01
- * 版本：v1.1.0
+ * 版本：v1.2.0
  * 功能描述：服务提供者，负责注册和配置所有服务到DI容器
  * 更新记录：
  *   2026-05-01 - v1.1.0 - 添加所有服务的完整注册
+ *   2026-06-09 - v1.2.0 - 服务注册对齐实际依赖方式：
+ *               registerSingleton → registerModule（服务模块使用直接require获取依赖）
+ *               基础设施（logger/pool/redis）保持 registerValue
+ *               保留依赖注释用于文档参考
  */
 
 const diContainer = require('./diContainer');
@@ -17,12 +21,12 @@ module.exports = {
   registerAll() {
     logger.info('Registering all services to DI container...');
 
-    // Register configuration and infrastructure (values)
+    // 注册基础设施（值注入）
     diContainer.registerValue('logger', logger);
     diContainer.registerValue('pool', pool);
     diContainer.registerValue('redisClient', redisClient);
 
-    // Register services (singleton)
+    // 注册服务模块（所有服务通过直接 require 获取依赖，非构造函数注入）
     this._registerServices();
 
     logger.info('All services registered successfully', {
@@ -31,205 +35,202 @@ module.exports = {
   },
 
   _registerServices() {
-    // Register cache service
-    diContainer.registerSingleton(
+    // ============================================================
+    // 通用服务
+    // ============================================================
+
+    // 缓存服务 — 依赖: redisClient, logger
+    diContainer.registerModule(
       'cacheService',
-      require('../services/cacheService'),
-      ['redisClient', 'logger']
+      require('../services/cacheService')
     );
 
-    // Register queue service
-    diContainer.registerSingleton(
+    // 队列服务 — 依赖: logger
+    diContainer.registerModule(
       'queueService',
-      require('../services/queueService'),
-      ['logger']
+      require('../services/queueService')
     );
 
-    // Register email service
-    diContainer.registerSingleton(
+    // 邮件服务 — 依赖: logger
+    diContainer.registerModule(
       'emailService',
-      require('../services/emailService'),
-      ['logger']
+      require('../services/emailService')
     );
 
-    // Register websocket service
-    diContainer.registerSingleton(
+    // WebSocket服务 — 依赖: logger
+    diContainer.registerModule(
       'websocketService',
-      require('../services/websocketService'),
-      ['logger']
+      require('../services/websocketService')
     );
 
-    // Register backup service
-    diContainer.registerSingleton(
+    // 备份服务 — 依赖: logger, pool
+    diContainer.registerModule(
       'backupService',
-      require('../services/backupService'),
-      ['logger', 'pool']
+      require('../services/backupService')
     );
 
-    // Register RBAC service
-    diContainer.registerSingleton(
+    // RBAC服务 — 依赖: logger, pool, cacheService
+    diContainer.registerModule(
       'rbacService',
-      require('../services/rbacService'),
-      ['logger', 'pool', 'cacheService']
+      require('../services/rbacService')
     );
 
-    // Register core game services
-    diContainer.registerSingleton(
+    // ============================================================
+    // 核心游戏服务
+    // ============================================================
+
+    // 作物服务 — 依赖: logger, pool
+    diContainer.registerModule(
       'cropService',
-      require('../services/cropService'),
-      ['logger', 'pool']
+      require('../services/cropService')
     );
 
-    diContainer.registerSingleton(
+    // 农场服务 — 依赖: logger, pool, cropService
+    diContainer.registerModule(
       'farmService',
-      require('../services/farmService'),
-      ['logger', 'pool', 'cropService']
+      require('../services/farmService')
     );
 
-    diContainer.registerSingleton(
+    // 玩家服务 — 依赖: logger, pool
+    diContainer.registerModule(
       'playerService',
-      require('../services/playerService'),
-      ['logger', 'pool']
+      require('../services/playerService')
     );
 
-    diContainer.registerSingleton(
+    // 经济服务 — 依赖: logger, pool
+    diContainer.registerModule(
       'economyService',
-      require('../services/economyService'),
-      ['logger', 'pool']
+      require('../services/economyService')
     );
 
-    diContainer.registerSingleton(
+    // 物品服务 — 依赖: logger, pool
+    diContainer.registerModule(
       'itemService',
-      require('../services/itemService'),
-      ['logger', 'pool']
+      require('../services/itemService')
     );
 
-    diContainer.registerSingleton(
+    // 游戏活动服务 — 依赖: logger, pool
+    diContainer.registerModule(
       'gameActivityService',
-      require('../services/gameActivityService'),
-      ['logger', 'pool']
+      require('../services/gameActivityService')
     );
 
-    diContainer.registerSingleton(
+    // 成就服务 — 依赖: logger, pool
+    diContainer.registerModule(
       'achievementService',
-      require('../services/achievementService'),
-      ['logger', 'pool']
+      require('../services/achievementService')
     );
 
-    diContainer.registerSingleton(
+    // 公告服务 — 依赖: logger, pool
+    diContainer.registerModule(
       'announcementService',
-      require('../services/announcementService'),
-      ['logger', 'pool']
+      require('../services/announcementService')
     );
 
-    diContainer.registerSingleton(
+    // 配置服务 — 依赖: logger, pool
+    diContainer.registerModule(
       'configService',
-      require('../services/configService'),
-      ['logger', 'pool']
+      require('../services/configService')
     );
 
-    diContainer.registerSingleton(
+    // 商店服务 — 依赖: logger, pool, itemService
+    diContainer.registerModule(
       'shopService',
-      require('../services/shopService'),
-      ['logger', 'pool', 'itemService']
+      require('../services/shopService')
     );
 
-    // Register admin service
-    diContainer.registerSingleton(
+    // ============================================================
+    // 管理后台服务
+    // ============================================================
+
+    // 管理服务 — 依赖: logger, pool
+    diContainer.registerModule(
       'adminService',
-      require('../services/adminService'),
-      ['logger', 'pool']
+      require('../services/adminService')
     );
 
-    // Register alert service
-    diContainer.registerSingleton(
+    // ============================================================
+    // 系统级服务
+    // ============================================================
+
+    // 告警服务 — 依赖: logger, pool
+    diContainer.registerModule(
       'alertService',
-      require('../services/alertService'),
-      ['logger', 'pool']
+      require('../services/alertService')
     );
 
-    // Register audit service
-    diContainer.registerSingleton(
+    // 审计服务 — 依赖: logger, pool
+    diContainer.registerModule(
       'auditService',
-      require('../services/auditService'),
-      ['logger', 'pool']
+      require('../services/auditService')
     );
 
-    // Register batch service
-    diContainer.registerSingleton(
+    // 批处理服务 — 依赖: logger, pool
+    diContainer.registerModule(
       'batchService',
-      require('../services/batchService'),
-      ['logger', 'pool']
+      require('../services/batchService')
     );
 
-    // Register crop monitor service
-    diContainer.registerSingleton(
+    // 作物监控服务 — 依赖: logger, pool, cropService
+    diContainer.registerModule(
       'cropMonitorService',
-      require('../services/cropMonitorService'),
-      ['logger', 'pool', 'cropService']
+      require('../services/cropMonitorService')
     );
 
-    // Register device service
-    diContainer.registerSingleton(
+    // 设备服务 — 依赖: logger, pool
+    diContainer.registerModule(
       'deviceService',
-      require('../services/deviceService'),
-      ['logger', 'pool']
+      require('../services/deviceService')
     );
 
-    // Register docs export service
-    diContainer.registerSingleton(
+    // 文档导出服务 — 依赖: logger, pool
+    diContainer.registerModule(
       'docsExportService',
-      require('../services/docsExportService'),
-      ['logger', 'pool']
+      require('../services/docsExportService')
     );
 
-    // Register encryption service
-    diContainer.registerSingleton(
+    // 加密服务 — 依赖: logger
+    diContainer.registerModule(
       'encryptionService',
-      require('../services/encryptionService'),
-      ['logger']
+      require('../services/encryptionService')
     );
 
-    // Register init service
-    diContainer.registerSingleton(
+    // 初始化服务 — 依赖: logger, pool
+    diContainer.registerModule(
       'initService',
-      require('../services/initService'),
-      ['logger', 'pool']
+      require('../services/initService')
     );
 
-    // Register monitoring service
-    diContainer.registerSingleton(
+    // 监控服务 — 依赖: logger, pool
+    diContainer.registerModule(
       'monitoringService',
-      require('../services/monitoringService'),
-      ['logger', 'pool']
+      require('../services/monitoringService')
     );
 
-    // Register scheduler service
-    diContainer.registerSingleton(
+    // 调度服务 — 依赖: logger
+    diContainer.registerModule(
       'schedulerService',
-      require('../services/schedulerService'),
-      ['logger']
+      require('../services/schedulerService')
     );
 
-    // Register two-factor service
-    diContainer.registerSingleton(
+    // 双因素认证服务 — 依赖: logger
+    diContainer.registerModule(
       'twoFactorService',
-      require('../services/twoFactorService'),
-      ['logger']
+      require('../services/twoFactorService')
     );
   },
 
   /**
-   * Get service from container (convenience method)
-   * @param {string} serviceName - Service name
-   * @returns {*} service instance
+   * 从容器中获取服务（便捷方法）
+   * @param {string} serviceName - 服务名称
+   * @returns {*} 服务实例
    */
   get(serviceName) {
     return diContainer.resolve(serviceName);
   },
 
   /**
-   * Get container instance
+   * 获取容器实例
    * @returns {DIContainer}
    */
   getContainer() {
@@ -237,8 +238,9 @@ module.exports = {
   },
 
   /**
-   * 兼容性包装器：通过DI容器服务，提供简单的工厂方法
-   * @returns {object} 包含所有服务的对象
+   * 兼容性代理：通过属性访问方式获取服务
+   * 用法: serviceProvider.services.farmService
+   * @returns {object} 包含所有服务的代理对象
    */
   services: new Proxy(
     {},

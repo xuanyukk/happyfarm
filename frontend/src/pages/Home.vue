@@ -1,25 +1,43 @@
-/** * 文件名：Home.vue * 作者：开发者 * 日期：2026-03-22 * 版本：v2.13.0 *
-功能描述：农场主页面 - 显示农场视图、用户信息、地块管理、活动日志、退出游戏功能
-* 更新记录： * 2026-03-22 - v1.5.0 -
-完全重写，添加玻璃拟态、动画系统、一键收获功能；实现真正的一键收获功能；优化解锁地块弹窗，显示详细解锁要求；添加一键种植功能；修复一键种植只种部分地块的问题
-* 2026-03-23 - v1.9.0 -
-优化品质提升界面，显示所有品质的完整解锁要求（等级、费用等）；优化各等级显示，添加独立经验条；创建个人中心界面显示完整玩家信息；把农场和世界等级经验条移到个人中心，主页只保留玩家经验条；添加玩家昵称编辑、头像选择功能；页面加载时自动检查升级；优化未解锁地块弹窗显示完整要求
-* 2026-03-24 - v1.13.0 -
-昵称显示注册用户名，头像保存到数据库；添加作物信息弹窗，显示未成熟作物详细信息；收获作物显示三种经验获取；在个人中心添加三种经验值（玩家、农场、世界）的显示卡片；移除单独经验值模块，农场和世界等级进度参照玩家经验样式，显示当前等级、经验值、剩余经验、百分比
-* 2026-03-25 - v2.2.0 -
-调整头部布局，玩家、农场、世界信息垂直排列，每个信息项右侧显示经验进度条和剩余经验值；修改剩余经验值显示，改为显示当前经验值、进度和百分比；将经验、进度、百分比信息改为横向排列在同一行；移除个人中心进度信息中农场和世界等级的条件判断，确保总是显示；实施第一优先级优化：移除固定全量轮询，添加页面可见性控制、闲置自动降频、弹窗屏蔽刷新，大幅优化性能和用户体验；实施第二优先级优化：添加局部更新功能，使用requestAnimationFrame优化渲染，避免操作后全量刷新；修复Vue响应式更新问题：updateGrowthProgress和checkMaturedCrops函数使用updateLandLocally确保响应式更新
-* 2026-03-26 - v2.4.0 -
-添加活动日志面板，显示玩家最近的游戏操作日志；添加退出游戏按钮和确认对话框，实现安全退出功能
-* 2026-03-28 - v2.5.0 -
-【阶段二完成】品质UI、等级进度、作物成长可视化完整实现；【阶段三部分完成】实时状态更新、性能优化、内存管理已完成
-* 2026-03-29 - v2.6.0 - 优化getLandPosition函数性能，添加缓存机制减少DOM查询频率
-* 2026-04-30 - v2.7.0 -
-添加页面初始化加载覆盖层，显示进度条和详细加载信息，提升用户体验 * 2026-05-02 -
-v2.12.0 -
-添加虚拟滚动和分页加载功能，支持三种渲染模式：traditional（传统）、infinite（分页）、virtual（虚拟）
-* 2026-05-22 - v2.13.0 -
-使用拆分出的独立组件（UserInfo、CurrencyDisplay、Navbar、LoadingOverlay）重构代码，消除重复
-*/
+/**
+ * 文件名：Home.vue
+ * 作者：开发者
+ * 日期：2026-03-22
+ * 版本：v2.16.0
+ * 功能描述：农场主页面 - 显示农场视图、用户信息、地块管理、活动日志、退出游戏功能
+ * 更新记录：
+ *   2026-06-10 - v2.16.0 - 美化：修复quick-btn缺少position:relative导致
+ *             ::before定位异常；header背景透明度0.18→0.35增强可读性；
+ *             侧边栏接入玻璃容器样式；快速操作按钮颜色统一（收获=绿、
+ *             种植=金、道具=暖棕）
+ *   2026-03-22 - v1.5.0 - 完全重写，添加玻璃拟态、动画系统、一键收获功能；
+ *             实现真正的一键收获功能；优化解锁地块弹窗，显示详细解锁要求；
+ *             添加一键种植功能；修复一键种植只种部分地块的问题
+ *   2026-03-23 - v1.9.0 - 优化品质提升界面，显示所有品质的完整解锁要求
+ *             （等级、费用等）；优化各等级显示，添加独立经验条；创建个人
+ *             中心界面显示完整玩家信息；把农场和世界等级经验条移到个人中心，
+ *             主页只保留玩家经验条；添加玩家昵称编辑、头像选择功能；页面加载
+ *             时自动检查升级；优化未解锁地块弹窗显示完整要求
+ *   2026-03-24 - v1.13.0 - 昵称显示注册用户名，头像保存到数据库；添加作物信息
+ *             弹窗，显示未成熟作物详细信息；收获作物显示三种经验获取；在个人
+ *             中心添加三种经验值（玩家、农场、世界）的显示卡片；移除单独经验值
+ *             模块，农场和世界等级进度参照玩家经验样式
+ *   2026-03-25 - v2.2.0 - 调整头部布局，玩家、农场、世界信息垂直排列；修改剩余
+ *             经验值显示；实施第一优先级优化：移除固定全量轮询，添加页面可见性
+ *             控制、闲置自动降频、弹窗屏蔽刷新；实施第二优先级优化：添加局部更新
+ *             功能，使用requestAnimationFrame优化渲染
+ *   2026-03-26 - v2.4.0 - 添加活动日志面板，显示玩家最近的游戏操作日志；添加
+ *             退出游戏按钮和确认对话框，实现安全退出功能
+ *   2026-03-28 - v2.5.0 - 品质UI、等级进度、作物成长可视化完整实现；实时状态
+ *             更新、性能优化、内存管理已完成
+ *   2026-03-29 - v2.6.0 - 优化getLandPosition函数性能，添加缓存机制减少DOM查询频率
+ *   2026-04-30 - v2.7.0 - 添加页面初始化加载覆盖层，显示进度条和详细加载信息
+ *   2026-05-02 - v2.12.0 - 添加虚拟滚动和分页加载功能，支持三种渲染模式：
+ *             traditional（传统）、infinite（分页）、virtual（虚拟）
+ *   2026-05-22 - v2.13.0 - 使用拆分出的独立组件（UserInfo、CurrencyDisplay、
+ *             Navbar、LoadingOverlay）重构代码，消除重复
+ *   2026-06-09 - v2.15.0 - 提取 ProfileModal/OfflineRewardsModal 组件和
+ *             useAnimations composable
+ */
 <template>
   <div class="home-page">
     <!-- 初始化加载覆盖层 -->
@@ -289,7 +307,12 @@ v2.12.0 -
     <ActionModal v-model="showPlantModal" title="种植作物">
       <div class="plant-content">
         <div v-if="shopStore.inventory.seeds.length === 0" class="empty-seeds">
-          <span class="empty-icon">🌱</span>
+          <img
+            class="empty-seeds-img"
+            :src="getEmptyStateImage('seeds')"
+            alt="没有种子"
+            @error="onSeedImgError"
+          />
           <p>没有种子，去商店购买吧！</p>
           <button class="btn btn-primary" @click="goToShop">去商店</button>
         </div>
@@ -301,7 +324,12 @@ v2.12.0 -
             @click="handleSelectSeed(seed)"
           >
             <div class="seed-info">
-              <span class="seed-icon">🌾</span>
+              <img
+                class="seed-icon-img"
+                :src="getSeedIconImage(seed.item_obj_id)"
+                :alt="seed.item_name"
+                @error="onSeedImgError"
+              />
               <span class="seed-name">{{ seed.item_name }}</span>
             </div>
             <span class="seed-count badge-primary">x{{ seed.item_num }}</span>
@@ -473,7 +501,12 @@ v2.12.0 -
     <ActionModal v-model="showQuickPlantModal" title="一键种植">
       <div v-if="showQuickPlantModal" class="quick-plant-content">
         <div v-if="shopStore.inventory.seeds.length === 0" class="empty-seeds">
-          <span class="empty-icon">🌱</span>
+          <img
+            class="empty-seeds-img"
+            :src="getEmptyStateImage('seeds')"
+            alt="没有种子"
+            @error="onSeedImgError"
+          />
           <p>没有种子，去商店购买吧！</p>
           <button class="btn btn-primary" @click="goToShop">去商店</button>
         </div>
@@ -494,7 +527,12 @@ v2.12.0 -
             @click="selectQuickPlantSeed(seed)"
           >
             <div class="seed-info">
-              <span class="seed-icon">🌱</span>
+              <img
+                class="seed-icon-img"
+                :src="getSeedIconImage(seed.item_obj_id)"
+                :alt="seed.item_name"
+                @error="onSeedImgError"
+              />
               <div>
                 <span class="seed-name">{{ seed.item_name }}</span>
                 <span class="seed-count">库存：x{{ seed.item_num }}</span>
@@ -536,155 +574,8 @@ v2.12.0 -
       </div>
     </ActionModal>
 
-    <ActionModal v-model="showProfile" title="个人中心">
-      <div class="profile-content">
-        <div class="profile-header">
-          <div class="profile-avatar" @click="showAvatarSelector = true">
-            <span class="avatar-icon-large">{{ playerAvatar }}</span>
-            <span class="avatar-edit-hint">点击更换</span>
-          </div>
-          <div class="profile-name-info">
-            <h2 class="profile-username">
-              {{ playerStore.playerData?.username || '玩家' }}
-            </h2>
-            <p class="profile-player-id">
-              ID: {{ playerStore.playerData?.player_id || '-' }}
-            </p>
-            <p class="profile-join-date">
-              加入时间：{{ formatDate(playerStore.playerData?.create_time) }}
-            </p>
-          </div>
-        </div>
-
-        <div class="profile-section">
-          <h3 class="section-title">📊 等级信息</h3>
-          <div class="level-cards">
-            <div class="level-card player-level-card">
-              <div class="card-icon">⭐</div>
-              <div class="card-info">
-                <span class="card-label">玩家等级</span>
-                <span class="card-value">{{
-                  playerStore.playerData?.player_level || 1
-                }}</span>
-              </div>
-            </div>
-            <div class="level-card farm-level-card">
-              <div class="card-icon">🏠</div>
-              <div class="card-info">
-                <span class="card-label">农场等级</span>
-                <span class="card-value">{{
-                  playerStore.playerData?.farm_level || 1
-                }}</span>
-              </div>
-            </div>
-            <div class="level-card world-level-card">
-              <div class="card-icon">🌍</div>
-              <div class="card-info">
-                <span class="card-label">世界等级</span>
-                <span class="card-value">{{
-                  playerStore.playerData?.world_level || 1
-                }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="profile-section">
-          <h3 class="section-title">💰 资产信息</h3>
-          <div class="currency-card">
-            <div class="currency-icon-large">💰</div>
-            <div class="currency-info">
-              <span class="currency-label">农场币</span>
-              <span class="currency-value-large">{{
-                playerStore.playerData?.currency_num || 0
-              }}</span>
-            </div>
-          </div>
-        </div>
-
-        <div v-if="playerStore.levelProgress" class="profile-section">
-          <h3 class="section-title">📈 进度信息</h3>
-          <div class="progress-cards">
-            <div class="progress-card">
-              <div class="progress-header">
-                <span
-                  >⭐ Lv.{{ playerStore.levelProgress.playerLevel }}
-                  {{ playerStore.levelProgress.playerExpProgress }} /
-                  {{ playerStore.levelProgress.playerExpNeeded }} EXP</span
-                >
-              </div>
-              <div class="progress-bar-small">
-                <div
-                  class="progress-fill-small player-progress"
-                  :style="{
-                    width:
-                      playerStore.levelProgress.playerProgressPercent + '%',
-                  }"
-                ></div>
-              </div>
-            </div>
-            <div class="progress-card">
-              <div class="progress-header">
-                <span
-                  >🏠 Lv.{{ playerStore.levelProgress.farmLevel }} 农场经验
-                  {{ playerStore.levelProgress.farmExpProgress }} /
-                  {{ playerStore.levelProgress.farmExpNeeded }} EXP</span
-                >
-              </div>
-              <div class="progress-bar-small">
-                <div
-                  class="progress-fill-small farm-progress"
-                  :style="{
-                    width: playerStore.levelProgress.farmProgressPercent + '%',
-                  }"
-                ></div>
-              </div>
-            </div>
-            <div class="progress-card">
-              <div class="progress-header">
-                <span
-                  >🌍 Lv.{{ playerStore.levelProgress.worldLevel }} 世界经验
-                  {{ playerStore.levelProgress.worldExpProgress }} /
-                  {{ playerStore.levelProgress.worldExpNeeded }} EXP</span
-                >
-              </div>
-              <div class="progress-bar-small">
-                <div
-                  class="progress-fill-small world-progress"
-                  :style="{
-                    width: playerStore.levelProgress.worldProgressPercent + '%',
-                  }"
-                ></div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="profile-section">
-          <h3 class="section-title">📋 账户信息</h3>
-          <div class="info-list">
-            <div class="info-item">
-              <span class="info-label">玩家ID</span>
-              <span class="info-value">{{
-                playerStore.playerData?.player_id || '-'
-              }}</span>
-            </div>
-            <div class="info-item">
-              <span class="info-label">最后更新</span>
-              <span class="info-value">{{
-                formatDate(playerStore.playerData?.update_time)
-              }}</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="modal-actions">
-          <button class="btn btn-primary" @click="showProfile = false">
-            关闭
-          </button>
-        </div>
-      </div>
-    </ActionModal>
+    <!-- 个人中心弹窗 -->
+    <ProfileModal v-model="showProfile" @open-avatar-selector="showAvatarSelector = true" />
 
     <ActionModal v-model="showAvatarSelector" title="选择头像">
       <div class="avatar-selector-content">
@@ -797,124 +688,8 @@ v2.12.0 -
 
     <ItemDropPopup :drops="itemDropPopups" />
 
-    <ActionModal v-model="showOfflineRewards" title="离线收益">
-      <div v-if="offlineRewardsData" class="offline-rewards-content">
-        <div class="offline-icon">💤</div>
-        <p class="offline-duration">
-          您离开了 {{ offlineRewardsData.displayText }}
-        </p>
-        <div class="offline-reward-items">
-          <div class="offline-reward-item">
-            <span class="reward-icon">💰</span>
-            <span class="reward-label">获得金币</span>
-            <span class="reward-value"
-              >+{{ offlineRewardsData.goldEarned }}</span
-            >
-          </div>
-          <div class="offline-reward-item">
-            <span class="reward-icon">⭐</span>
-            <span class="reward-label">获得经验</span>
-            <span class="reward-value"
-              >+{{ offlineRewardsData.expEarned }}</span
-            >
-          </div>
-        </div>
-
-        <div v-if="offlineRewardsData.details" class="offline-details-section">
-          <div class="details-toggle" @click="showDetails = !showDetails">
-            <span class="toggle-text">
-              {{ showDetails ? '收起详情' : '查看计算详情' }}
-            </span>
-            <span class="toggle-icon">{{ showDetails ? '▲' : '▼' }}</span>
-          </div>
-
-          <transition name="slide-down">
-            <div v-if="showDetails" class="offline-details">
-              <div class="detail-item">
-                <span class="detail-label">玩家等级：</span>
-                <span class="detail-value">{{
-                  offlineRewardsData.details.playerLevel
-                }}</span>
-              </div>
-
-              <div class="detail-section">
-                <h4>💰 金币收益计算</h4>
-                <div class="detail-item">
-                  <span class="detail-label">基础收益：</span>
-                  <span class="detail-value"
-                    >{{
-                      offlineRewardsData.details.goldCalculation.baseRate
-                    }}/分钟</span
-                  >
-                </div>
-                <div class="detail-item">
-                  <span class="detail-label">等级加成：</span>
-                  <span class="detail-value"
-                    >+{{
-                      offlineRewardsData.details.goldCalculation.levelBonus
-                    }}/分钟</span
-                  >
-                </div>
-                <div class="detail-item">
-                  <span class="detail-label">总计速率：</span>
-                  <span class="detail-value"
-                    >{{
-                      offlineRewardsData.details.goldCalculation.totalRate
-                    }}/分钟</span
-                  >
-                </div>
-                <div class="detail-item">
-                  <span class="detail-label">计算公式：</span>
-                  <span class="detail-formula">{{
-                    offlineRewardsData.details.goldCalculation.formula
-                  }}</span>
-                </div>
-              </div>
-
-              <div class="detail-section">
-                <h4>⭐ 经验收益计算</h4>
-                <div class="detail-item">
-                  <span class="detail-label">基础收益：</span>
-                  <span class="detail-value"
-                    >{{
-                      offlineRewardsData.details.expCalculation.baseRate
-                    }}/分钟</span
-                  >
-                </div>
-                <div class="detail-item">
-                  <span class="detail-label">等级加成：</span>
-                  <span class="detail-value"
-                    >+{{
-                      offlineRewardsData.details.expCalculation.levelBonus
-                    }}/分钟</span
-                  >
-                </div>
-                <div class="detail-item">
-                  <span class="detail-label">总计速率：</span>
-                  <span class="detail-value"
-                    >{{
-                      offlineRewardsData.details.expCalculation.totalRate
-                    }}/分钟</span
-                  >
-                </div>
-                <div class="detail-item">
-                  <span class="detail-label">计算公式：</span>
-                  <span class="detail-formula">{{
-                    offlineRewardsData.details.expCalculation.formula
-                  }}</span>
-                </div>
-              </div>
-            </div>
-          </transition>
-        </div>
-
-        <div class="modal-actions">
-          <button class="btn btn-primary" @click="showOfflineRewards = false">
-            领取奖励
-          </button>
-        </div>
-      </div>
-    </ActionModal>
+    <!-- 离线收益弹窗 -->
+    <OfflineRewardsModal v-model="showOfflineRewards" :offline-rewards-data="offlineRewardsData" />
   </div>
 </template>
 
@@ -956,12 +731,21 @@ import LoadingOverlay from '../components/LoadingOverlay.vue';
 import FloatingText from '../components/FloatingText.vue';
 import ItemUseAnimation from '../components/ItemUseAnimation.vue';
 import ItemDropPopup from '../components/ItemDropPopup.vue';
+import ProfileModal from '../components/ProfileModal.vue';
+import OfflineRewardsModal from '../components/OfflineRewardsModal.vue';
+import { useAnimations } from '../composables/useAnimations';
+import { getSeedIconImage, getEmptyStateImage } from '../utils/imagePaths';
 import soundManager from '../services/soundManager';
 
 // 定义组件名称，用于 keep-alive 缓存
 defineOptions({
   name: 'Home',
 });
+
+/** 种子/空状态图片加载失败时隐藏图片 */
+function onSeedImgError(event) {
+  event.target.style.display = 'none';
+}
 
 const router = useRouter();
 const playerStore = usePlayerStore();
@@ -995,7 +779,6 @@ const showDetails = ref(false);
 const achievementNotificationRef = ref(null);
 const landGridRef = ref(null);
 const landGridOptimizedRef = ref(null);
-const landPositionsCache = ref(null);
 
 // 体力值状态
 const staminaData = ref({
@@ -1007,12 +790,6 @@ const staminaTimer = ref(null);
 
 // 世界等级悬浮状态
 const showWorldTooltip = ref(false);
-
-// 浮动飘字
-const floatingTexts = ref([]);
-let floatingTextIdCounter = 0;
-let lastCacheTime = 0;
-const CACHE_DURATION = 100;
 
 // 渲染模式：traditional（传统）、infinite（分页）、virtual（虚拟）
 const renderMode = ref('infinite');
@@ -1029,13 +806,30 @@ const isInitialLoading = ref(true);
 const loadingProgress = ref(0);
 const loadingDetail = ref('正在连接服务器...');
 
-const plantAnimations = ref([]);
-const harvestAnimations = ref([]);
-const unlockAnimations = ref([]);
-const upgradeAnimations = ref([]);
-
-const itemUseAnimations = ref([]);
-const itemDropPopups = ref([]);
+// 动画系统（composable）
+const {
+  plantAnimations,
+  harvestAnimations,
+  unlockAnimations,
+  upgradeAnimations,
+  itemUseAnimations,
+  itemDropPopups,
+  floatingTexts,
+  landPositionsCache,
+  addPlantAnimation,
+  addHarvestAnimation,
+  addUnlockAnimation,
+  addUpgradeAnimation,
+  addItemUseAnimation,
+  addItemDrops,
+  removeAnimation,
+  removeItemUseAnimation,
+  addFloatingText,
+  removeFloatingText,
+  updateLandPositionsCache,
+  getLandPosition,
+  clearLandCache,
+} = useAnimations(landGridRef);
 
 const playerAvatar = computed(() => {
   return playerStore.playerData?.avatar || '👤';
@@ -1448,11 +1242,6 @@ const handleUserActivity = () => {
   if (isIdle.value) {
     restartGrowthTimer();
   }
-};
-
-const clearLandCache = () => {
-  landPositionsCache.value = null;
-  lastCacheTime = 0;
 };
 
 onMounted(async () => {
@@ -1916,214 +1705,6 @@ const goToQueueManager = () => router.push('/queue-manager');
 const goToGameEvents = () => router.push('/game-events');
 const goToDailyTasks = () => router.push('/daily-tasks');
 
-const updateLandPositionsCache = () => {
-  try {
-    const landGrid = landGridRef.value;
-    if (landGrid && landGrid.$el) {
-      const landCells = landGrid.$el.querySelectorAll('.land-cell');
-      const positions = {};
-      landCells.forEach((cell, index) => {
-        const rect = cell.getBoundingClientRect();
-        positions[index + 1] = {
-          x: rect.left + rect.width / 2 + window.scrollX,
-          y: rect.top + rect.height / 2 + window.scrollY,
-        };
-      });
-      landPositionsCache.value = positions;
-      lastCacheTime = Date.now();
-    }
-  } catch (e) {
-    console.warn('无法更新地块位置缓存', e);
-  }
-};
-
-const getLandPosition = (landNum) => {
-  const now = Date.now();
-
-  if (!landPositionsCache.value || now - lastCacheTime > CACHE_DURATION) {
-    updateLandPositionsCache();
-  }
-
-  if (landPositionsCache.value && landPositionsCache.value[landNum]) {
-    return landPositionsCache.value[landNum];
-  }
-
-  const rows = 10;
-  const cols = 5;
-  const row = Math.floor((landNum - 1) / cols);
-  const col = (landNum - 1) % cols;
-  const cellWidth = 90 + 10;
-  const cellHeight = 90 + 10;
-  const startX = window.innerWidth / 2 - (cols * cellWidth) / 2;
-  const startY = 200;
-
-  return {
-    x: startX + col * cellWidth + cellWidth / 2,
-    y: startY + row * cellHeight + cellHeight / 2,
-  };
-};
-
-let animationIdCounter = 0;
-
-const addPlantAnimation = (landNum) => {
-  const pos = getLandPosition(landNum);
-  plantAnimations.value.push({
-    id: animationIdCounter++,
-    x: pos.x,
-    y: pos.y,
-  });
-  soundManager.play('plant');
-};
-
-const addHarvestAnimation = (landNum, showCoins = true) => {
-  const pos = getLandPosition(landNum);
-  harvestAnimations.value.push({
-    id: animationIdCounter++,
-    x: pos.x,
-    y: pos.y,
-    showCoins: showCoins,
-  });
-  soundManager.play('harvest');
-  if (showCoins) {
-    soundManager.play('coin');
-  }
-};
-
-const addUnlockAnimation = (landNum) => {
-  const pos = getLandPosition(landNum);
-  unlockAnimations.value.push({
-    id: animationIdCounter++,
-    x: pos.x,
-    y: pos.y,
-  });
-  soundManager.play('unlock');
-};
-
-const addUpgradeAnimation = (landNum, newQuality, qualityName) => {
-  const pos = getLandPosition(landNum);
-  upgradeAnimations.value.push({
-    id: animationIdCounter++,
-    x: pos.x,
-    y: pos.y,
-    newQuality: newQuality,
-    qualityName: qualityName,
-  });
-  soundManager.play('upgrade');
-};
-
-const removeAnimation = (type, id) => {
-  const animArrays = {
-    plant: plantAnimations,
-    harvest: harvestAnimations,
-    unlock: unlockAnimations,
-    upgrade: upgradeAnimations,
-  };
-  const array = animArrays[type];
-  if (array) {
-    const index = array.value.findIndex((a) => a.id === id);
-    if (index !== -1) {
-      array.value.splice(index, 1);
-    }
-  }
-};
-
-const addFloatingText = (text, type, x, y) => {
-  const id = floatingTextIdCounter++;
-  floatingTexts.value.push({ id, text, type, x, y });
-};
-
-const removeFloatingText = (id) => {
-  const index = floatingTexts.value.findIndex((ft) => ft.id === id);
-  if (index !== -1) {
-    floatingTexts.value.splice(index, 1);
-  }
-};
-
-const addItemUseAnimation = (itemName, itemIcon, boostText, landNum) => {
-  const pos = getLandPosition(landNum);
-  itemUseAnimations.value.push({
-    id: animationIdCounter++,
-    x: pos.x,
-    y: pos.y,
-    itemName,
-    itemIcon,
-    boostText,
-  });
-  soundManager.play('item');
-};
-
-const removeItemUseAnimation = (id) => {
-  const index = itemUseAnimations.value.findIndex((a) => a.id === id);
-  if (index !== -1) {
-    itemUseAnimations.value.splice(index, 1);
-  }
-};
-
-const addItemDrops = (drops, cropName, landNum) => {
-  if (!drops || drops.length === 0) return;
-  const iconMap = {
-    1: '🌾',
-    2: '🌾',
-    3: '🌾',
-    4: '⚡',
-    5: '⚡',
-    6: '⚡',
-    7: '🌾',
-    8: '⚡',
-    9: '🍀',
-    10: '⏳',
-    11: '🌟',
-    12: '🌍',
-    13: '🧪',
-    14: '💰',
-    15: '📖',
-    16: '📗',
-    17: '🎁',
-    18: '💊',
-    19: '💊',
-    20: '💊',
-  };
-  const rarityMap = {
-    1: 'common',
-    2: 'uncommon',
-    3: 'rare',
-    4: 'common',
-    5: 'uncommon',
-    6: 'rare',
-    7: 'epic',
-    8: 'epic',
-    9: 'uncommon',
-    10: 'rare',
-    11: 'legendary',
-    12: 'rare',
-    13: 'uncommon',
-    14: 'uncommon',
-    15: 'rare',
-    16: 'rare',
-    17: 'legendary',
-    18: 'common',
-    19: 'uncommon',
-    20: 'epic',
-  };
-  const sourceMap = {
-    1: '收获掉落',
-    2: '每日任务',
-  };
-  drops.forEach((drop) => {
-    itemDropPopups.value.push({
-      id: `drop-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
-      itemName: drop.itemName || `道具#${drop.itemId}`,
-      count: drop.count || 1,
-      source: '收获掉落',
-      cropName,
-      landNum,
-      icon: iconMap[drop.itemId] || '🎁',
-      rarity: rarityMap[drop.itemId] || 'common',
-      duration: 4000,
-    });
-  });
-};
-
 const formatStaminaTime = (totalSeconds) => {
   if (!totalSeconds || totalSeconds <= 0) return '';
   const mins = Math.floor(totalSeconds / 60);
@@ -2258,19 +1839,24 @@ const unregisterWebSocketHandlers = () => {
 <style scoped>
 .home-page {
   min-height: 100vh;
-  padding: 20px;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  padding: 12px 20px 100px;
+  gap: 16px;
 }
 
 .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px 24px;
-  border-radius: var(--border-radius-xl);
-  animation: fadeIn 0.5s ease;
+  padding: 14px 20px;
+  border-radius: var(--radius-xl);
+  background: rgba(255,252,245,.35);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  animation: fadeIn .5s ease;
 }
 
 .header-left {
@@ -2306,9 +1892,8 @@ const unregisterWebSocketHandlers = () => {
 
 .loading-text,
 .error-text {
-  font-size: 18px;
-  color: white;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  font-size: 1.125rem;
+  color: var(--text-primary);
 }
 
 .error-icon {
@@ -2331,6 +1916,13 @@ const unregisterWebSocketHandlers = () => {
 .sidebar-section {
   width: 360px;
   flex-shrink: 0;
+  padding: 16px;
+  border-radius: var(--radius-xl);
+  background: rgba(255,252,245,.25);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 4px 24px rgba(0,0,0,.06);
 }
 
 .farm-content {
@@ -2342,19 +1934,25 @@ const unregisterWebSocketHandlers = () => {
 
 .quick-actions {
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .quick-btn {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 12px 24px;
-  font-size: 14px;
+  padding: 10px 20px;
+  font-size: .875rem;
   font-weight: 600;
-  position: relative;
+  border: none;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  color: white;
   overflow: hidden;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all .25s cubic-bezier(.4,0,.2,1);
 }
 
 .quick-btn::before {
@@ -2380,6 +1978,31 @@ const unregisterWebSocketHandlers = () => {
   transition: transform 0.1s ease;
 }
 
+/* 快速操作按钮颜色统一 */
+.quick-btn.btn-primary {
+  background: linear-gradient(135deg, var(--gold-400) 0%, var(--gold-600) 100%);
+  color: #3d2e0a;
+}
+
+.quick-btn.btn-primary:not(:disabled):hover {
+  background: linear-gradient(135deg, #f5d060 0%, #d4a017 100%);
+  box-shadow: 0 8px 25px rgba(212, 160, 23, 0.3);
+}
+
+.quick-btn.btn-item {
+  background: linear-gradient(135deg, #b8956a 0%, #8b6914 100%);
+  color: white;
+}
+
+.quick-btn.btn-item:not(:disabled):hover {
+  background: linear-gradient(135deg, #d4b88c 0%, #a07828 100%);
+  box-shadow: 0 8px 25px rgba(139, 105, 20, 0.3);
+}
+
+.quick-btn.btn-success:not(:disabled):hover {
+  box-shadow: 0 8px 25px rgba(74, 124, 89, 0.35);
+}
+
 .render-mode-selector {
   display: flex;
   align-items: center;
@@ -2388,39 +2011,40 @@ const unregisterWebSocketHandlers = () => {
 }
 
 .mode-label {
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.85);
+  font-size: .8125rem;
+  color: var(--text-secondary);
   font-weight: 500;
 }
 
 .mode-buttons {
   display: flex;
-  gap: 8px;
-  background: rgba(255, 255, 255, 0.1);
-  padding: 4px;
-  border-radius: var(--border-radius-md);
+  gap: 6px;
+  background: rgba(139,105,20,.08);
+  padding: 3px;
+  border-radius: var(--radius-full);
 }
 
 .mode-button {
-  padding: 8px 16px;
+  padding: 6px 14px;
   border: none;
   background: transparent;
-  color: rgba(255, 255, 255, 0.7);
-  border-radius: var(--border-radius-sm);
+  color: var(--text-secondary);
+  border-radius: var(--radius-full);
   cursor: pointer;
-  font-size: 13px;
+  font-size: .75rem;
   font-weight: 500;
   transition: all var(--transition-fast);
 }
 
 .mode-button:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(139,105,20,.08);
+  color: var(--text-primary);
 }
 
 .mode-button.active {
-  background: linear-gradient(135deg, #4caf50, #45a049);
+  background: linear-gradient(135deg, var(--primary-400), var(--primary-600));
   color: white;
-  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+  box-shadow: 0 2px 8px rgba(74,124,89,.25);
 }
 
 .unlock-content,
@@ -2443,9 +2067,15 @@ const unregisterWebSocketHandlers = () => {
 
 .land-icon,
 .harvest-icon,
-.quality-icon,
-.empty-icon {
+.quality-icon {
   font-size: 64px;
+}
+
+.empty-seeds-img {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  margin-bottom: 0.5rem;
 }
 
 .land-number,
@@ -2721,9 +2351,11 @@ const unregisterWebSocketHandlers = () => {
   gap: 12px;
 }
 
-.seed-icon,
+.seed-icon-img,
 .item-icon {
-  font-size: 28px;
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
 }
 
 .seed-name,
@@ -2929,8 +2561,10 @@ const unregisterWebSocketHandlers = () => {
   gap: 12px;
 }
 
-.quick-plant-content .seed-icon {
-  font-size: 32px;
+.quick-plant-content .seed-icon-img {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
 }
 
 .quick-plant-content .seed-name {

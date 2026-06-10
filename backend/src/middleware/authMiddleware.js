@@ -2,7 +2,7 @@
  * 文件名：authMiddleware.js
  * 作者：开发者
  * 日期：2026-03-18
- * 版本：v1.3.0
+ * 版本：v1.4.0
  * 功能描述：JWT认证中间件，验证用户登录状态，集成 L1 内存缓存 + L2 Redis 缓存
  * 更新记录：
  *   2026-03-18 - v1.0.0 - JWT认证中间件，验证用户登录状态
@@ -109,6 +109,15 @@ const authMiddleware = async (req, res, next) => {
 
     // 验证Token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    // B1-1修复：验证token类型，拒绝refresh_token通过认证中间件
+    if (decoded.type && decoded.type !== 'access') {
+      logger.warn('JWT认证失败：Token类型错误（非access_token）', {
+        tokenType: decoded.type,
+        url: req.originalUrl,
+        ip: req.ip,
+      });
+      return res.status(401).json({ message: '无效Token类型：请使用访问令牌' });
+    }
     logger.debug('JWT令牌验证成功', { userId: decoded.userId, ip: req.ip });
 
     const userId = decoded.userId;

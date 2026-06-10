@@ -1,4 +1,4 @@
-/** * 文件名：AdminLayout.vue * 作者：开发者 * 日期：2026-05-24 * 版本：v2.3.0 *
+/** * 文件名：AdminLayout.vue * 作者：开发者 * 日期：2026-05-24 * 版本：v2.4.0 *
 功能描述：后台管理系统布局组件，包含侧边栏导航、顶部状态栏和主内容区域，增加移动端响应式支持
 * 更新记录： * 2026-01-01 - v1.1.0 - 初始版本创建 * 2026-04-30 - v1.2.0 -
 添加公告管理菜单项 * 2026-05-06 - v1.3.0 - 添加健康检查和系统状态管理菜单项 *
@@ -9,7 +9,8 @@
 添加移动端响应式支持，包含侧边栏抽屉、移动端菜单按钮 * 2026-05-23 - v2.1.0 -
 添加商店管理、成就管理、农场配置菜单项，优化菜单分组 * 2026-05-24 - v2.2.0 -
 添加经济分析、玩家分析、业务指标、邮件管理菜单项 * 2026-05-26 - v2.3.0 -
-添加Grafana监控和数据导入/导出菜单项 */
+添加Grafana监控和数据导入/导出菜单项 * 2026-06-09 - v2.4.0 -
+视觉统一到大地色系：侧边栏深绿渐变、菜单项暖金悬浮/活跃态、顶部栏玻璃拟态、退出按钮棕色调、修复菜单组初始折叠 */
 <template>
   <div class="admin-layout">
     <div
@@ -79,8 +80,10 @@
 import { computed, ref, onMounted, onUnmounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useAdminStore } from '../stores/admin';
+import { usePlayerStore } from '../stores/player';
 
 const adminStore = useAdminStore();
+const playerStore = usePlayerStore();
 const router = useRouter();
 const route = useRoute();
 
@@ -93,7 +96,9 @@ const expandedGroups = ref([
   'config',
   'operations',
   'monitoring',
+  'performance',
   'data',
+  'communications',
 ]);
 
 const menuGroups = [
@@ -213,6 +218,10 @@ function toggleGroup(groupId) {
 
 function handleLogout() {
   adminStore.logoutAdmin();
+  // 清除 playerStore 中的管理员状态
+  if (playerStore.playerData) {
+    playerStore.playerData.is_admin = false;
+  }
   router.push('/login');
 }
 
@@ -250,13 +259,13 @@ onUnmounted(() => {
 .admin-layout {
   display: flex;
   min-height: 100vh;
-  background-color: #f0f2f5;
+  background-color: var(--bg-primary);
 }
 
 .sidebar {
   width: 240px;
-  background: linear-gradient(180deg, #1890ff 0%, #096dd9 100%);
-  color: white;
+  background: linear-gradient(180deg, #2c4d37 0%, #1f3827 100%);
+  color: var(--text-on-dark);
   display: flex;
   flex-direction: column;
   box-shadow: 2px 0 8px rgba(0, 0, 0, 0.15);
@@ -331,14 +340,14 @@ onUnmounted(() => {
 }
 
 .nav-item:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
+  background: rgba(212, 160, 23, 0.12);
+  color: var(--text-on-dark);
 }
 
 .nav-item.active {
-  background: rgba(255, 255, 255, 0.15);
-  color: white;
-  border-left-color: white;
+  background: rgba(212, 160, 23, 0.15);
+  color: var(--text-on-dark);
+  border-left-color: var(--gold-500);
 }
 
 .nav-icon {
@@ -358,17 +367,17 @@ onUnmounted(() => {
 .logout-btn {
   width: 100%;
   padding: 10px 16px;
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(139, 105, 20, 0.2);
   border: none;
-  color: white;
+  color: var(--text-on-dark);
   font-size: 14px;
   cursor: pointer;
-  border-radius: 4px;
-  transition: background 0.3s;
+  border-radius: var(--radius-md);
+  transition: background var(--transition-fast);
 }
 
 .logout-btn:hover {
-  background: rgba(255, 255, 255, 0.25);
+  background: rgba(139, 105, 20, 0.4);
 }
 
 .main-content {
@@ -380,8 +389,10 @@ onUnmounted(() => {
 
 .top-header {
   height: 64px;
-  background: white;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  background: var(--glass-bg-strong);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--glass-border);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -397,7 +408,7 @@ onUnmounted(() => {
 .header-left h1 {
   margin: 0;
   font-size: 20px;
-  color: #262626;
+  color: var(--text-primary);
 }
 
 .header-right {
@@ -408,13 +419,27 @@ onUnmounted(() => {
 
 .admin-info {
   font-size: 14px;
-  color: #595959;
+  color: var(--text-secondary);
 }
 
 .content-area {
   flex: 1;
   padding: 24px;
   overflow-y: auto;
+}
+
+/* 响应式：表格横向滚动 */
+@media (max-width: 768px) {
+  .content-area :deep(table) {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .content-area {
+    padding: 16px;
+  }
 }
 
 .mobile-menu-btn {

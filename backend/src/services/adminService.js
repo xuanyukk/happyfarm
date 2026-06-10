@@ -2,10 +2,11 @@
  * 文件名：adminService.js
  * 作者：开发者
  * 日期：2026-03-28
- * 版本：v1.0.0
+ * 版本：v1.1.0
  * 功能描述：后台管理服务层，包含玩家管理、系统监控、货币调控等功能
  * 更新记录：
  *   2026-03-28 - v1.0.0 - 初始版本创建
+ *   2026-06-09 - v1.1.0 - 时间字段统一：update_time → updated_at
  */
 
 const pool = require('../config/db');
@@ -81,12 +82,12 @@ class AdminService {
         pb.total_spend,
         su.is_active,
         su.last_login_at,
-        pb.create_time,
-        pb.update_time
+        pb.created_at,
+        pb.updated_at
       FROM player_base pb
       LEFT JOIN sys_user su ON pb.player_id = su.id::VARCHAR
       ${whereClause}
-      ORDER BY pb.create_time DESC
+      ORDER BY pb.created_at DESC
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `;
 
@@ -153,7 +154,7 @@ class AdminService {
         FROM player_inventory pi
         LEFT JOIN item_config ic ON pi.item_id = ic.item_id
         WHERE pi.player_id = $1
-        ORDER BY pi.update_time DESC
+        ORDER BY pi.updated_at DESC
       `;
       const inventoryResult = await pool.query(inventoryQuery, [playerId]);
 
@@ -403,7 +404,7 @@ class AdminService {
 
     const updateQuery = `
       UPDATE player_currency
-      SET ${currencyField} = $1, update_time = CURRENT_TIMESTAMP
+      SET ${currencyField} = $1, updated_at = CURRENT_TIMESTAMP
       WHERE player_id = $2
     `;
     await client.query(updateQuery, [afterBalance, playerId]);
@@ -449,7 +450,7 @@ class AdminService {
     values.push(playerId);
     const updateQuery = `
       UPDATE player_base
-      SET ${updates.join(', ')}, update_time = CURRENT_TIMESTAMP
+      SET ${updates.join(', ')}, updated_at = CURRENT_TIMESTAMP
       WHERE player_id = $${index}
     `;
     await client.query(updateQuery, values);

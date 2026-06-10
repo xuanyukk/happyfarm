@@ -1,9 +1,15 @@
-/** * 文件名：ShopPage.vue * 作者：开发者 * 日期：2026-03-22 * 版本：v2.1.0 *
-功能描述：农场商店页面 - 商品浏览、购买、数量选择、详细信息展示 * 更新记录： *
-2026-03-22 - v1.1.0 - 完全重写，添加网格布局、购买确认弹窗、光泽效果 *
-2026-03-23 - v1.2.0 - 添加一键最大、最小和手动输入数量功能 * 2026-03-25 - v2.0.0
-- 商店界面优化：改进布局、卡片展示，添加详细信息面板 * 2026-05-02 - v2.1.0 -
-添加虚拟滚动支持，提升大量商品时的性能 */
+/**
+ * 文件名：ShopPage.vue
+ * 作者：开发者
+ * 日期：2026-03-22
+ * 版本：v2.1.0
+ * 功能描述：农场商店页面 - 商品浏览、购买、数量选择、详细信息展示
+ * 更新记录：
+ * 2026-03-22 - v1.1.0 - 完全重写，添加网格布局、购买确认弹窗、光泽效果
+ * 2026-03-23 - v1.2.0 - 添加一键最大、最小和手动输入数量功能
+ * 2026-03-25 - v2.0.0 - 商店界面优化：改进布局、卡片展示，添加详细信息面板
+ * 2026-05-02 - v2.1.0 - 添加虚拟滚动支持，提升大量商品时的性能
+ */
 <template>
   <div class="shop-page">
     <header class="header glass">
@@ -92,7 +98,12 @@
               <span>{{ getCropTypeLabel(goods) }}</span>
             </div>
             <div class="goods-icon-wrapper">
-              <div class="goods-icon">{{ getGoodsIcon(goods) }}</div>
+              <img
+                class="goods-icon-img"
+                :src="getGoodsIcon(goods)"
+                :alt="goods.goods_name"
+                @error="onGoodsImgError"
+              />
             </div>
             <div class="goods-info">
               <h3 class="goods-name">{{ goods.goods_name }}</h3>
@@ -157,7 +168,12 @@
                 <span>{{ getCropTypeLabel(goods) }}</span>
               </div>
               <div class="goods-icon-wrapper">
-                <div class="goods-icon">{{ getGoodsIcon(goods) }}</div>
+                <img
+                  class="goods-icon-img"
+                  :src="getGoodsIcon(goods)"
+                  :alt="goods.goods_name"
+                  @error="onGoodsImgError"
+                />
               </div>
               <div class="goods-info">
                 <h3 class="goods-name">{{ goods.goods_name }}</h3>
@@ -198,7 +214,7 @@
       </div>
     </main>
 
-    <Transition name="scale">
+    <Transition name="modal">
       <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
         <div class="modal-content glass-strong modal-large">
           <div class="modal-header">
@@ -209,7 +225,12 @@
             <div class="purchase-left">
               <div class="selected-goods-large">
                 <div class="selected-icon-large">
-                  {{ getGoodsIcon(selectedGoods) }}
+                  <img
+                    class="selected-icon-large-img"
+                    :src="getGoodsIcon(selectedGoods)"
+                    :alt="selectedGoods.goods_name"
+                    @error="onGoodsImgError"
+                  />
                 </div>
                 <div class="selected-info-large">
                   <h3 class="selected-name">{{ selectedGoods.goods_name }}</h3>
@@ -442,11 +463,17 @@ import { useRouter } from 'vue-router';
 import { usePlayerStore } from '../stores/player';
 import { useShopStore } from '../stores/shop';
 import { useToastStore } from '../stores/toast';
+import { getSeedIconImage, getItemIconImage } from '../utils/imagePaths';
 
 // 定义组件名称，用于 keep-alive 缓存
 defineOptions({
   name: 'ShopPage',
 });
+
+/** 商品图片加载失败时隐藏图片 */
+function onGoodsImgError(event) {
+  event.target.style.display = 'none';
+}
 
 const router = useRouter();
 const playerStore = usePlayerStore();
@@ -577,36 +604,15 @@ const canAfford = computed(() => {
 
 const getGoodsIcon = (goods) => {
   if (goods.goods_type === 1) {
-    const seedIcons = [
-      '🌾',
-      '🌽',
-      '🥔',
-      '🥕',
-      '🥬',
-      '🫘',
-      '🍅',
-      '🥒',
-      '🌶️',
-      '🍆',
-      '🥬',
-      '🥬',
-      '🥬',
-      '🥬',
-      '🥬',
-      '🍓',
-      '🍉',
-      '🍇',
-      '🥭',
-      '🥝',
-      '🫐',
-      '🍒',
-      '🌺',
-      '⭐',
-    ];
-    return seedIcons[(goods.goods_obj_id - 1) % seedIcons.length] || '🌱';
+    // 种子类商品 — 使用种子图标
+    return getSeedIconImage(goods.goods_obj_id);
   }
-  const itemIcons = ['💊', '💊', '💊', '⚡', '⚡', '⚡'];
-  return itemIcons[(goods.goods_obj_id - 1) % itemIcons.length] || '✨';
+  if (goods.goods_type === 2) {
+    // 物品类商品 — 使用物品图标
+    return getItemIconImage(goods.goods_obj_id);
+  }
+  // fallback: 使用物品图标兜底
+  return getItemIconImage(goods.goods_obj_id || 1);
 };
 
 const getCropTypeClass = (goods) => {
@@ -829,11 +835,11 @@ const goBack = () => router.push('/');
   align-items: center;
   gap: 8px;
   padding: 10px 16px;
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(139,105,20,.08);
   border: 1px solid var(--glass-border);
-  border-radius: var(--border-radius-md);
-  color: white;
-  font-size: 14px;
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: .875rem;
   font-weight: 600;
   cursor: pointer;
   transition: all var(--transition-fast);
@@ -842,7 +848,7 @@ const goBack = () => router.push('/');
 }
 
 .back-btn:hover {
-  background: rgba(255, 255, 255, 0.25);
+  background: rgba(139,105,20,.14);
   transform: translateX(-4px);
 }
 
@@ -863,10 +869,9 @@ const goBack = () => router.push('/');
 
 .header h1 {
   margin: 0;
-  font-size: 24px;
+  font-size: 1.5rem;
   font-weight: 700;
-  color: white;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  color: var(--text-primary);
 }
 
 .currency-display {
@@ -876,31 +881,28 @@ const goBack = () => router.push('/');
   padding: 12px 20px;
   background: linear-gradient(
     135deg,
-    rgba(251, 191, 36, 0.3) 0%,
-    rgba(245, 158, 11, 0.3) 100%
+    rgba(212,160,23,.2) 0%,
+    rgba(200,150,10,.2) 100%
   );
-  border-radius: var(--border-radius-lg);
-  border: 1px solid rgba(251, 191, 36, 0.4);
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(212,160,23,.35);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  animation: pulse-glow 2s ease-in-out infinite;
 }
 
 .currency-icon {
-  font-size: 24px;
-  animation: bounce 2s ease-in-out infinite;
+  font-size: 1.5rem;
 }
 
 .currency-amount {
-  font-size: 24px;
+  font-size: 1.5rem;
   font-weight: 700;
-  color: white;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  color: var(--text-primary);
 }
 
 .currency-label {
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.9);
+  font-size: .875rem;
+  color: var(--text-secondary);
 }
 
 .main {
@@ -921,11 +923,11 @@ const goBack = () => router.push('/');
   align-items: center;
   gap: 8px;
   padding: 12px 20px;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(139,105,20,.08);
   border: 1px solid var(--glass-border);
-  border-radius: var(--border-radius-lg);
-  color: white;
-  font-size: 14px;
+  border-radius: var(--radius-full);
+  color: var(--text-secondary);
+  font-size: .875rem;
   font-weight: 600;
   cursor: pointer;
   transition: all var(--transition-fast);
@@ -933,14 +935,16 @@ const goBack = () => router.push('/');
 }
 
 .category-tab:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(139,105,20,.14);
   transform: translateY(-2px);
+  color: var(--text-primary);
 }
 
 .category-tab.active {
-  background: linear-gradient(135deg, var(--primary-500), var(--primary-600));
+  background: linear-gradient(135deg, var(--primary-400), var(--primary-600));
   border-color: var(--primary-400);
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+  color: white;
+  box-shadow: 0 4px 12px rgba(74,124,89,.3);
 }
 
 .category-icon {
@@ -960,9 +964,8 @@ const goBack = () => router.push('/');
 
 .loading-text,
 .error-text {
-  font-size: 18px;
-  color: white;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  font-size: 1.125rem;
+  color: var(--text-primary);
 }
 
 .error-icon {
@@ -1005,9 +1008,9 @@ const goBack = () => router.push('/');
 }
 
 .goods-item.locked {
-  opacity: 0.6;
+  opacity: .55;
   filter: grayscale(70%);
-  border: 2px dashed rgba(255, 255, 255, 0.3);
+  border: 2px dashed var(--border-color);
   position: relative;
 }
 
@@ -1017,19 +1020,19 @@ const goBack = () => router.push('/');
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  background: rgba(0, 0, 0, 0.7);
-  color: white;
+  background: rgba(60,30,10,.75);
+  color: var(--text-on-dark);
   padding: 8px 16px;
-  border-radius: 20px;
-  font-size: 14px;
+  border-radius: var(--radius-full);
+  font-size: .875rem;
   font-weight: 600;
   z-index: 2;
 }
 
 .goods-item.locked:hover {
-  opacity: 0.8;
+  opacity: .75;
   filter: grayscale(30%);
-  border-color: rgba(255, 255, 255, 0.5);
+  border-color: var(--primary-300);
 }
 
 .btn-disabled {
@@ -1105,9 +1108,10 @@ const goBack = () => router.push('/');
   margin-bottom: 18px;
 }
 
-.goods-icon {
-  font-size: 72px;
-  text-align: center;
+.goods-icon-img {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
   filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.15));
 }
 
@@ -1187,7 +1191,7 @@ const goBack = () => router.push('/');
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 3000;
+  z-index: var(--z-modal-backdrop);
   padding: 20px;
 }
 
@@ -1199,7 +1203,8 @@ const goBack = () => router.push('/');
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  animation: scaleIn 0.3s ease;
+  position: relative;
+  z-index: var(--z-modal-content);
 }
 
 .modal-large {
@@ -1287,8 +1292,10 @@ const goBack = () => router.push('/');
   margin-bottom: 24px;
 }
 
-.selected-icon-large {
-  font-size: 80px;
+.selected-icon-large-img {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
   filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.1));
 }
 

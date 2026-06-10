@@ -2,11 +2,12 @@
  * 文件名：gemService.js
  * 作者：开发者
  * 日期：2026-05-25
- * 版本：v1.0.0
+ * 版本：v1.1.0
  * 功能描述：农场宝石币基础数据存储与读取服务
  *         当前为基础框架阶段，仅提供余额查询功能，预留完整的增减/流水记录接口
  * 更新记录：
  *   2026-05-25 - v1.0.0 - 初始版本创建
+ *   2026-06-09 - v1.1.0 - 时间字段统一：update_time → updated_at
  */
 
 const pool = require('../config/db');
@@ -102,7 +103,7 @@ async function addGems(playerId, amount, source = 'unknown') {
       `UPDATE player_currency
        SET gem_num = gem_num + $1,
            gem_total_earn = gem_total_earn + $1,
-           update_time = CURRENT_TIMESTAMP
+           updated_at = CURRENT_TIMESTAMP
        WHERE player_id = $2`,
       [actualAdd, playerId]
     );
@@ -165,7 +166,7 @@ async function spendGems(playerId, amount, reason = 'unknown') {
       `UPDATE player_currency
        SET gem_num = gem_num - $1,
            gem_total_spend = gem_total_spend + $1,
-           update_time = CURRENT_TIMESTAMP
+           updated_at = CURRENT_TIMESTAMP
        WHERE player_id = $2`,
       [amount, playerId]
     );

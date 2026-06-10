@@ -1,8 +1,16 @@
-/** * 文件名：LogsPage.vue * 作者：开发者 * 日期：2025-01-01 * 版本：v3.0.0 *
-功能描述：操作日志查询页面，展示管理员操作记录，支持多维度筛选 * 更新记录： *
-2025-01-01 - v1.1.0 - 初始版本创建 * 2026-03-28 - v2.0.0 -
-【阶段四完成】接入adminService，操作日志功能完整实现 * 2026-05-02 - v3.0.0 -
-【虚拟滚动优化】添加虚拟滚动支持，提升大量日志加载性能 */
+/**
+ * 文件名：LogsPage.vue
+ * 作者：开发者
+ * 日期：2025-01-01
+ * 版本：v3.1.0
+ * 功能描述：操作日志查询页面，展示管理员操作记录，支持多维度筛选
+ * 更新记录：
+ * 2025-01-01 - v1.1.0 - 初始版本创建
+ * 2026-03-28 - v2.0.0 - 【阶段四完成】接入adminService，操作日志功能完整实现
+ * 2026-05-02 - v3.0.0 - 【虚拟滚动优化】添加虚拟滚动支持，提升大量日志加载性能
+ * 2026-06-10 - v3.1.0 - 美化：玻璃拟态容器/表格、CSS变量替代硬编码色、
+ *             表格行hover效果、统一农场主题色系
+ */
 <template>
   <div class="logs-page">
     <div class="render-mode-selector">
@@ -318,15 +326,18 @@ onMounted(() => {
   align-items: center;
   gap: 12px;
   padding: 12px 20px;
-  background: rgba(255, 255, 255, 0.9);
-  border-radius: 8px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
   margin-bottom: 20px;
 }
 
 .mode-label {
   font-size: 14px;
   font-weight: 600;
-  color: #262626;
+  color: var(--text-primary);
 }
 
 .mode-buttons {
@@ -336,10 +347,10 @@ onMounted(() => {
 
 .mode-button {
   padding: 8px 16px;
-  border: 1px solid #d9d9d9;
-  border-radius: 4px;
-  background: #fafafa;
-  color: #262626;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: rgba(139,105,20,.06);
+  color: var(--text-primary);
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
@@ -347,20 +358,23 @@ onMounted(() => {
 }
 
 .mode-button:hover {
-  background: #f0f0f0;
+  background: rgba(139,105,20,.14);
 }
 
 .mode-button.active {
-  background: #1890ff;
+  background: var(--primary-500);
   color: white;
   font-weight: 600;
   border-color: transparent;
 }
 
 .filter-bar {
-  background: white;
+  background: var(--glass-bg);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--glass-border);
   padding: 16px 20px;
-  border-radius: 8px;
+  border-radius: var(--radius-xl);
   margin-bottom: 20px;
   display: flex;
   align-items: center;
@@ -375,10 +389,12 @@ onMounted(() => {
 
 .filter-select {
   padding: 8px 12px;
-  border: 1px solid #d9d9d9;
-  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
   font-size: 14px;
   outline: none;
+  background: rgba(255,252,245,.6);
+  color: var(--text-primary);
 }
 
 .filter-actions {
@@ -389,40 +405,46 @@ onMounted(() => {
 .btn {
   padding: 8px 16px;
   border: none;
-  border-radius: 4px;
+  border-radius: var(--radius-md);
   font-size: 14px;
   cursor: pointer;
   transition: all 0.3s;
 }
 
 .btn-primary {
-  background: #1890ff;
+  background: var(--primary-500);
   color: white;
 }
 
 .btn-primary:hover {
-  background: #40a9ff;
+  background: var(--primary-400);
 }
 
 .btn-default {
-  background: #fafafa;
-  color: #262626;
-  border: 1px solid #d9d9d9;
+  background: rgba(139,105,20,.06);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
 }
 
 .btn-default:hover {
-  background: #f5f5f5;
+  background: rgba(139,105,20,.14);
 }
 
 .logs-table-container {
-  background: white;
-  border-radius: 8px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
   overflow: hidden;
 }
 
 .virtual-view {
-  background: white;
-  border-radius: 8px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
   overflow: hidden;
 }
 
@@ -435,7 +457,7 @@ onMounted(() => {
 .fixed-header {
   position: sticky;
   top: 0;
-  background: #fafafa;
+  background: rgba(139,105,20,.08);
   z-index: 10;
 }
 
@@ -448,35 +470,39 @@ onMounted(() => {
 .logs-table td {
   padding: 12px 16px;
   text-align: left;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .logs-table th {
-  background: #fafafa;
+  background: rgba(139,105,20,.06);
   font-weight: 600;
-  color: #595959;
+  color: var(--text-primary);
   font-size: 14px;
 }
 
 .logs-table td {
-  color: #262626;
+  color: var(--text-primary);
   font-size: 14px;
+}
+
+.logs-table tbody tr:hover {
+  background: rgba(255,252,245,.18);
 }
 
 .status-badge {
   padding: 4px 12px;
-  border-radius: 4px;
+  border-radius: var(--radius-md);
   font-size: 12px;
 }
 
 .status-badge.success {
-  background: #f6ffed;
-  color: #52c41a;
+  background: rgba(74,124,89,.12);
+  color: var(--primary-600);
 }
 
 .status-badge.failed {
-  background: #fff1f0;
-  color: #ff4d4f;
+  background: rgba(220,38,38,.1);
+  color: var(--error-600);
 }
 
 .pagination {
@@ -486,18 +512,21 @@ onMounted(() => {
   gap: 16px;
   margin-top: 20px;
   padding: 16px;
-  background: white;
-  border-radius: 8px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
 }
 
 .page-info {
-  color: #595959;
+  color: var(--text-secondary);
   font-size: 14px;
 }
 
 .empty-state {
   text-align: center;
-  color: #8c8c8c;
+  color: var(--text-secondary);
   padding: 60px;
 }
 </style>

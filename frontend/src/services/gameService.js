@@ -154,12 +154,12 @@ export const gameService = {
     if (sinceId > 0) {
       params.since_id = sinceId;
     }
-    const response = await api.get('/game-activity/recent', { params });
+    const response = await api.get('/game-activities/recent', { params });
     return response.data;
   },
 
   async getAllActivities(limit = 50, offset = 0) {
-    const response = await api.get('/game-activity/all', {
+    const response = await api.get('/game-activities/all', {
       params: { limit, offset },
     });
     return response.data;

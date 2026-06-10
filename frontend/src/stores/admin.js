@@ -11,6 +11,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import api from '../services/api';
+import { usePlayerStore } from './player';
 
 export const useAdminStore = defineStore('admin', () => {
   const isAdminAuthenticated = ref(false);
@@ -55,6 +56,15 @@ export const useAdminStore = defineStore('admin', () => {
     isAdminAuthenticated.value = false;
     adminUser.value = null;
     localStorage.removeItem('token');
+    // 同步清除 playerStore 中的管理员状态
+    try {
+      const playerStore = usePlayerStore();
+      if (playerStore.playerData) {
+        playerStore.playerData.is_admin = false;
+      }
+    } catch (e) {
+      // playerStore 可能尚未初始化，忽略错误
+    }
   }
 
   return {

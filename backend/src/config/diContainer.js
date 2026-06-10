@@ -2,8 +2,10 @@
  * 文件名：diContainer.js
  * 作者：开发者
  * 日期：2026-05-01
- * 版本：v1.0.0
+ * 版本：v1.1.0
  * 功能描述：依赖注入容器，用于管理服务生命周期和依赖关系
+ * 更新记录：
+ *   2026-06-09 - v1.1.0 - 新增 registerModule() 方法，用于注册已初始化的模块对象；优化 _createInstance 分支逻辑
  */
 
 const logger = require('./logger');
@@ -49,13 +51,24 @@ class DIContainer {
   }
 
   /**
-   * 注册值服务
+   * 注册值服务（基础设施，如 logger、db pool、redis client）
    * 直接存储一个值
    * @param {string} name - 服务名称
    * @param {*} value - 服务值
    */
   registerValue(name, value) {
     this._register(name, null, [], 'value', value);
+  }
+
+  /**
+   * 注册已初始化的模块对象（服务模块）
+   * 适用于使用直接 require() 获取依赖的服务模块
+   * 与 registerSingleton 的区别：不需要依赖数组，直接存储模块对象
+   * @param {string} name - 服务名称
+   * @param {*} moduleInstance - 已初始化的模块对象
+   */
+  registerModule(name, moduleInstance) {
+    this._register(name, moduleInstance, [], 'module');
   }
 
   /**
@@ -101,6 +114,8 @@ class DIContainer {
 
       switch (service.type) {
         case 'value':
+        case 'module':
+          // 值和模块对象直接返回，不经过工厂函数
           return service.value;
 
         case 'singleton': {

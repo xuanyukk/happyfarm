@@ -1,4 +1,6 @@
 <script setup>
+defineOptions({ name: 'App' });
+
 import ErrorBoundary from './components/ErrorBoundary.vue';
 import TutorialGuide from './components/TutorialGuide.vue';
 import LoadingOverlay from './components/LoadingOverlay.vue';

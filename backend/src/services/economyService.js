@@ -206,10 +206,13 @@ const deductCurrency = async function (client, playerId, amount, source, related
     throw Object.assign(new Error('余额不足'), { statusCode: 402 });
   }
 
+  // D2修复：字段映射对齐Schema（source替代change_type，移除details，添加balance_before/after）
+  const balanceAfter = currencyResult.rows[0].currency_num;
+  const balanceBefore = balanceAfter + amount;
   await client.query(
-    `INSERT INTO player_currency_log (player_id, type, amount, change_type, related_id, details, create_time)
-     VALUES ($1, 2, $2, $3, $4, $5, CURRENT_TIMESTAMP)`,
-    [playerId, amount, 'spend', relatedId, JSON.stringify({ source })]
+    `INSERT INTO player_currency_log (player_id, type, amount, source, related_id, balance_before, balance_after, create_time)
+     VALUES ($1, 2, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP)`,
+    [playerId, amount, source, relatedId, balanceBefore, balanceAfter]
   );
 
   return { newBalance: currencyResult.rows[0].currency_num };
@@ -239,10 +242,13 @@ const addCurrency = async function (client, playerId, amount, source, relatedId 
     throw Object.assign(new Error('玩家资产数据不存在'), { statusCode: 404 });
   }
 
+  // D2修复：字段映射对齐Schema（source替代change_type，移除details，添加balance_before/after）
+  const balanceAfter = currencyResult.rows[0].currency_num;
+  const balanceBefore = balanceAfter - amount;
   await client.query(
-    `INSERT INTO player_currency_log (player_id, type, amount, change_type, related_id, details, create_time)
-     VALUES ($1, 1, $2, $3, $4, $5, CURRENT_TIMESTAMP)`,
-    [playerId, amount, 'earn', relatedId, JSON.stringify({ source })]
+    `INSERT INTO player_currency_log (player_id, type, amount, source, related_id, balance_before, balance_after, create_time)
+     VALUES ($1, 1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP)`,
+    [playerId, amount, source, relatedId, balanceBefore, balanceAfter]
   );
 
   return { newBalance: currencyResult.rows[0].currency_num };

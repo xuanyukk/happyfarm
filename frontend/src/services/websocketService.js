@@ -2,11 +2,12 @@
  * 文件名：websocketService.js
  * 作者：开发者
  * 日期：2026-03-19
- * 版本：v1.1.0
+ * 版本：v1.2.0
  * 功能描述：WebSocket服务，处理与后端的实时通信
  * 更新记录：
  *   2026-03-19 - v1.0.0 - 初始版本
  *   2026-05-19 - v1.1.0 - 添加文件头注释
+ *   2026-06-11 - v1.2.0 - C3修复：startHeartbeat先清理已有interval防止多心跳并行；新增reconnect_failed事件处理
  */
 
 import { io } from 'socket.io-client';
@@ -83,6 +84,12 @@ class WebSocketService {
       this.restoreHandlers();
     });
 
+    // C16修复：监听reconnect_failed事件，提示用户连接已永久断开
+    this.socket.on('reconnect_failed', () => {
+      console.error('WebSocket重连失败，已达到最大重试次数');
+      this.isConnected = false;
+    });
+
     this.socket.on('authenticated', (data) => {
       console.log('WebSocket authentication successful', data);
     });
@@ -150,6 +157,8 @@ class WebSocketService {
   }
 
   startHeartbeat() {
+    // C3修复：先清理已有interval，防止重连时多个心跳并行
+    this.stopHeartbeat();
     this.heartbeatInterval = setInterval(() => {
       if (this.isConnected) {
         this.send('ping');

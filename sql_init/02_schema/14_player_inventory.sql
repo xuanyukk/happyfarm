@@ -2,10 +2,12 @@
 -- 文件名: 14_player_inventory.sql
 -- 作者: Trae AI
 -- 日期: 2026-05-01
--- 版本: v2.4.0
+-- 版本: v2.5.0
 -- 功能描述: 统一玩家库存表(种子/道具/作物)
 -- 执行顺序: 02-14
 -- 依赖关系: 02-13_player_currency_log.sql
+-- 更新记录:
+--   2026-06-09 - v2.5.0 - 时间字段命名统一：create_time→created_at, update_time→updated_at
 -- ============================================
 
 CREATE TABLE IF NOT EXISTS player_inventory (
@@ -19,8 +21,8 @@ CREATE TABLE IF NOT EXISTS player_inventory (
     last_use_time TIMESTAMP DEFAULT NULL,
     total_add BIGINT NOT NULL DEFAULT 0,
     total_use BIGINT NOT NULL DEFAULT 0,
-    create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    update_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE (player_id, item_type, item_obj_id),
     CONSTRAINT fk_inventory_player FOREIGN KEY (player_id) REFERENCES player_base (player_id),
     CHECK (item_num >= 0),
@@ -39,8 +41,8 @@ COMMENT ON COLUMN player_inventory.last_add_time IS '上次增加时间';
 COMMENT ON COLUMN player_inventory.last_use_time IS '上次使用时间';
 COMMENT ON COLUMN player_inventory.total_add IS '累计增加数量';
 COMMENT ON COLUMN player_inventory.total_use IS '累计使用数量';
-COMMENT ON COLUMN player_inventory.create_time IS '创建时间';
-COMMENT ON COLUMN player_inventory.update_time IS '更新时间';
+COMMENT ON COLUMN player_inventory.created_at IS '创建时间';
+COMMENT ON COLUMN player_inventory.updated_at IS '更新时间';
 
 -- 索引优化
 CREATE INDEX IF NOT EXISTS idx_player_id ON player_inventory (player_id);

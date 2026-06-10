@@ -58,7 +58,7 @@ router.get('/user-activity', businessMetricsController.getUserActivityMetrics);
 
 /**
  * @swagger
- * /api/business-metrics/game-activity:
+ * /api/business-metrics/game-activities:
  *   get:
  *     summary: 获取游戏业务指标
  *     description: 获取游戏相关的玩家、交易、访问等指标
@@ -67,7 +67,7 @@ router.get('/user-activity', businessMetricsController.getUserActivityMetrics);
  *       200:
  *         description: 成功获取游戏业务指标
  */
-router.get('/game-activity', businessMetricsController.getGameActivityMetrics);
+router.get('/game-activities', businessMetricsController.getGameActivityMetrics);
 
 /**
  * @swagger

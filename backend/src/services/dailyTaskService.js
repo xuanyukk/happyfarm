@@ -2,10 +2,12 @@
  * 文件名：dailyTaskService.js
  * 作者：Trae AI
  * 日期：2026-05-31
- * 版本：v1.0.0
- * 功能描述：每日任务服务——获取任务列表、更新进度、领取奖励
+ * 版本：v1.2.0
+ * 功能描述：每日任务服务——任务进度更新、奖励领取、每日重置
  * 更新记录：
  *   2026-05-31 - v1.0.0 - LG-02修复：初始版本创建
+ *   2026-06-09 - v1.1.0 - 时间字段统一：update_time → updated_at
+ *   2026-06-11 - v1.2.0 - D3修复：premium_currency改为player_currency.gem_num（字段不存在于player_base）
  */
 
 const pool = require('../config/db');
@@ -56,6 +58,7 @@ exports.updateTaskProgress = async function (
       await initializeDailyTasksClient(client, playerId, today);
     }
 
+    // B4-1修复：添加FOR UPDATE行锁防止并发进度超计
     const matchingTasks = await client.query(
       `SELECT pdt.*, dtc.target_count
        FROM player_daily_task pdt
@@ -63,7 +66,8 @@ exports.updateTaskProgress = async function (
        WHERE pdt.player_id = $1
          AND pdt.task_date = $2
          AND dtc.task_category = $3
-         AND pdt.is_completed = FALSE`,
+         AND pdt.is_completed = FALSE
+       FOR UPDATE`,
       [playerId, today, taskCategory]
     );
 
@@ -147,7 +151,7 @@ exports.claimTaskReward = async function (playerId, taskId) {
 
     await client.query(
       `UPDATE player_base
-       SET player_exp = player_exp + $1, update_time = CURRENT_TIMESTAMP
+       SET player_exp = player_exp + $1, updated_at = CURRENT_TIMESTAMP
        WHERE player_id = $2`,
       [config.reward_exp, playerId]
     );
@@ -205,7 +209,7 @@ exports.claimTaskReward = async function (playerId, taskId) {
 
     if (config.reward_gems > 0) {
       await client.query(
-        'UPDATE player_base SET premium_currency = premium_currency + $1, update_time = CURRENT_TIMESTAMP WHERE player_id = $2',
+        'UPDATE player_base SET premium_currency = premium_currency + $1, updated_at = CURRENT_TIMESTAMP WHERE player_id = $2',
         [config.reward_gems, playerId]
       );
     }

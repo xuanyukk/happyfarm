@@ -2,19 +2,20 @@
 -- 文件名: 01_functions.sql
 -- 作者: Trae AI
 -- 日期: 2026-05-01
--- 版本: v4.72.0
+-- 版本: v4.73.0
 -- 功能描述: 数据库通用函数定义（含分区管理辅助函数）
 -- 执行顺序: 02-01 (schema第一步)
 -- 依赖关系: 01_database/01_create_database.sql
 -- 更新记录:
+--   2026-06-09 - v4.73.0 - 触发器函数修复：NEW.update_time→NEW.updated_at（与各表列名一致）
 --   2026-06-06 - v4.72.0 - 新增分区管理辅助函数（create_monthly_partition, create_future_partitions）
 -- ============================================
 
--- 自动更新update_time字段的函数
+-- 自动更新updated_at字段的函数（统一命名风格）
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
-    NEW.update_time = CURRENT_TIMESTAMP;
+    NEW.updated_at = CURRENT_TIMESTAMP;
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql VOLATILE;

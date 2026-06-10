@@ -1,5 +1,10 @@
-/** * 文件名：FloatingText.vue * 作者：SOLO * 日期：2026-05-30 * 版本：v1.0.0 *
-功能描述：浮动飘字组件 - 显示经验/金币获取的飘字动画 */
+/**
+ * 文件名：FloatingText.vue
+ * 作者：SOLO
+ * 日期：2026-05-30
+ * 版本：v1.0.0
+ * 功能描述：浮动飘字组件 - 显示经验/金币获取的飘字动画
+ */
 <template>
   <transition name="float-fade" appear>
     <div

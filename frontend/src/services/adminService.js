@@ -2,49 +2,21 @@
  * 文件名：adminService.js
  * 作者：开发者
  * 日期：2026-03-28
- * 版本：v1.4.0
+ * 版本：v1.5.0
  * 功能描述：后台管理API服务，封装所有后台管理相关的API调用
  * 更新记录：
  *   2026-03-28 - v1.0.0 - 初始版本创建
- *   2026-03-28 - v1.0.1 - 修复URL参数未编码的安全问题，使用encodeURIComponent对所有URL参数值进行编码
- *   2026-03-28 - v1.1.0 - 添加URL参数名白名单验证，防止恶意参数名攻击
+ *   2026-03-28 - v1.0.1 - 修复URL参数未编码的安全问题
+ *   2026-03-28 - v1.1.0 - 添加URL参数名白名单验证
  *   2026-03-29 - v1.2.0 - 增强参数验证逻辑，添加类型检查和范围验证
- *   2026-03-29 - v1.3.0 - 修复整数验证漏洞，添加XSS防护和严格的日期格式验证
- *   2026-05-26 - v1.4.0 - 新增配置变更历史API(版本对比、回滚预览、回滚、统计、导出)
+ *   2026-03-29 - v1.3.0 - 修复整数验证漏洞
+ *   2026-05-26 - v1.4.0 - 新增配置变更历史API
+ *   2026-06-09 - v1.5.0 - 改用统一request实例（含Token刷新队列保护），
+ *                         消除第三个axios实例的冗余创建
  */
 
-import axios from 'axios';
+import request from '../utils/request';
 import { getAccessToken } from './authService';
-import { useAuthStore } from '../stores/auth';
-
-const API_BASE_URL =
-  import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
-
-const api = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-
-api.interceptors.request.use((config) => {
-  const token = getAccessToken();
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
-
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      const authStore = useAuthStore();
-      authStore.logout();
-    }
-    return Promise.reject(error);
-  }
-);
 
 class AdminService {
   static allowedParams = {
@@ -185,7 +157,7 @@ class AdminService {
     return validated;
   }
   async getDashboardData() {
-    const response = await api.get('/admin/dashboard');
+    const response = await request.get('/admin/dashboard');
     return response.data;
   }
 
@@ -197,17 +169,17 @@ class AdminService {
         params.append(key, encodeURIComponent(value));
       }
     });
-    const response = await api.get(`/admin/players?${params.toString()}`);
+    const response = await request.get(`/admin/players?${params.toString()}`);
     return response.data;
   }
 
   async getPlayerDetail(playerId) {
-    const response = await api.get(`/admin/players/${playerId}`);
+    const response = await request.get(`/admin/players/${playerId}`);
     return response.data;
   }
 
   async updatePlayerStatus(playerId, isActive, reason) {
-    const response = await api.put(`/admin/players/${playerId}/status`, {
+    const response = await request.put(`/admin/players/${playerId}/status`, {
       isActive,
       reason,
     });
@@ -222,12 +194,12 @@ class AdminService {
         params.append(key, encodeURIComponent(value));
       }
     });
-    const response = await api.get(`/admin/logs?${params.toString()}`);
+    const response = await request.get(`/admin/logs?${params.toString()}`);
     return response.data;
   }
 
   async getMonitoringData(type, limit = 100) {
-    const response = await api.get(`/admin/monitoring/${type}`, {
+    const response = await request.get(`/admin/monitoring/${type}`, {
       params: { limit },
     });
     return response.data;
@@ -241,12 +213,12 @@ class AdminService {
         params.append(key, encodeURIComponent(value));
       }
     });
-    const response = await api.get(`/admin/alerts?${params.toString()}`);
+    const response = await request.get(`/admin/alerts?${params.toString()}`);
     return response.data;
   }
 
   async handleAlert(alertId, status, note) {
-    const response = await api.post(`/admin/alerts/${alertId}/handle`, {
+    const response = await request.post(`/admin/alerts/${alertId}/handle`, {
       status,
       note,
     });
@@ -261,17 +233,17 @@ class AdminService {
         params.append(key, encodeURIComponent(value));
       }
     });
-    const response = await api.get(`/admin/approvals?${params.toString()}`);
+    const response = await request.get(`/admin/approvals?${params.toString()}`);
     return response.data;
   }
 
   async createApprovalRequest(data) {
-    const response = await api.post('/admin/approvals', data);
+    const response = await request.post('/admin/approvals', data);
     return response.data;
   }
 
   async approveOperation(requestId, status, note) {
-    const response = await api.post(`/admin/approvals/${requestId}/approve`, {
+    const response = await request.post(`/admin/approvals/${requestId}/approve`, {
       status,
       note,
     });
@@ -279,7 +251,7 @@ class AdminService {
   }
 
   async getCurrencyBalanceData(currencyType = 'coin', days = 30) {
-    const response = await api.get('/admin/currency-balance', {
+    const response = await request.get('/admin/currency-balance', {
       params: { currencyType, days },
     });
     return response.data;
@@ -301,7 +273,7 @@ class AdminService {
         params.append(key, encodeURIComponent(value));
       }
     });
-    const response = await api.get(`/admin/statistics?${params.toString()}`);
+    const response = await request.get(`/admin/statistics?${params.toString()}`);
     return response.data;
   }
 
@@ -313,27 +285,27 @@ class AdminService {
         params.append(key, encodeURIComponent(value));
       }
     });
-    const response = await api.get(`/admin/crops?${params.toString()}`);
+    const response = await request.get(`/admin/crops?${params.toString()}`);
     return response.data;
   }
 
   async getCropDetail(cropId) {
-    const response = await api.get(`/admin/crops/${cropId}`);
+    const response = await request.get(`/admin/crops/${cropId}`);
     return response.data;
   }
 
   async createCrop(data) {
-    const response = await api.post('/admin/crops', data);
+    const response = await request.post('/admin/crops', data);
     return response.data;
   }
 
   async updateCrop(cropId, data) {
-    const response = await api.put(`/admin/crops/${cropId}`, data);
+    const response = await request.put(`/admin/crops/${cropId}`, data);
     return response.data;
   }
 
   async deleteCrop(cropId) {
-    const response = await api.delete(`/admin/crops/${cropId}`);
+    const response = await request.delete(`/admin/crops/${cropId}`);
     return response.data;
   }
 
@@ -345,79 +317,79 @@ class AdminService {
         params.append(key, encodeURIComponent(value));
       }
     });
-    const response = await api.get(`/admin/items?${params.toString()}`);
+    const response = await request.get(`/admin/items?${params.toString()}`);
     return response.data;
   }
 
   async getItemDetail(itemId) {
-    const response = await api.get(`/admin/items/${itemId}`);
+    const response = await request.get(`/admin/items/${itemId}`);
     return response.data;
   }
 
   async createItem(data) {
-    const response = await api.post('/admin/items', data);
+    const response = await request.post('/admin/items', data);
     return response.data;
   }
 
   async updateItem(itemId, data) {
-    const response = await api.put(`/admin/items/${itemId}`, data);
+    const response = await request.put(`/admin/items/${itemId}`, data);
     return response.data;
   }
 
   async deleteItem(itemId) {
-    const response = await api.delete(`/admin/items/${itemId}`);
+    const response = await request.delete(`/admin/items/${itemId}`);
     return response.data;
   }
 
   async getRoleList(params = {}) {
     const validatedParams = this.validateParams('roles', params);
-    const response = await api.get('/admin/rbac/roles', {
+    const response = await request.get('/admin/rbac/roles', {
       params: validatedParams,
     });
     return response.data;
   }
 
   async getRoleDetail(roleId) {
-    const response = await api.get(`/admin/rbac/roles/${roleId}`);
+    const response = await request.get(`/admin/rbac/roles/${roleId}`);
     return response.data;
   }
 
   async createRole(data) {
-    const response = await api.post('/admin/rbac/roles', data);
+    const response = await request.post('/admin/rbac/roles', data);
     return response.data;
   }
 
   async updateRole(roleId, data) {
-    const response = await api.put(`/admin/rbac/roles/${roleId}`, data);
+    const response = await request.put(`/admin/rbac/roles/${roleId}`, data);
     return response.data;
   }
 
   async deleteRole(roleId, reason = '') {
-    const response = await api.delete(`/admin/rbac/roles/${roleId}`, {
+    const response = await request.delete(`/admin/rbac/roles/${roleId}`, {
       data: { reason },
     });
     return response.data;
   }
 
   async assignRolePermissions(roleId, permissionIds) {
-    const response = await api.post(`/admin/rbac/roles/${roleId}/permissions`, {
+    const response = await request.post(`/admin/rbac/roles/${roleId}/permissions`, {
       permissionIds,
     });
     return response.data;
   }
 
   async getPermissionTree() {
-    const response = await api.get('/admin/rbac/permissions');
+    const response = await request.get('/admin/rbac/permissions');
     return response.data;
   }
 
   async getUserRoles(userId) {
-    const response = await api.get(`/admin/rbac/users/${userId}/roles`);
+    const response = await request.get(`/admin/rbac/users/${userId}/roles`);
     return response.data;
   }
 
   async assignUserRoles(userId, roleIds) {
-    const response = await api.post(`/admin/rbac/users/${userId}/roles`, {
+    const response = await request.post(`/admin/rbac/users/${userId}/roles`, {
       roleIds,
     });
     return response.data;
@@ -425,19 +397,19 @@ class AdminService {
 
   async getAnnouncementList(params = {}) {
     const validatedParams = this.validateParams('announcements', params);
-    const response = await api.get('/admin/announcements', {
+    const response = await request.get('/admin/announcements', {
       params: validatedParams,
     });
     return response.data;
   }
 
   async createAnnouncement(data) {
-    const response = await api.post('/admin/announcements', data);
+    const response = await request.post('/admin/announcements', data);
     return response.data;
   }
 
   async updateAnnouncement(announcementId, data) {
-    const response = await api.put(
+    const response = await request.put(
       `/admin/announcements/${announcementId}`,
       data
     );
@@ -445,26 +417,26 @@ class AdminService {
   }
 
   async deleteAnnouncement(announcementId) {
-    const response = await api.delete(`/admin/announcements/${announcementId}`);
+    const response = await request.delete(`/admin/announcements/${announcementId}`);
     return response.data;
   }
 
   async publishAnnouncement(announcementId) {
-    const response = await api.post(
+    const response = await request.post(
       `/admin/announcements/${announcementId}/publish`
     );
     return response.data;
   }
 
   async offlineAnnouncement(announcementId) {
-    const response = await api.post(
+    const response = await request.post(
       `/admin/announcements/${announcementId}/offline`
     );
     return response.data;
   }
 
   async setAnnouncementTop(announcementId, isTop) {
-    const response = await api.post(
+    const response = await request.post(
       `/admin/announcements/${announcementId}/top`,
       { isTop }
     );
@@ -472,40 +444,40 @@ class AdminService {
   }
 
   async getAnnouncementStatistics() {
-    const response = await api.get('/admin/announcements/statistics');
+    const response = await request.get('/admin/announcements/statistics');
     return response.data;
   }
 
   async getConfigCategories() {
-    const response = await api.get('/admin/configs/categories');
+    const response = await request.get('/admin/configs/categories');
     return response.data;
   }
 
   async getConfigList(params = {}) {
     const validatedParams = this.validateParams('configs', params);
-    const response = await api.get('/admin/configs/list', {
+    const response = await request.get('/admin/configs/list', {
       params: validatedParams,
     });
     return response.data;
   }
 
   async getConfigDetail(configKey) {
-    const response = await api.get(`/admin/configs/${configKey}`);
+    const response = await request.get(`/admin/configs/${configKey}`);
     return response.data;
   }
 
   async createConfig(data) {
-    const response = await api.post('/admin/configs', data);
+    const response = await request.post('/admin/configs', data);
     return response.data;
   }
 
   async updateConfig(configKey, data) {
-    const response = await api.put(`/admin/configs/${configKey}`, data);
+    const response = await request.put(`/admin/configs/${configKey}`, data);
     return response.data;
   }
 
   async deleteConfig(configKey) {
-    const response = await api.delete(`/admin/configs/${configKey}`);
+    const response = await request.delete(`/admin/configs/${configKey}`);
     return response.data;
   }
 
@@ -517,12 +489,12 @@ class AdminService {
     const url = queryStr
       ? `/admin/configs/${configKey}/history?${queryStr}`
       : `/admin/configs/${configKey}/history`;
-    const response = await api.get(url);
+    const response = await request.get(url);
     return response.data;
   }
 
   async restoreConfig(configKey, version, reason) {
-    const response = await api.post(`/admin/configs/${configKey}/restore`, {
+    const response = await request.post(`/admin/configs/${configKey}/restore`, {
       version,
       reason,
     });
@@ -530,21 +502,21 @@ class AdminService {
   }
 
   async compareConfigVersions(configKey, v1, v2) {
-    const response = await api.get(
+    const response = await request.get(
       `/admin/configs/${configKey}/compare?v1=${v1}&v2=${v2}`
     );
     return response.data;
   }
 
   async getRollbackPreview(configKey, version) {
-    const response = await api.get(
+    const response = await request.get(
       `/admin/configs/${configKey}/rollback-preview?version=${version}`
     );
     return response.data;
   }
 
   async rollbackConfig(configKey, version, reason) {
-    const response = await api.post(`/admin/configs/${configKey}/rollback`, {
+    const response = await request.post(`/admin/configs/${configKey}/rollback`, {
       version,
       reason,
     });
@@ -553,12 +525,12 @@ class AdminService {
 
   async getChangeStatistics(key = '') {
     const params = key ? `?key=${encodeURIComponent(key)}` : '';
-    const response = await api.get(`/admin/configs/statistics${params}`);
+    const response = await request.get(`/admin/configs/statistics${params}`);
     return response.data;
   }
 
   async exportChangeHistory(configKey, format = 'json') {
-    const response = await api.get(
+    const response = await request.get(
       `/admin/configs/${configKey}/history/export?format=${format}`,
       { responseType: format === 'csv' ? 'blob' : 'json' }
     );
@@ -566,7 +538,7 @@ class AdminService {
   }
 
   async createConfigApprovalRequest(configKey, data) {
-    const response = await api.post(
+    const response = await request.post(
       `/admin/configs/${configKey}/approve-request`,
       data
     );
@@ -574,7 +546,7 @@ class AdminService {
   }
 
   async approveConfigChange(approvalId, status, comment) {
-    const response = await api.put(
+    const response = await request.put(
       `/admin/configs/approve-request/${approvalId}`,
       {
         status,
@@ -585,29 +557,29 @@ class AdminService {
   }
 
   async getConfigApprovalRequests(params = {}) {
-    const response = await api.get('/admin/configs/approval-requests/list', {
+    const response = await request.get('/admin/configs/approval-requests/list', {
       params,
     });
     return response.data;
   }
 
   async getCacheStatus() {
-    const response = await api.get('/admin/configs/cache/status');
+    const response = await request.get('/admin/configs/cache/status');
     return response.data;
   }
 
   async refreshCache(key) {
-    const response = await api.post(`/admin/configs/cache/refresh/${key}`);
+    const response = await request.post(`/admin/configs/cache/refresh/${key}`);
     return response.data;
   }
 
   async batchUpdateConfigs(updates) {
-    const response = await api.post('/admin/configs/batch/update', { updates });
+    const response = await request.post('/admin/configs/batch/update', { updates });
     return response.data;
   }
 
   async exportConfigs() {
-    const response = await api.post(
+    const response = await request.post(
       '/admin/configs/export',
       {},
       {
@@ -618,7 +590,7 @@ class AdminService {
   }
 
   async importConfigs(configs, override = false) {
-    const response = await api.post('/admin/configs/import', {
+    const response = await request.post('/admin/configs/import', {
       configs,
       override,
     });
@@ -626,12 +598,12 @@ class AdminService {
   }
 
   async getCachedConfigs() {
-    const response = await api.get('/admin/cache/stats');
+    const response = await request.get('/admin/cache/stats');
     return response.data;
   }
 
   async getCachedConfig(key) {
-    const response = await api.get(`/admin/configs/cache/${key}`);
+    const response = await request.get(`/admin/configs/cache/${key}`);
     return response.data;
   }
 
@@ -640,7 +612,7 @@ class AdminService {
   }
 
   async getBackupListV2() {
-    const response = await api.get('/admin/backup/list');
+    const response = await request.get('/admin/backup/list');
     return response.data;
   }
 
@@ -649,7 +621,7 @@ class AdminService {
   }
 
   async createBackupV2() {
-    const response = await api.post('/admin/backup/create');
+    const response = await request.post('/admin/backup/create');
     return response.data;
   }
 
@@ -660,14 +632,14 @@ class AdminService {
   }
 
   async restoreBackupV2(filename) {
-    const response = await api.post('/admin/backup/restore', { filename });
+    const response = await request.post('/admin/backup/restore', { filename });
     return response.data;
   }
 
   async downloadBackup(backupId) {
     const filename =
       typeof backupId === 'object' ? backupId.filename : backupId;
-    const response = await api.get(`/admin/backup/download/${filename}`, {
+    const response = await request.get(`/admin/backup/download/${filename}`, {
       responseType: 'blob',
     });
     return response.data;
@@ -680,92 +652,92 @@ class AdminService {
   }
 
   async deleteBackupV2(filename) {
-    const response = await api.delete(`/admin/backup/delete/${filename}`);
+    const response = await request.delete(`/admin/backup/delete/${filename}`);
     return response.data;
   }
 
   async getScheduledJobs() {
-    const response = await api.get('/admin/backup/schedule/list');
+    const response = await request.get('/admin/backup/schedule/list');
     return response.data;
   }
 
   async startScheduledBackup(cronExpression) {
-    const response = await api.post('/admin/backup/schedule/start', {
+    const response = await request.post('/admin/backup/schedule/start', {
       cronExpression,
     });
     return response.data;
   }
 
   async stopScheduledBackup() {
-    const response = await api.post('/admin/backup/schedule/stop');
+    const response = await request.post('/admin/backup/schedule/stop');
     return response.data;
   }
 
   async getRestoreProgress() {
-    const response = await api.get('/admin/backup/restore/progress');
+    const response = await request.get('/admin/backup/restore/progress');
     return response.data;
   }
 
   async rollbackRestore() {
-    const response = await api.post('/admin/backup/restore/rollback');
+    const response = await request.post('/admin/backup/restore/rollback');
     return response.data;
   }
 
   async clearRestoreProgress() {
-    const response = await api.post('/admin/backup/restore/clear');
+    const response = await request.post('/admin/backup/restore/clear');
     return response.data;
   }
 
   async getGameEventList(params = {}) {
     const validatedParams = this.validateParams('gameEvents', params);
-    const response = await api.get('/admin/game-events', {
+    const response = await request.get('/admin/game-events', {
       params: validatedParams,
     });
     return response.data;
   }
 
   async getGameEventDetail(eventId) {
-    const response = await api.get(`/admin/game-events/${eventId}`);
+    const response = await request.get(`/admin/game-events/${eventId}`);
     return response.data;
   }
 
   async createGameEvent(data) {
-    const response = await api.post('/admin/game-events', data);
+    const response = await request.post('/admin/game-events', data);
     return response.data;
   }
 
   async updateGameEvent(eventId, data) {
-    const response = await api.put(`/admin/game-events/${eventId}`, data);
+    const response = await request.put(`/admin/game-events/${eventId}`, data);
     return response.data;
   }
 
   async deleteGameEvent(eventId) {
-    const response = await api.delete(`/admin/game-events/${eventId}`);
+    const response = await request.delete(`/admin/game-events/${eventId}`);
     return response.data;
   }
 
   async startGameEvent(eventId) {
-    const response = await api.post(`/admin/game-events/${eventId}/start`);
+    const response = await request.post(`/admin/game-events/${eventId}/start`);
     return response.data;
   }
 
   async pauseGameEvent(eventId) {
-    const response = await api.post(`/admin/game-events/${eventId}/pause`);
+    const response = await request.post(`/admin/game-events/${eventId}/pause`);
     return response.data;
   }
 
   async endGameEvent(eventId) {
-    const response = await api.post(`/admin/game-events/${eventId}/end`);
+    const response = await request.post(`/admin/game-events/${eventId}/end`);
     return response.data;
   }
 
   async getGameEventTasks(eventId) {
-    const response = await api.get(`/admin/game-events/${eventId}/tasks`);
+    const response = await request.get(`/admin/game-events/${eventId}/tasks`);
     return response.data;
   }
 
   async createGameEventTask(eventId, data) {
-    const response = await api.post(
+    const response = await request.post(
       `/admin/game-events/${eventId}/tasks`,
       data
     );
@@ -773,116 +745,116 @@ class AdminService {
   }
 
   async getGameEventProgress(eventId, params = {}) {
-    const response = await api.get(`/admin/game-events/${eventId}/progress`, {
+    const response = await request.get(`/admin/game-events/${eventId}/progress`, {
       params,
     });
     return response.data;
   }
 
   async getGameEventStatistics(eventId) {
-    const response = await api.get(`/admin/game-events/${eventId}/statistics`);
+    const response = await request.get(`/admin/game-events/${eventId}/statistics`);
     return response.data;
   }
 
   async getPerformanceData(type, params = {}) {
     const validatedParams = this.validateParams('performance', params);
-    const response = await api.get(`/admin/performance/${type}`, {
+    const response = await request.get(`/admin/performance/${type}`, {
       params: validatedParams,
     });
     return response.data;
   }
 
   async getPerformanceStats() {
-    const response = await api.get('/performance/stats');
+    const response = await request.get('/performance/stats');
     return response.data;
   }
 
   async getSlowestRoutes(limit = 10) {
-    const response = await api.get('/performance/slowest', {
+    const response = await request.get('/performance/slowest', {
       params: { limit },
     });
     return response.data;
   }
 
   async getMostRequestedRoutes(limit = 10) {
-    const response = await api.get('/performance/most-requested', {
+    const response = await request.get('/performance/most-requested', {
       params: { limit },
     });
     return response.data;
   }
 
   async resetPerformanceStats() {
-    const response = await api.post('/performance/reset');
+    const response = await request.post('/performance/reset');
     return response.data;
   }
 
   async checkHealth() {
-    const response = await api.get('/admin/health-check');
+    const response = await request.get('/admin/health-check');
     return response.data;
   }
 
   async getHealthCheckStatus(checkType = 'full') {
-    const response = await api.get('/admin/health-check', {
+    const response = await request.get('/admin/health-check', {
       params: { checkType },
     });
     return response.data;
   }
 
   async getSystemState() {
-    const response = await api.get('/admin/system-state');
+    const response = await request.get('/admin/system-state');
     return response.data;
   }
 
   async getDatabaseInfo() {
-    const response = await api.get('/admin/database/info');
+    const response = await request.get('/admin/database/info');
     return response.data;
   }
 
   async getDbHealth() {
-    const response = await api.get('/admin/database/info');
+    const response = await request.get('/admin/database/info');
     return response.data;
   }
 
   async getDbIndexes() {
-    const response = await api.get('/admin/database/indexes');
+    const response = await request.get('/admin/database/indexes');
     return response.data;
   }
 
   async getDbUnusedIndexes() {
-    const response = await api.get('/admin/database/indexes/unused');
+    const response = await request.get('/admin/database/indexes/unused');
     return response.data;
   }
 
   async getDbTables() {
-    const response = await api.get('/admin/database/tables');
+    const response = await request.get('/admin/database/tables');
     return response.data;
   }
 
   async getDbCacheStats() {
-    const response = await api.get('/admin/database/info');
+    const response = await request.get('/admin/database/info');
     return response.data;
   }
 
   async clearDbCache() {
-    const response = await api.post('/admin/database/info');
+    const response = await request.post('/admin/database/info');
     return response.data;
   }
 
   async getLogAnalysis(params = {}) {
     const validatedParams = this.validateParams('logAnalysis', params);
-    const response = await api.get('/admin/log-analysis', {
+    const response = await request.get('/admin/log-analysis', {
       params: validatedParams,
     });
     return response.data;
   }
 
   async getLogFiles() {
-    const response = await api.get('/admin/log-analysis/files');
+    const response = await request.get('/admin/log-analysis/files');
     return response.data;
   }
 
   async getLogFileContent(fileName, params = {}) {
-    const response = await api.get(
+    const response = await request.get(
       `/admin/log-analysis/files/${encodeURIComponent(fileName)}`,
       {
         params,
@@ -892,28 +864,28 @@ class AdminService {
   }
 
   async getLogFileStats(fileName) {
-    const response = await api.get(
+    const response = await request.get(
       `/admin/log-analysis/files/${encodeURIComponent(fileName)}/stats`
     );
     return response.data;
   }
 
   async getLogFileErrors(fileName) {
-    const response = await api.get(
+    const response = await request.get(
       `/admin/log-analysis/files/${encodeURIComponent(fileName)}/errors`
     );
     return response.data;
   }
 
   async getLogFilePerformance(fileName) {
-    const response = await api.get(
+    const response = await request.get(
       `/admin/log-analysis/files/${encodeURIComponent(fileName)}/performance`
     );
     return response.data;
   }
 
   async exportLogFile(fileName, params = {}) {
-    const response = await api.get(
+    const response = await request.get(
       `/admin/log-analysis/files/${encodeURIComponent(fileName)}/export`,
       {
         params,
@@ -925,29 +897,29 @@ class AdminService {
 
   async getBatchOperationList(params = {}) {
     const validatedParams = this.validateParams('batch', params);
-    const response = await api.get('/admin/batch/list', {
+    const response = await request.get('/admin/batch/list', {
       params: validatedParams,
     });
     return response.data;
   }
 
   async executeBatchOperation(operationType, data) {
-    const response = await api.post('/admin/batch', { ...data, operationType });
+    const response = await request.post('/admin/batch', { ...data, operationType });
     return response.data;
   }
 
   async getBatchOperationStatus(operationId) {
-    const response = await api.get(`/admin/batch/${operationId}`);
+    const response = await request.get(`/admin/batch/${operationId}`);
     return response.data;
   }
 
   async cancelBatchOperation(operationId) {
-    const response = await api.post(`/admin/batch/${operationId}/cancel`);
+    const response = await request.post(`/admin/batch/${operationId}/cancel`);
     return response.data;
   }
 
   async exportDatabaseDocs(format = 'json') {
-    const response = await api.post(
+    const response = await request.post(
       '/admin/docs/export',
       { format },
       {
@@ -959,12 +931,12 @@ class AdminService {
 
   async getTableStructure(tableName = '') {
     const params = tableName ? { tableName } : {};
-    const response = await api.get('/admin/docs/structure', { params });
+    const response = await request.get('/admin/docs/structure', { params });
     return response.data;
   }
 
   async getTableData(tableName, params = {}) {
-    const response = await api.get('/admin/docs/data', {
+    const response = await request.get('/admin/docs/data', {
       params: { tableName, ...params },
     });
     return response.data;
@@ -972,7 +944,7 @@ class AdminService {
 
   async getAuditLogs(params = {}) {
     const validatedParams = this.validateParams('logs', params);
-    const response = await api.get('/admin/audit-logs', {
+    const response = await request.get('/admin/audit-logs', {
       params: validatedParams,
     });
     return response.data;
@@ -980,7 +952,7 @@ class AdminService {
 
   async getAlertsPush(params = {}) {
     const validatedParams = this.validateParams('alerts', params);
-    const response = await api.get('/admin/alerts-push', {
+    const response = await request.get('/admin/alerts-push', {
       params: validatedParams,
     });
     return response.data;
@@ -994,32 +966,32 @@ class AdminService {
         params.append(key, encodeURIComponent(value));
       }
     });
-    const response = await api.get(`/admin/shop?${params.toString()}`);
+    const response = await request.get(`/admin/shop?${params.toString()}`);
     return response.data;
   }
 
   async getShopGoodsDetail(goodsId) {
-    const response = await api.get(`/admin/shop/${goodsId}`);
+    const response = await request.get(`/admin/shop/${goodsId}`);
     return response.data;
   }
 
   async createShopGoods(data) {
-    const response = await api.post('/admin/shop', data);
+    const response = await request.post('/admin/shop', data);
     return response.data;
   }
 
   async updateShopGoods(goodsId, data) {
-    const response = await api.put(`/admin/shop/${goodsId}`, data);
+    const response = await request.put(`/admin/shop/${goodsId}`, data);
     return response.data;
   }
 
   async deleteShopGoods(goodsId) {
-    const response = await api.delete(`/admin/shop/${goodsId}`);
+    const response = await request.delete(`/admin/shop/${goodsId}`);
     return response.data;
   }
 
   async toggleShopGoodsStatus(goodsId, isOnSale) {
-    const response = await api.post(`/admin/shop/${goodsId}/status`, {
+    const response = await request.post(`/admin/shop/${goodsId}/status`, {
       isOnSale,
     });
     return response.data;
@@ -1033,22 +1005,22 @@ class AdminService {
         params.append(key, encodeURIComponent(value));
       }
     });
-    const response = await api.get(`/admin/achievements?${params.toString()}`);
+    const response = await request.get(`/admin/achievements?${params.toString()}`);
     return response.data;
   }
 
   async getAchievementDetail(achievementId) {
-    const response = await api.get(`/admin/achievements/${achievementId}`);
+    const response = await request.get(`/admin/achievements/${achievementId}`);
     return response.data;
   }
 
   async createAchievement(data) {
-    const response = await api.post('/admin/achievements', data);
+    const response = await request.post('/admin/achievements', data);
     return response.data;
   }
 
   async updateAchievement(achievementId, data) {
-    const response = await api.put(
+    const response = await request.put(
       `/admin/achievements/${achievementId}`,
       data
     );
@@ -1056,19 +1028,19 @@ class AdminService {
   }
 
   async deleteAchievement(achievementId) {
-    const response = await api.delete(`/admin/achievements/${achievementId}`);
+    const response = await request.delete(`/admin/achievements/${achievementId}`);
     return response.data;
   }
 
   async getAchievementStatistics(achievementId) {
-    const response = await api.get(
+    const response = await request.get(
       `/admin/achievements/${achievementId}/statistics`
     );
     return response.data;
   }
 
   async getEconomyStats() {
-    const response = await api.get('/admin/analytics/economy');
+    const response = await request.get('/admin/analytics/economy');
     return response.data;
   }
 
@@ -1076,43 +1048,43 @@ class AdminService {
     const query = new URLSearchParams();
     if (params.limit) query.append('limit', params.limit);
     if (params.type) query.append('type', params.type);
-    const response = await api.get(
+    const response = await request.get(
       `/admin/analytics/transactions?${query.toString()}`
     );
     return response.data;
   }
 
   async getShopStats() {
-    const response = await api.get('/admin/analytics/shop-stats');
+    const response = await request.get('/admin/analytics/shop-stats');
     return response.data;
   }
 
   async getEconomyAlerts() {
-    const response = await api.get('/admin/analytics/economy-alerts');
+    const response = await request.get('/admin/analytics/economy-alerts');
     return response.data;
   }
 
   async getPlayerAnalytics() {
-    const response = await api.get('/admin/analytics/players');
+    const response = await request.get('/admin/analytics/players');
     return response.data;
   }
 
   async getTopPlayers(params = {}) {
     const query = new URLSearchParams();
     if (params.limit) query.append('limit', params.limit);
-    const response = await api.get(
+    const response = await request.get(
       `/admin/analytics/top-players?${query.toString()}`
     );
     return response.data;
   }
 
   async getPlayerAlerts() {
-    const response = await api.get('/admin/analytics/player-alerts');
+    const response = await request.get('/admin/analytics/player-alerts');
     return response.data;
   }
 
   async getPlayerProfile() {
-    const response = await api.get('/admin/analytics/player-profile');
+    const response = await request.get('/admin/analytics/player-profile');
     return response.data;
   }
 
@@ -1124,52 +1096,52 @@ class AdminService {
         params.append(key, encodeURIComponent(value));
       }
     });
-    const response = await api.get(`/admin/farm-levels?${params.toString()}`);
+    const response = await request.get(`/admin/farm-levels?${params.toString()}`);
     return response.data;
   }
 
   async getFarmLevelDetail(farmId) {
-    const response = await api.get(`/admin/farm-levels/${farmId}`);
+    const response = await request.get(`/admin/farm-levels/${farmId}`);
     return response.data;
   }
 
   async createFarmLevel(data) {
-    const response = await api.post('/admin/farm-levels', data);
+    const response = await request.post('/admin/farm-levels', data);
     return response.data;
   }
 
   async updateFarmLevel(farmId, data) {
-    const response = await api.put(`/admin/farm-levels/${farmId}`, data);
+    const response = await request.put(`/admin/farm-levels/${farmId}`, data);
     return response.data;
   }
 
   async deleteFarmLevel(farmId) {
-    const response = await api.delete(`/admin/farm-levels/${farmId}`);
+    const response = await request.delete(`/admin/farm-levels/${farmId}`);
     return response.data;
   }
 
   async getBusinessMetrics() {
-    const response = await api.get('/business-metrics');
+    const response = await request.get('/business-metrics');
     return response.data;
   }
 
   async getTransactionSuccessRates() {
-    const response = await api.get('/business-metrics/transaction-success');
+    const response = await request.get('/business-metrics/transaction-success');
     return response.data;
   }
 
   async getUserActivityMetrics() {
-    const response = await api.get('/business-metrics/user-activity');
+    const response = await request.get('/business-metrics/user-activity');
     return response.data;
   }
 
   async getGameActivityMetrics() {
-    const response = await api.get('/business-metrics/game-activity');
+    const response = await request.get('/business-metrics/game-activities');
     return response.data;
   }
 
   async getPerformanceMetrics() {
-    const response = await api.get('/business-metrics/performance');
+    const response = await request.get('/business-metrics/performance');
     return response.data;
   }
 
@@ -1178,54 +1150,54 @@ class AdminService {
     if (params.startTime) query.append('startTime', params.startTime);
     if (params.endTime) query.append('endTime', params.endTime);
     if (params.limit) query.append('limit', params.limit);
-    const response = await api.get(
+    const response = await request.get(
       `/business-metrics/history?${query.toString()}`
     );
     return response.data;
   }
 
   async checkBusinessAlerts() {
-    const response = await api.get('/business-metrics/alerts/check');
+    const response = await request.get('/business-metrics/alerts/check');
     return response.data;
   }
 
   async getAlertThresholds() {
-    const response = await api.get('/business-metrics/alerts/thresholds');
+    const response = await request.get('/business-metrics/alerts/thresholds');
     return response.data;
   }
 
   async updateAlertThresholds(data) {
-    const response = await api.put('/business-metrics/alerts/thresholds', data);
+    const response = await request.put('/business-metrics/alerts/thresholds', data);
     return response.data;
   }
 
   async getCurrencyConfigList() {
-    const response = await api.get('/admin/currency-config');
+    const response = await request.get('/admin/currency-config');
     return response.data;
   }
 
   async getCurrencyConfigDetail(configId) {
-    const response = await api.get(`/admin/currency-config/${configId}`);
+    const response = await request.get(`/admin/currency-config/${configId}`);
     return response.data;
   }
 
   async updateCurrencyConfig(configId, data) {
-    const response = await api.put(`/admin/currency-config/${configId}`, data);
+    const response = await request.put(`/admin/currency-config/${configId}`, data);
     return response.data;
   }
 
   async getMailTemplates() {
-    const response = await api.get('/admin/mails/templates');
+    const response = await request.get('/admin/mails/templates');
     return response.data;
   }
 
   async createMailTemplate(data) {
-    const response = await api.post('/admin/mails/templates', data);
+    const response = await request.post('/admin/mails/templates', data);
     return response.data;
   }
 
   async updateMailTemplate(templateId, data) {
-    const response = await api.put(
+    const response = await request.put(
       `/admin/mails/templates/${templateId}`,
       data
     );
@@ -1233,12 +1205,12 @@ class AdminService {
   }
 
   async deleteMailTemplate(templateId) {
-    const response = await api.delete(`/admin/mails/templates/${templateId}`);
+    const response = await request.delete(`/admin/mails/templates/${templateId}`);
     return response.data;
   }
 
   async sendMail(data) {
-    const response = await api.post('/admin/mails/send', data);
+    const response = await request.post('/admin/mails/send', data);
     return response.data;
   }
 
@@ -1250,42 +1222,42 @@ class AdminService {
         query.append(key, encodeURIComponent(value));
       }
     });
-    const response = await api.get(`/admin/mails/history?${query.toString()}`);
+    const response = await request.get(`/admin/mails/history?${query.toString()}`);
     return response.data;
   }
 
   async getMailDetail(mailId) {
-    const response = await api.get(`/admin/mails/${mailId}`);
+    const response = await request.get(`/admin/mails/${mailId}`);
     return response.data;
   }
 
   async getMonitoringMetrics() {
-    const response = await api.get('/admin/monitoring/metrics');
+    const response = await request.get('/admin/monitoring/metrics');
     return response.data;
   }
 
   async getCpuMetrics() {
-    const response = await api.get('/admin/monitoring/metrics/cpu');
+    const response = await request.get('/admin/monitoring/metrics/cpu');
     return response.data;
   }
 
   async getMemoryMetrics() {
-    const response = await api.get('/admin/monitoring/metrics/memory');
+    const response = await request.get('/admin/monitoring/metrics/memory');
     return response.data;
   }
 
   async getDiskMetrics() {
-    const response = await api.get('/admin/monitoring/metrics/disk');
+    const response = await request.get('/admin/monitoring/metrics/disk');
     return response.data;
   }
 
   async getNetworkMetrics() {
-    const response = await api.get('/admin/monitoring/metrics/network');
+    const response = await request.get('/admin/monitoring/metrics/network');
     return response.data;
   }
 
   async checkMonitoringAlerts() {
-    const response = await api.get('/admin/monitoring/alerts/check');
+    const response = await request.get('/admin/monitoring/alerts/check');
     return response.data;
   }
 
@@ -1293,26 +1265,26 @@ class AdminService {
     const query = new URLSearchParams();
     if (params.limit) query.append('limit', params.limit);
     if (params.offset) query.append('offset', params.offset);
-    const response = await api.get(
+    const response = await request.get(
       `/admin/monitoring/alerts/history?${query.toString()}`
     );
     return response.data;
   }
 
   async acknowledgeMonitoringAlert(alertId) {
-    const response = await api.post(
+    const response = await request.post(
       `/admin/monitoring/alerts/${alertId}/acknowledge`
     );
     return response.data;
   }
 
   async getLogRetentionPolicies() {
-    const response = await api.get('/admin/log-cleanup/policies');
+    const response = await request.get('/admin/log-cleanup/policies');
     return response.data;
   }
 
   async updateLogRetentionPolicy(logType, data) {
-    const response = await api.put(
+    const response = await request.put(
       `/admin/log-cleanup/policies/${logType}`,
       data
     );
@@ -1320,22 +1292,22 @@ class AdminService {
   }
 
   async getLogDiskUsage() {
-    const response = await api.get('/admin/log-cleanup/usage');
+    const response = await request.get('/admin/log-cleanup/usage');
     return response.data;
   }
 
   async runLogCleanup() {
-    const response = await api.post('/admin/log-cleanup/cleanup');
+    const response = await request.post('/admin/log-cleanup/cleanup');
     return response.data;
   }
 
   async runLogCleanupByType(logType) {
-    const response = await api.post(`/admin/log-cleanup/cleanup/${logType}`);
+    const response = await request.post(`/admin/log-cleanup/cleanup/${logType}`);
     return response.data;
   }
 
   async getDataWarehouseOverview() {
-    const response = await api.get('/datawarehouse/overview');
+    const response = await request.get('/datawarehouse/overview');
     return response.data;
   }
 
@@ -1343,12 +1315,12 @@ class AdminService {
     const query = new URLSearchParams();
     if (params.startDate) query.append('startDate', params.startDate);
     if (params.endDate) query.append('endDate', params.endDate);
-    const response = await api.get(`/datawarehouse/dau?${query.toString()}`);
+    const response = await request.get(`/datawarehouse/dau?${query.toString()}`);
     return response.data;
   }
 
   async getCropStats() {
-    const response = await api.get('/datawarehouse/crops');
+    const response = await request.get('/datawarehouse/crops');
     return response.data;
   }
 
@@ -1356,7 +1328,7 @@ class AdminService {
     const query = new URLSearchParams();
     if (params.startDate) query.append('startDate', params.startDate);
     if (params.endDate) query.append('endDate', params.endDate);
-    const response = await api.get(
+    const response = await request.get(
       `/datawarehouse/revenue?${query.toString()}`
     );
     return response.data;
@@ -1366,34 +1338,34 @@ class AdminService {
     const query = new URLSearchParams();
     if (params.startDate) query.append('startDate', params.startDate);
     if (params.endDate) query.append('endDate', params.endDate);
-    const response = await api.get(
+    const response = await request.get(
       `/datawarehouse/retention?${query.toString()}`
     );
     return response.data;
   }
 
   async triggerETL() {
-    const response = await api.post('/datawarehouse/etl');
+    const response = await request.post('/datawarehouse/etl');
     return response.data;
   }
 
   async sendClientLog(data) {
-    const response = await api.post('/client-logs', data);
+    const response = await request.post('/client-logs', data);
     return response.data;
   }
 
   async sendBatchClientLogs(logs) {
-    const response = await api.post('/client-logs/batch', { logs });
+    const response = await request.post('/client-logs/batch', { logs });
     return response.data;
   }
 
   async getTrace(traceId) {
-    const response = await api.get(`/traces/${traceId}`);
+    const response = await request.get(`/traces/${traceId}`);
     return response.data;
   }
 
   async getTraceByRequestId(requestId) {
-    const response = await api.get(`/traces/request/${requestId}`);
+    const response = await request.get(`/traces/request/${requestId}`);
     return response.data;
   }
 
@@ -1402,84 +1374,84 @@ class AdminService {
     if (params.status) query.append('status', params.status);
     if (params.service) query.append('service', params.service);
     if (params.limit) query.append('limit', params.limit);
-    const response = await api.get(`/traces?${query.toString()}`);
+    const response = await request.get(`/traces?${query.toString()}`);
     return response.data;
   }
 
   async getTraceStats() {
-    const response = await api.get('/traces/stats/overview');
+    const response = await request.get('/traces/stats/overview');
     return response.data;
   }
 
   async startTrace(data) {
-    const response = await api.post('/traces/start', data);
+    const response = await request.post('/traces/start', data);
     return response.data;
   }
 
   async endTrace(traceId) {
-    const response = await api.post(`/traces/${traceId}/end`);
+    const response = await request.post(`/traces/${traceId}/end`);
     return response.data;
   }
 
   async addTraceSpan(data) {
-    const response = await api.post('/traces/spans', data);
+    const response = await request.post('/traces/spans', data);
     return response.data;
   }
 
   async getDailyTasks() {
-    const response = await api.get('/daily-tasks');
+    const response = await request.get('/daily-tasks');
     return response.data;
   }
 
   async claimDailyTaskReward(taskId) {
-    const response = await api.post(`/daily-tasks/${taskId}/claim`);
+    const response = await request.post(`/daily-tasks/${taskId}/claim`);
     return response.data;
   }
 
   async getDailyDiscounts() {
-    const response = await api.get('/daily-discounts/discounts');
+    const response = await request.get('/daily-discounts/discounts');
     return response.data;
   }
 
   async refreshDailyDiscounts() {
-    const response = await api.post('/daily-discounts/discounts/refresh');
+    const response = await request.post('/daily-discounts/discounts/refresh');
     return response.data;
   }
 
   async getMyItemUsageLogs() {
-    const response = await api.get('/item-usage-logs/mylogs');
+    const response = await request.get('/item-usage-logs/mylogs');
     return response.data;
   }
 
   async getItemUsageStats() {
-    const response = await api.get('/item-usage-logs/stats');
+    const response = await request.get('/item-usage-logs/stats');
     return response.data;
   }
 
   async getItemUsageAnomalies() {
-    const response = await api.get('/item-usage-logs/anomalies');
+    const response = await request.get('/item-usage-logs/anomalies');
     return response.data;
   }
 
   async getGrafanaConfig() {
-    const response = await api.get('/grafana/config');
+    const response = await request.get('/grafana/config');
     return response.data;
   }
 
   async getBatchTables() {
-    const response = await api.get('/batch/tables');
+    const response = await request.get('/batch/tables');
     return response.data;
   }
 
   async previewImportData(formData) {
-    const response = await api.post('/batch/preview', formData, {
+    const response = await request.post('/batch/preview', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
     return response.data;
   }
 
   async importData(formData, onProgress) {
-    const response = await api.post('/batch/import', formData, {
+    const response = await request.post('/batch/import', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
       onUploadProgress: (progressEvent) => {
         if (onProgress && progressEvent.total) {
@@ -1494,51 +1466,51 @@ class AdminService {
   }
 
   async exportData(data) {
-    const response = await api.post('/batch/export', data, {
+    const response = await request.post('/batch/export', data, {
       responseType: 'blob',
     });
     return response.data;
   }
 
   async getExportHistory() {
-    const response = await api.get('/batch/export-history');
+    const response = await request.get('/batch/export-history');
     return response.data;
   }
 
   async getImportHistory() {
-    const response = await api.get('/batch/import-history');
+    const response = await request.get('/batch/import-history');
     return response.data;
   }
 
   async getBatchJobStatus(jobId) {
-    const response = await api.get(`/batch/jobs/${jobId}`);
+    const response = await request.get(`/batch/jobs/${jobId}`);
     return response.data;
   }
 
   async getExportProgress(taskId) {
-    const response = await api.get(`/batch/export/${taskId}/status`);
+    const response = await request.get(`/batch/export/${taskId}/status`);
     return response.data;
   }
 
   async downloadExportFile(taskId) {
-    const response = await api.get(`/batch/export/${taskId}/download`, {
+    const response = await request.get(`/batch/export/${taskId}/download`, {
       responseType: 'blob',
     });
     return response.data;
   }
 
   async getImportProgress(taskId) {
-    const response = await api.get(`/batch/import/${taskId}/status`);
+    const response = await request.get(`/batch/import/${taskId}/status`);
     return response.data;
   }
 
   async getImportErrors(taskId) {
-    const response = await api.get(`/batch/import/${taskId}/errors`);
+    const response = await request.get(`/batch/import/${taskId}/errors`);
     return response.data;
   }
 
   async createGameEventTrigger(data) {
-    const response = await api.post(
+    const response = await request.post(
       '/admin/game-event-extensions/triggers',
       data
     );
@@ -1546,19 +1518,19 @@ class AdminService {
   }
 
   async getGameEventTriggers() {
-    const response = await api.get('/admin/game-event-extensions/triggers');
+    const response = await request.get('/admin/game-event-extensions/triggers');
     return response.data;
   }
 
   async getEventTriggers(eventId) {
-    const response = await api.get(
+    const response = await request.get(
       `/admin/game-event-extensions/events/${eventId}/triggers`
     );
     return response.data;
   }
 
   async updateGameEventTrigger(triggerId, data) {
-    const response = await api.put(
+    const response = await request.put(
       `/admin/game-event-extensions/triggers/${triggerId}`,
       data
     );
@@ -1566,57 +1538,57 @@ class AdminService {
   }
 
   async deleteGameEventTrigger(triggerId) {
-    const response = await api.delete(
+    const response = await request.delete(
       `/admin/game-event-extensions/triggers/${triggerId}`
     );
     return response.data;
   }
 
   async computeEventStats(eventId) {
-    const response = await api.post(
+    const response = await request.post(
       `/admin/game-event-extensions/stats/events/${eventId}/compute`
     );
     return response.data;
   }
 
   async computeAllEventsStats() {
-    const response = await api.post(
+    const response = await request.post(
       '/admin/game-event-extensions/stats/compute-all'
     );
     return response.data;
   }
 
   async getEventDetailStats(eventId) {
-    const response = await api.get(
+    const response = await request.get(
       `/admin/game-event-extensions/stats/events/${eventId}`
     );
     return response.data;
   }
 
   async getEventFunnel(eventId) {
-    const response = await api.get(
+    const response = await request.get(
       `/admin/game-event-extensions/stats/events/${eventId}/funnel`
     );
     return response.data;
   }
 
   async getGameEventTemplates() {
-    const response = await api.get('/admin/game-event-medium/templates');
+    const response = await request.get('/admin/game-event-medium/templates');
     return response.data;
   }
 
   async getGameEventTemplate(id) {
-    const response = await api.get(`/admin/game-event-medium/templates/${id}`);
+    const response = await request.get(`/admin/game-event-medium/templates/${id}`);
     return response.data;
   }
 
   async createGameEventTemplate(data) {
-    const response = await api.post('/admin/game-event-medium/templates', data);
+    const response = await request.post('/admin/game-event-medium/templates', data);
     return response.data;
   }
 
   async updateGameEventTemplate(id, data) {
-    const response = await api.put(
+    const response = await request.put(
       `/admin/game-event-medium/templates/${id}`,
       data
     );
@@ -1624,47 +1596,47 @@ class AdminService {
   }
 
   async createEventFromTemplate(id) {
-    const response = await api.post(
+    const response = await request.post(
       `/admin/game-event-medium/templates/${id}/create-event`
     );
     return response.data;
   }
 
   async deactivateGameEventTemplate(id) {
-    const response = await api.delete(
+    const response = await request.delete(
       `/admin/game-event-medium/templates/${id}`
     );
     return response.data;
   }
 
   async compareTemplateVersions(id) {
-    const response = await api.get(
+    const response = await request.get(
       `/admin/game-event-medium/templates/${id}/compare`
     );
     return response.data;
   }
 
   async getSchedulerTaskTypes() {
-    const response = await api.get(
+    const response = await request.get(
       '/admin/game-event-medium/scheduler/task-types'
     );
     return response.data;
   }
 
   async getSchedulerTasks() {
-    const response = await api.get('/admin/game-event-medium/scheduler/tasks');
+    const response = await request.get('/admin/game-event-medium/scheduler/tasks');
     return response.data;
   }
 
   async getSchedulerTask(id) {
-    const response = await api.get(
+    const response = await request.get(
       `/admin/game-event-medium/scheduler/tasks/${id}`
     );
     return response.data;
   }
 
   async createSchedulerTask(data) {
-    const response = await api.post(
+    const response = await request.post(
       '/admin/game-event-medium/scheduler/tasks',
       data
     );
@@ -1672,7 +1644,7 @@ class AdminService {
   }
 
   async cancelSchedulerTask(id) {
-    const response = await api.delete(
+    const response = await request.delete(
       `/admin/game-event-medium/scheduler/tasks/${id}`
     );
     return response.data;

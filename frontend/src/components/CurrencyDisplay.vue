@@ -1,13 +1,24 @@
-/** * 文件名：CurrencyDisplay.vue * 作者：开发者 * 日期：2026-05-22 *
-版本：v2.14.0 * 功能描述：多货币显示组件，支持农场币和农场宝石币（万/亿格式化）
-* 更新记录： * 2026-05-22 - v2.11.0 - 从Home.vue中拆分出独立组件 * 2026-05-25 -
-v2.12.0 - 集成货币格式化（万/亿），增加tooltip显示完整数值 * 2026-05-25 -
-v2.13.0 - 新增农场宝石币显示支持（type='gem'） * 2026-06-06 -
-v2.14.0 - 修复tooltip移动端无法触发，改用点击/触摸显示 */
+/**
+ * 文件名：CurrencyDisplay.vue
+ * 作者：开发者
+ * 日期：2026-05-22
+ * 版本：v2.14.0
+ * 功能描述：多货币显示组件，支持农场币和农场宝石币（万/亿格式化）
+ * 更新记录：
+ * 2026-05-22 - v2.11.0 - 从Home.vue中拆分出独立组件
+ * 2026-05-25 - v2.12.0 - 集成货币格式化（万/亿），增加tooltip显示完整数值
+ * 2026-05-25 - v2.13.0 - 新增农场宝石币显示支持（type='gem'）
+ * 2026-06-06 - v2.14.0 - 修复tooltip移动端无法触发，改用点击/触摸显示
+ */
 
 <template>
   <div class="currency-display" :class="'currency-type-' + currencyType">
-    <span class="currency-icon">{{ icon }}</span>
+    <img
+      class="currency-icon-img"
+      :src="iconSrc"
+      :alt="label"
+      @error="onImgError"
+    />
     <span
       class="currency-amount"
       @click.stop="toggleTooltip"
@@ -25,6 +36,7 @@ v2.14.0 - 修复tooltip移动端无法触发，改用点击/触摸显示 */
 <script setup>
 import { computed, ref } from 'vue';
 import { formatCurrency } from '../utils/currencyFormatter';
+import { getUICommonImage } from '../utils/imagePaths';
 
 const props = defineProps({
   amount: {
@@ -63,8 +75,15 @@ const formattedAmount = computed(() => {
 
 const currencyType = computed(() => props.type || 'coin');
 
-const icon = computed(() => {
-  return currencyType.value === 'gem' ? '💎' : '💰';
+/** 图片加载失败时隐藏图片，回退到默认样式 */
+function onImgError(event) {
+  event.target.style.display = 'none';
+}
+
+const iconSrc = computed(() => {
+  return currencyType.value === 'gem'
+    ? getUICommonImage('icon_gem')
+    : getUICommonImage('icon_gold');
 });
 
 const label = computed(() => {
@@ -95,7 +114,7 @@ const label = computed(() => {
   border-color: rgba(251, 191, 36, 0.4);
 }
 
-.currency-type-coin .currency-icon {
+.currency-type-coin .currency-icon-img {
   animation: bounce 2s ease-in-out infinite;
 }
 
@@ -109,12 +128,15 @@ const label = computed(() => {
   border-color: rgba(147, 51, 234, 0.4);
 }
 
-.currency-type-gem .currency-icon {
+.currency-type-gem .currency-icon-img {
   animation: sparkle 1.5s ease-in-out infinite;
 }
 
-.currency-icon {
-  font-size: 28px;
+.currency-icon-img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  flex-shrink: 0;
 }
 
 .currency-amount {

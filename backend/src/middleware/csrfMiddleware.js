@@ -29,7 +29,10 @@ const generateCsrfToken = () => {
  * @returns {string} HMAC签名
  */
 const signToken = (token) => {
-  const secret = process.env.CSRF_SECRET || process.env.JWT_SECRET || 'csrf-default-secret';
+  const secret = process.env.CSRF_SECRET || process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error('CSRF签名密钥未配置，请设置CSRF_SECRET或JWT_SECRET环境变量');
+  }
   return crypto
     .createHmac('sha256', secret)
     .update(token)

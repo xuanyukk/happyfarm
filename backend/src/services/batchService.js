@@ -20,7 +20,7 @@ class BatchService {
     let query = `
       SELECT b.*, a.username as operator_name 
       FROM batch_operation b 
-      LEFT JOIN admins a ON b.operator_id = a.id 
+      LEFT JOIN sys_user a ON b.operator_id = a.id 
       WHERE 1=1
     `;
     const params = [];
@@ -103,7 +103,7 @@ class BatchService {
     const result = await pool.query(
       `SELECT b.*, a.username as operator_name 
        FROM batch_operation b 
-       LEFT JOIN admins a ON b.operator_id = a.id 
+       LEFT JOIN sys_user a ON b.operator_id = a.id 
        WHERE b.id = $1`,
       [id]
     );

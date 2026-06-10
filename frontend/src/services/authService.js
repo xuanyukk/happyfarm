@@ -2,14 +2,17 @@
  * 文件名：authService.js
  * 作者：开发者
  * 日期：2026-03-18
- * 版本：v1.2.0
- * 功能描述：认证服务，处理用户注册、登录、JWT刷新、密码重置等功能
+ * 版本：v1.3.0
+ * 功能描述：认证服务——注册、登录、Token刷新、密码重置
  * 更新记录：
- *   2026-03-18 - v1.2.0 - 认证服务，处理用户注册、登录、JWT刷新、密码重置等功能
+ *   2026-03-18 - v1.2.0 - 初始版本
  *   2026-03-22 - v1.2.1 - 统一文件头注释格式
+ *   2026-06-08 - v1.3.0 - 统一使用storage包装器替代原生localStorage，
+ *                         添加旧Token自动迁移逻辑，消除存储层不一致
  */
 
 import axios from 'axios';
+import { storage } from '../utils/localStorage';
 import logger from './logger';
 import wsService from './websocketService';
 
@@ -18,60 +21,83 @@ const API_URL = '/api';
 let isRefreshing = false;
 let refreshSubscribers = [];
 
-// 创建API实例
+// --------------- Token 迁移 ---------------
+
+/** 旧格式 localStorage key 列表 */
+const LEGACY_KEYS = ['accessToken', 'refreshToken', 'user'];
+
+/**
+ * 将旧格式 Token 从原生 localStorage 迁移到 storage 包装器
+ * 仅在首次检测到旧数据时执行一次
+ */
+const migrateLegacyTokens = () => {
+  if (storage.get('_token_migrated')) return;
+
+  let migrated = false;
+  for (const key of LEGACY_KEYS) {
+    const legacyValue = localStorage.getItem(key);
+    if (legacyValue && !storage.get(key)) {
+      try {
+        storage.set(key, key === 'user' ? JSON.parse(legacyValue) : legacyValue);
+        localStorage.removeItem(key);
+        migrated = true;
+      } catch {
+        // 解析失败则保留原始存储
+        storage.set(key, legacyValue);
+        localStorage.removeItem(key);
+        migrated = true;
+      }
+    }
+  }
+
+  storage.set('_token_migrated', true);
+  if (migrated) {
+    logger.info('旧格式Token已迁移到统一storage');
+  }
+};
+
+// 应用启动时自动执行迁移
+migrateLegacyTokens();
+
+// --------------- API 实例 ---------------
+
 const api = axios.create({
   baseURL: API_URL,
   headers: { 'Content-Type': 'application/json' },
 });
 
-// 订阅刷新令牌的回调
-const subscribeTokenRefresh = (callback) => {
-  refreshSubscribers.push(callback);
+// --------------- Token 管理 ---------------
+
+const subscribeTokenRefresh = (cb) => {
+  refreshSubscribers.push(cb);
 };
 
-// 通知所有订阅者刷新令牌完成
 const onTokenRefreshed = (accessToken) => {
-  refreshSubscribers.forEach((callback) => callback(accessToken));
+  refreshSubscribers.forEach((cb) => cb(accessToken));
   refreshSubscribers = [];
 };
 
-// 从本地存储获取令牌
-export const getAccessToken = () => localStorage.getItem('accessToken');
-const getRefreshToken = () => localStorage.getItem('refreshToken');
+export const getAccessToken = () => storage.get('accessToken');
+const getRefreshToken = () => storage.get('refreshToken');
 
-// 保存令牌到本地存储
 const saveTokens = (accessToken, refreshToken, user) => {
-  localStorage.setItem('accessToken', accessToken);
-  localStorage.setItem('refreshToken', refreshToken);
+  storage.set('accessToken', accessToken);
+  storage.set('refreshToken', refreshToken);
   if (user) {
-    localStorage.setItem('user', JSON.stringify(user));
+    storage.set('user', user);
   }
 };
 
-// 清除本地存储的令牌
 const clearTokens = () => {
-  localStorage.removeItem('accessToken');
-  localStorage.removeItem('refreshToken');
-  localStorage.removeItem('user');
+  storage.remove('accessToken');
+  storage.remove('refreshToken');
+  storage.remove('user');
 };
 
-// 清除本地存储的令牌（别名，用于api.js）
 export const removeAuthTokens = clearTokens;
 
-// 刷新令牌
-const refreshTokens = async () => {
-  const refreshToken = getRefreshToken();
-  if (!refreshToken) {
-    throw new Error('没有刷新令牌');
-  }
+// --------------- 请求/响应拦截器 ---------------
 
-  const response = await axios.post(`${API_URL}/auth/refresh`, {
-    refreshToken,
-  });
-  return response.data;
-};
-
-// 请求拦截器：添加Token和日志
 api.interceptors.request.use(
   (config) => {
     const accessToken = getAccessToken();
@@ -88,7 +114,6 @@ api.interceptors.request.use(
   }
 );
 
-// 响应拦截器：处理401错误和刷新令牌
 api.interceptors.response.use(
   (response) => {
     const duration = Date.now() - response.config._startTime;
@@ -114,7 +139,6 @@ api.interceptors.response.use(
 
     if (error.response?.status === 401 && !originalRequest._retry) {
       if (isRefreshing) {
-        // 如果正在刷新令牌，将请求加入订阅队列
         return new Promise((resolve) => {
           subscribeTokenRefresh((accessToken) => {
             originalRequest.headers.Authorization = `Bearer ${accessToken}`;
@@ -127,7 +151,14 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        const { accessToken, refreshToken } = await refreshTokens();
+        const currentRefreshToken = getRefreshToken();
+        if (!currentRefreshToken) {
+          throw new Error('没有刷新令牌');
+        }
+        const res = await axios.post(`${API_URL}/auth/refresh`, {
+          refreshToken: currentRefreshToken,
+        });
+        const { accessToken, refreshToken } = res.data;
         saveTokens(accessToken, refreshToken);
         onTokenRefreshed(accessToken);
         originalRequest.headers.Authorization = `Bearer ${accessToken}`;
@@ -149,15 +180,14 @@ api.interceptors.response.use(
   }
 );
 
-// 注册
+// --------------- 公开 API ---------------
+
 export const register = async (userData) => {
   logger.info('开始注册', { username: userData.username });
   try {
     const res = await api.post('/auth/register', userData);
     const { accessToken, refreshToken, user } = res.data;
     saveTokens(accessToken, refreshToken, user);
-    // 初始化WebSocket连接
-    logger.info('初始化WebSocket连接');
     wsService.init(accessToken);
     logger.info('注册成功', { username: userData.username });
     logger.userAction('注册成功', { username: user?.username });
@@ -171,15 +201,12 @@ export const register = async (userData) => {
   }
 };
 
-// 登录
 export const login = async (userData) => {
   logger.info('开始登录', { identifier: userData.identifier });
   try {
     const res = await api.post('/auth/login', userData);
     const { accessToken, refreshToken, user } = res.data;
     saveTokens(accessToken, refreshToken, user);
-    // 初始化WebSocket连接
-    logger.info('初始化WebSocket连接');
     wsService.init(accessToken);
     logger.info('登录成功', { identifier: userData.identifier });
     logger.userAction('登录成功', { username: user?.username });
@@ -193,13 +220,12 @@ export const login = async (userData) => {
   }
 };
 
-// 退出登录
 export const logout = async () => {
   logger.userAction('退出登录');
   try {
-    const refreshToken = getRefreshToken();
-    if (refreshToken) {
-      await api.post('/auth/logout', { refreshToken });
+    const currentRefreshToken = getRefreshToken();
+    if (currentRefreshToken) {
+      await api.post('/auth/logout', { refreshToken: currentRefreshToken });
     }
   } catch (error) {
     logger.warn('退出登录API调用失败', { error: error.message });
@@ -208,7 +234,6 @@ export const logout = async () => {
   }
 };
 
-// 获取当前用户信息
 export const getCurrentUser = async () => {
   logger.debug('获取当前用户信息');
   try {
@@ -222,11 +247,17 @@ export const getCurrentUser = async () => {
   }
 };
 
-// 手动刷新令牌
 export const manualRefreshToken = async () => {
   logger.debug('手动刷新令牌');
   try {
-    const { accessToken, refreshToken } = await refreshTokens();
+    const currentRefreshToken = getRefreshToken();
+    if (!currentRefreshToken) {
+      throw new Error('没有刷新令牌');
+    }
+    const res = await axios.post(`${API_URL}/auth/refresh`, {
+      refreshToken: currentRefreshToken,
+    });
+    const { accessToken, refreshToken } = res.data;
     saveTokens(accessToken, refreshToken);
     logger.info('手动刷新令牌成功');
     return { accessToken, refreshToken };
@@ -236,18 +267,15 @@ export const manualRefreshToken = async () => {
   }
 };
 
-// 检查是否已登录
 export const isLoggedIn = () => {
   return !!getAccessToken();
 };
 
-// 获取当前用户信息（从本地存储）
 export const getLocalUser = () => {
-  const userStr = localStorage.getItem('user');
-  return userStr ? JSON.parse(userStr) : null;
+  const user = storage.get('user');
+  return user || null;
 };
 
-// 请求重置密码
 export const requestPasswordReset = async (email) => {
   logger.info('请求重置密码', { email });
   try {
@@ -263,7 +291,6 @@ export const requestPasswordReset = async (email) => {
   }
 };
 
-// 验证重置令牌
 export const verifyResetToken = async (token) => {
   logger.debug('验证重置令牌');
   try {
@@ -278,7 +305,6 @@ export const verifyResetToken = async (token) => {
   }
 };
 
-// 重置密码
 export const resetPassword = async (token, password) => {
   logger.info('重置密码');
   try {

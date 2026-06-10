@@ -2,10 +2,13 @@
 -- 文件名: 15_player_land_status.sql
 -- 作者: Trae AI
 -- 日期: 2026-05-13
--- 版本: v2.6.0
+-- 版本: v2.8.0
 -- 功能描述: 玩家私有地块状态表(核心)，含产量加速结束时间字段
 -- 执行顺序: 02-15
 -- 依赖关系: 02-14_player_inventory.sql
+-- 更新记录:
+--   2026-06-09 - v2.7.0 - 时间字段命名统一：update_time→updated_at
+--   2026-06-11 - v2.8.0 - D4修复：添加fertilizer_multiplier和last_fertilized_at字段（超级肥料包功能）
 -- ============================================
 
 CREATE TABLE IF NOT EXISTS player_land_status (
@@ -22,7 +25,7 @@ CREATE TABLE IF NOT EXISTS player_land_status (
     unlock_time TIMESTAMP DEFAULT NULL,
     cover_time TIMESTAMP DEFAULT NULL,
     notified_mature BOOLEAN NOT NULL DEFAULT FALSE,
-    update_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     yield_boost DECIMAL(5,2) NOT NULL DEFAULT 1.0,
     speed_boost DECIMAL(5,2) NOT NULL DEFAULT 1.0,
     speed_boost_end_time TIMESTAMP DEFAULT NULL,
@@ -30,6 +33,9 @@ CREATE TABLE IF NOT EXISTS player_land_status (
     star_level SMALLINT NOT NULL DEFAULT 1,
     lucky_seed_active BOOLEAN NOT NULL DEFAULT FALSE,
     exp_potion_active BOOLEAN NOT NULL DEFAULT FALSE,
+    -- D4修复：超级肥料包功能字段
+    fertilizer_multiplier DECIMAL(5,2) NOT NULL DEFAULT 1.0,
+    last_fertilized_at TIMESTAMP DEFAULT NULL,
     UNIQUE (player_id, land_num),
     CONSTRAINT chk_yield_boost_range CHECK (yield_boost >= 1.0 AND yield_boost <= 10.0),
     CONSTRAINT chk_speed_boost_range CHECK (speed_boost >= 1.0 AND speed_boost <= 10.0),
@@ -53,7 +59,7 @@ COMMENT ON COLUMN player_land_status.last_harvest_time IS '上次收获时间';
 COMMENT ON COLUMN player_land_status.unlock_time IS '解锁时间';
 COMMENT ON COLUMN player_land_status.cover_time IS '品质覆盖时间';
 COMMENT ON COLUMN player_land_status.notified_mature IS '是否已发送成熟通知，默认为FALSE';
-COMMENT ON COLUMN player_land_status.update_time IS '更新时间';
+COMMENT ON COLUMN player_land_status.updated_at IS '更新时间';
 COMMENT ON COLUMN player_land_status.yield_boost IS '产量倍率(1.0-10.0)，默认1.0，使用增产剂时调整';
 COMMENT ON COLUMN player_land_status.speed_boost IS '生长速度倍率(1.0-10.0)，默认1.0，使用加速剂时调整';
 COMMENT ON COLUMN player_land_status.speed_boost_end_time IS '加速效果结束时间';

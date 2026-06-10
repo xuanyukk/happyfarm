@@ -301,7 +301,7 @@ class ConfigService {
     const result = await pool.query(
       `SELECT cv.*, a.username as changed_by_name 
        FROM config_version cv 
-       LEFT JOIN admins a ON cv.changed_by = a.id 
+       LEFT JOIN sys_user a ON cv.changed_by = a.id 
        WHERE cv.config_id = $1 
        ORDER BY cv.version DESC`,
       [configId]
@@ -516,7 +516,7 @@ class ConfigService {
       SELECT ca.*, gc.key, gc.name as config_name, a.username as requestor_name 
       FROM config_approval ca 
       JOIN game_config gc ON ca.config_id = gc.id 
-      LEFT JOIN admins a ON ca.requestor_id = a.id 
+      LEFT JOIN sys_user a ON ca.requestor_id = a.id 
       WHERE 1=1
     `;
     const params = [];

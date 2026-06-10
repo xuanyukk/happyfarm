@@ -1,6 +1,13 @@
-/** * 文件名：LoadingOverlay.vue * 作者：开发者 * 日期：2026-05-22 *
-版本：v2.11.0 * 功能描述：初始化加载覆盖层组件，显示加载进度和详情 * 更新记录：
-* 2026-05-22 - v2.11.0 - 从Home.vue中拆分出独立组件 */
+/**
+ * 文件名：LoadingOverlay.vue
+ * 作者：开发者
+ * 日期：2026-05-22
+ * 版本：v3.0.0
+ * 功能描述：初始化加载覆盖层组件，显示加载进度和详情
+ * 更新记录：
+ * 2026-05-22 - v2.11.0 - 从Home.vue中拆分出独立组件
+ * 2026-06-10 - v3.0.0 - 色系重构：靛蓝渐变→深绿大地渐变、金色旋转器+进度条、🌾emoji→PNG、z-index体系化
+ */
 
 <template>
   <Transition name="fade">
@@ -8,7 +15,15 @@
       <div class="loading-content">
         <div class="loading-spinner"></div>
         <div class="loading-text">
-          <span class="loading-title">🌾 正在初始化农场</span>
+          <span class="loading-title">
+            <img
+              class="loading-icon-img"
+              :src="getUICommonImage('icon_wheat')"
+              alt="农场"
+              @error="(e) => (e.target.style.display = 'none')"
+            />
+            正在初始化农场
+          </span>
           <span class="loading-detail">{{ detail }}</span>
         </div>
         <div class="loading-bar">
@@ -20,6 +35,8 @@
 </template>
 
 <script setup>
+import { getUICommonImage } from '../utils/imagePaths';
+
 const props = defineProps({
   visible: {
     type: Boolean,
@@ -45,13 +62,13 @@ const props = defineProps({
   bottom: 0;
   background: linear-gradient(
     135deg,
-    rgba(99, 102, 241, 0.95),
-    rgba(79, 70, 229, 0.95)
+    rgba(44, 77, 55, 0.95),
+    rgba(31, 56, 39, 0.95)
   );
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 9999;
+  z-index: var(--z-loading);
 }
 
 .loading-content {
@@ -68,8 +85,8 @@ const props = defineProps({
 .loading-spinner {
   width: 64px;
   height: 64px;
-  border: 4px solid rgba(99, 102, 241, 0.2);
-  border-top-color: rgba(99, 102, 241);
+  border: 4px solid rgba(255, 252, 245, 0.2);
+  border-top-color: var(--gold-500);
   border-radius: 50%;
   animation: spin 1s ease-in-out infinite;
 }
@@ -92,6 +109,15 @@ const props = defineProps({
   font-size: 20px;
   font-weight: 700;
   color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.loading-icon-img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
 }
 
 .loading-detail {
@@ -102,14 +128,14 @@ const props = defineProps({
 .loading-bar {
   width: 300px;
   height: 8px;
-  background: rgba(99, 102, 241, 0.2);
+  background: rgba(255, 252, 245, 0.15);
   border-radius: 4px;
   overflow: hidden;
 }
 
 .loading-fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--primary-500), var(--primary-600));
+  background: linear-gradient(90deg, var(--gold-500), var(--gold-400));
   border-radius: 4px;
   transition: width 0.3s ease;
 }

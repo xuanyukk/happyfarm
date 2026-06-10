@@ -1,5 +1,10 @@
-/** * 文件名：CropInfoModal.vue * 作者：开发者 * 日期：2026-03-24 * 版本：v1.0.0
-* 功能描述：作物信息弹窗组件，显示作物详细信息和剩余时间 */
+/**
+ * 文件名：CropInfoModal.vue
+ * 作者：开发者
+ * 日期：2026-03-24
+ * 版本：v1.0.0
+ * 功能描述：作物信息弹窗组件，显示作物详细信息和剩余时间
+ */
 
 <template>
   <div v-if="visible" class="modal-overlay" @click.self="handleClose">

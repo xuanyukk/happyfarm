@@ -1,6 +1,12 @@
-/** * 文件名：LandGrid.vue * 作者：开发者 * 日期：2026-03-28 * 版本：v1.0.0 *
-功能描述：土地网格组件 - 显示所有地块的网格布局 * 更新记录： * 2026-03-28 -
-v1.0.0 - 初始创建，土地网格功能 */
+/**
+ * 文件名：LandGrid.vue
+ * 作者：开发者
+ * 日期：2026-03-28
+ * 版本：v1.0.0
+ * 功能描述：土地网格组件 - 显示所有地块的网格布局
+ * 更新记录：
+ * 2026-03-28 - v1.0.0 - 初始创建，土地网格功能
+ */
 
 <template>
   <div ref="gridRef" class="land-grid">
@@ -37,6 +43,8 @@ v1.0.0 - 初始创建，土地网格功能 */
 </template>
 
 <script setup>
+defineOptions({ name: 'LandGrid' });
+
 import { onMounted, onUnmounted, ref } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useFarmStore } from '../stores/farm';

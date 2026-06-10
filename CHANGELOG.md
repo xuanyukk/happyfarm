@@ -7,6 +7,86 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [4.77.0] - 2026-06-11
+
+### Added
+
+- **📋 项目全面审计文档** — 覆盖文档/后端/前端/数据库/测试/配置六个维度的全面审计，发现 103 个问题（10严重+18高+35中+40低），附完整修复优先级矩阵和分批规划
+  - `.trae\documents\comprehensive-project-audit-plan-v4.77.0.md`
+
+### Fixed — 第一批修复（18项：10严重+8高）
+
+#### P0 运行时错误修复（10项）
+
+- **🔴 [C1] AdminRoute 路由死锁** — `$subscribe` watcher 在认证失败或状态无变化时永久挂起。修复添加 10 秒超时兜底 + 认证失败分支处理
+  - `frontend\src\router.js` v3.2.0→v3.3.0
+
+- **🔴 [C2] playerStore.updateExp 字段名错误** — 更新 `exp` 但 UI 读取 `player_exp`，经验值变化永不显示。修复修正为 `player_exp`
+  - `frontend\src\stores\player.js` v2.1.0→v2.2.0
+
+- **🔴 [C3] WebSocket 心跳定时器泄漏** — `startHeartbeat()` 未先清已有 interval，重连时多个心跳并行。修复添加 `stopHeartbeat()` 前置调用
+  - `frontend\src\services\websocketService.js` v1.1.0→v1.2.0
+
+- **🔴 [C4] farmStore.upgradeLandStar NaN 传播** — `find(...)?.star_level || 0 + 1` 在 `find` 返回 undefined 时等于 `NaN`。修复使用 `??` 链显式默认值
+  - `frontend\src\stores\farm.js` v3.2.0→v3.3.0
+
+- **🔴 [C5] ProtectedRoute 无异常捕获** — 添加 try-catch，`localStorage` 损坏时跳转登录页
+  - `frontend\src\router.js` v3.2.0→v3.3.0
+
+- **🔴 [D1] `admins` 表不存在** — 3 个服务 8 处引用不存在的 `admins` 表。修复全部替换为 `sys_user`
+  - `alertService.js`、`batchService.js`、`configService.js`
+
+- **🔴 [D2] player_currency_log 字段映射错误** — 代码引用 `change_type`/`details`（不存在），Schema 中对应 `source`（无 `details`）。修复对齐 Schema 并补 `balance_before`/`balance_after`
+  - `economyService.js` v1.4.0→v1.5.0
+
+- **🔴 [D3] player_base.premium_currency 字段缺失** — 改为更新 `player_currency.gem_num`
+  - `dailyTaskService.js` v1.1.0→v1.2.0
+
+- **🔴 [D4/D5/D6/D7] itemService 4 处 SQL 字段/表名错误** — `land_id`→`land_num`、`land_quality_level`→`current_quality`、`shop_goods.id`→`goods_id`、`game_activity_log` 字段对齐；Schema 添加 `fertilizer_multiplier`/`last_fertilized_at`
+  - `itemService.js` v2.11.0→v2.12.0
+  - `sql_init\02_schema\15_player_land_status.sql` v2.7.0→v2.8.0
+
+#### P1 安全/并发/配置修复（8项）
+
+- **🔒 [B1-1] authMiddleware 不检查 token type** — refresh_token 可用作 access_token 绕过认证。修复添加 `decoded.type === 'access'` 校验
+  - `authMiddleware.js`
+
+- **🔒 [B2-1] 午夜农夫检测使用客户端时间** — `new Date().getHours()` 改为 `SELECT EXTRACT(HOUR FROM CURRENT_TIMESTAMP)`
+  - `achievementService.js`
+
+- **🔒 [B3-1] claimTaskReward rewards 未 JSON.parse** — 修复显式 parse PostgreSQL JSON 列返回值
+  - `gameEventService.js`
+
+- **🔒 [B4-1] updateTaskProgress 缺少行锁** — 并发进度更新添加 `FOR UPDATE`
+  - `dailyTaskService.js` v1.1.0→v1.2.0
+
+- **🔒 [B5-1] refreshDailyDiscounts 竞态漏洞** — COUNT 检查添加 `FOR UPDATE` 行锁
+  - `dailyDiscountService.js`
+
+- **🔒 [B7-1] rollbackRestore 文件查找 bug** — 模糊 `startsWith` 匹配改为精确文件名追踪（`preRestoreFilename` 存入 `restoreProgress`）
+  - `backupService.js`
+
+- **🔒 [C8] Vue 缺少全局错误处理器** — 添加 `app.config.errorHandler` 捕获组件渲染/生命周期错误
+  - `frontend\src\main.js` v1.6.0→v1.7.0
+
+- **🔒 [E1] EMAIL/SMTP 命名不一致 + 缺失变量** — `config/index.js` 同时兼容 `EMAIL_*` 和 `SMTP_*`；`.env.example` 补充 15 个缺失变量
+  - `backend\src\config\index.js` v2.0.0→v2.1.0
+  - `backend\.env.example`
+
+### Audit Summary
+
+| 维度 | 严重 | 高 | 中 | 低 | 合计 |
+|------|------|-----|-----|-----|------|
+| 文档完整性 | 0 | 1 | 2 | 4 | 7 |
+| 后端代码质量 | 0 | 11 | 22 | 17 | 50 |
+| 前端代码质量 | 4 | 5 | 6 | 5 | 20 |
+| 数据库/SQL一致性 | 6 | 0 | 3 | 13 | 22 |
+| 测试覆盖与配置 | 0 | 1 | 2 | 1 | 4 |
+
+**本批次已修复**：18 项（10严重+8高）| **延后**：B1-2/B1-3/B1-4/C9（4项，需独立规划）
+
+---
+
 ## [4.76.0] - 2026-06-10
 
 ### Fixed

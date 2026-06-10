@@ -1,6 +1,12 @@
-/** * 文件名：BatchOperationsPage.vue * 作者：Trae AI * 日期：2026-05-01 *
-版本：v1.0.0 * 功能描述：批量操作功能页面 * 更新记录： * 2026-05-01 - v1.0.0 -
-完整版本实现 */
+/**
+ * 文件名：BatchOperationsPage.vue
+ * 作者：Trae AI
+ * 日期：2026-05-01
+ * 版本：v1.0.0
+ * 功能描述：批量操作功能页面
+ * 更新记录：
+ * 2026-05-01 - v1.0.0 - 完整版本实现
+ */
 
 <template>
   <div class="batch-operations-page">

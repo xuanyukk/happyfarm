@@ -2,11 +2,12 @@
  * 文件名：achievementService.js
  * 作者：Trae AI
  * 日期：2026-05-13
- * 版本：v2.7.0
+ * 版本：v2.8.0
  * 功能描述：成就服务，处理成就的检查、触发和奖励发放
  * 更新记录：
  *   2026-05-31 - v2.6.0 - 新增checkAndUpdateAchievements别名；新增getUnlockedAchievements函数
  *   2026-05-31 - v2.7.0 - 方案B：新增连击追踪+隐藏成就+收藏成就检测逻辑
+ *   2026-06-09 - v2.8.0 - 时间字段统一：update_time → updated_at
  */
 
 const pool = require('../config/db');
@@ -252,7 +253,7 @@ const completeAchievement = async function (client, playerId, achievement) {
         SET item_num = player_inventory.item_num + 1,
             total_add = player_inventory.total_add + 1,
             last_add_time = CURRENT_TIMESTAMP,
-            update_time = CURRENT_TIMESTAMP
+            updated_at = CURRENT_TIMESTAMP
     `;
     await client.query(rewardItemQuery, [playerId, achievement.reward_item_id]);
   }
@@ -615,8 +616,11 @@ const detectBigSpender = async function (playerId, amount) {
  * @returns {Promise<Object>}
  */
 const detectNightFarmer = async function (playerId) {
-  const now = new Date();
-  const hour = now.getHours();
+  // B2-1修复：使用数据库时间替代客户端本地时间
+  const timeResult = await pool.query(
+    'SELECT EXTRACT(HOUR FROM CURRENT_TIMESTAMP) AS hour'
+  );
+  const hour = parseInt(timeResult.rows[0].hour);
 
   if (hour >= 5) {
     return { isNightTime: false, hour };

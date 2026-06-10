@@ -205,8 +205,12 @@ const backupService = {
       this.restoreProgress.status = 'backing-up-current';
       this.restoreProgress.progress = 10;
 
-      const preRestoreFilename = `pre-restore-backup-${Date.now()}.sql`;
+      // B7-1修复：使用精确时间戳保持文件名一致性
+      const preRestoreTimestamp = Date.now();
+      const preRestoreFilename = `pre-restore-backup-${preRestoreTimestamp}.sql`;
       const preRestorePath = path.join(backupDir, preRestoreFilename);
+      // 将精确文件名存入进度对象，供rollbackRestore使用
+      this.restoreProgress.preRestoreFilename = preRestoreFilename;
 
       logger.info('创建恢复前备份', { preRestoreFilename });
 
@@ -254,7 +258,7 @@ const backupService = {
 
       if (isWindows) {
         await new Promise((resolve, reject) => {
-          const psql = spawn('psql', [databaseUrl, '-f', filePath], {
+          const psql = spawn('psql', [databaseUrl, '-f', preRestorePath], {
             shell: true,
             stdio: ['ignore', 'pipe', 'pipe'],
           });
@@ -277,7 +281,7 @@ const backupService = {
           });
         });
       } else {
-        const command = `psql "${databaseUrl}" -f "${filePath}"`;
+        const command = `psql "${databaseUrl}" -f "${preRestorePath}"`;
         await execPromise(command);
       }
 
@@ -321,19 +325,16 @@ const backupService = {
       }
 
       const backupDir = this.getBackupDir();
-      const preRestoreFilename = `pre-restore-backup-${this.restoreProgress.startTime.getTime()}.sql`;
+      // B7-1修复：使用恢复时记录的精确文件名，而非模糊匹配
+      const preRestoreFilename = this.restoreProgress.preRestoreFilename
+        || `pre-restore-backup-${this.restoreProgress.startTime.getTime()}.sql`;
       const preRestorePath = path.join(backupDir, preRestoreFilename);
 
-      const files = fs.readdirSync(backupDir);
-      const actualFile = files.find((f) => f.startsWith('pre-restore-backup-'));
-
-      if (!actualFile || !fs.existsSync(path.join(backupDir, actualFile))) {
-        throw new Error('回滚备份文件不存在');
+      if (!fs.existsSync(preRestorePath)) {
+        throw new Error('回滚备份文件不存在: ' + preRestoreFilename);
       }
 
-      const filePath = path.join(backupDir, actualFile);
-
-      logger.info('开始回滚恢复操作', { backupFile: actualFile });
+      logger.info('开始回滚恢复操作', { backupFile: preRestoreFilename });
 
       const databaseUrl = process.env.DATABASE_URL;
       if (!databaseUrl) {
