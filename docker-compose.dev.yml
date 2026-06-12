@@ -1,9 +1,10 @@
 # 文件名：docker-compose.dev.yml
 # 作者：DevOps团队
 # 日期：2026-05-09
-# 版本：v1.0.0
+# 版本：v1.1.0
 # 功能描述：开心农场开发环境Docker Compose配置
 # 更新记录：
+#   2026-06-13 - v1.1.0 - 修复数据库初始化挂载路径，统一使用sql_init目录挂载，解决docker_init.sql中\i路径不匹配导致数据不可见的问题
 #   2026-05-09 - v1.0.0 - 初始版本创建
 
 version: '3.8'
@@ -21,11 +22,10 @@ services:
       - "5432:5432"
     volumes:
       - postgres_dev_data:/var/lib/postgresql/data
-      # 只挂载docker_init.sql和需要的子目录，避免执行其他.sql文件
-      - ./sql_init/docker_init.sql:/docker-entrypoint-initdb.d/docker_init.sql
-      - ./sql_init/02_schema:/docker-entrypoint-initdb.d/02_schema
-      - ./sql_init/03_data:/docker-entrypoint-initdb.d/03_data
-      - ./sql_init/04_extensions:/docker-entrypoint-initdb.d/04_extensions
+      # 挂载整个sql_init目录，与生产环境保持一致
+      - ./sql_init:/docker-entrypoint-initdb.d/sql_init
+      # docker_init.sql作为入口脚本，重命名为01-确保最先执行
+      - ./sql_init/docker_init.sql:/docker-entrypoint-initdb.d/01-docker-init.sql
     networks:
       - happy-farm-dev-network
     healthcheck:

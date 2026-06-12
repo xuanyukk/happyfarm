@@ -2,13 +2,14 @@
  * 文件名：authService.js
  * 作者：开发者
  * 日期：2026-03-18
- * 版本：v1.3.0
+ * 版本：v1.4.0
  * 功能描述：认证服务——注册、登录、Token刷新、密码重置
  * 更新记录：
  *   2026-03-18 - v1.2.0 - 初始版本
  *   2026-03-22 - v1.2.1 - 统一文件头注释格式
  *   2026-06-08 - v1.3.0 - 统一使用storage包装器替代原生localStorage，
  *                         添加旧Token自动迁移逻辑，消除存储层不一致
+ *   2026-06-11 - v1.4.0 - API_URL改为读取环境变量VITE_API_URL，保持与request.js一致
  */
 
 import axios from 'axios';
@@ -16,7 +17,7 @@ import { storage } from '../utils/localStorage';
 import logger from './logger';
 import wsService from './websocketService';
 
-const API_URL = '/api';
+const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 let isRefreshing = false;
 let refreshSubscribers = [];

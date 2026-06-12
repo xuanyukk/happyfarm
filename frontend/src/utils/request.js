@@ -2,13 +2,14 @@
  * 文件名：frontend/src/utils/request.js
  * 作者：AI助手
  * 日期：2026-04-26
- * 版本：v2.3.0
+ * 版本：v2.4.0
  * 功能描述：统一请求工具类——基于axios封装，含Token自动刷新和请求取消机制
  * 更新记录：
  *   2026-04-26 - v2.0.0 - 初始创建
  *   2026-05-28 - v2.1.0 - 改用storage封装代替原生localStorage、统一错误处理
  *   2026-06-05 - v2.2.0 - 添加 AbortController 请求取消机制，防止页面切换时内存泄漏
  *   2026-06-09 - v2.3.0 - Token刷新增加isRefreshing队列保护，防止并发401重复刷新
+ *   2026-06-11 - v2.4.0 - 修复环境变量名：VITE_API_BASE_URL → VITE_API_URL，与.env配置一致
  */
 
 import axios from 'axios';
@@ -85,7 +86,7 @@ export const cancelAllRequests = () => {
 };
 
 const request = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
+  baseURL: import.meta.env.VITE_API_URL || '/api',
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
